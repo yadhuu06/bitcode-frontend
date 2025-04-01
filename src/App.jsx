@@ -2,9 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import NET from 'vanta/dist/vanta.net.min';
 
-const RegistrationPage = () => {
+// Define your API base URL
+const API_BASE_URL = 'http://localhost:8000';
+
+const AuthPage = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const myRef = useRef(null);
   const [vantaEffect, setVantaEffect] = useState(null);
@@ -78,157 +87,311 @@ const RegistrationPage = () => {
       if (vantaEffect) vantaEffect.destroy();
     };
   }, [vantaEffect]);
-  
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(String(email).toLowerCase());
-  };
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.toLowerCase());
 
-  const handleSubmit = async (e) => {
+  // Updated API calls with full URLs
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
-    if (!email) {
-      setError('Email is required');
-      setIsLoading(false);
-      return;
+    try {
+        console.log('Making login request to:', `${API_BASE_URL}/api/auth/login/`);
+        
+        const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include' // Include cookies if needed
+        });
+        
+        console.log('Login response status:', response.status);
+        
+        // Handle potential empty response
+        const text = await response.text();
+        console.log('Response text:', text);
+        
+        // Only parse as JSON if there's content
+        const data = text ? JSON.parse(text) : {};
+        
+        if (!response.ok) throw new Error(data.error || 'Login failed');
+        
+        // Store tokens
+        if (data.access && data.refresh) {
+            localStorage.setItem('access_token', data.access);
+            localStorage.setItem('refresh_token', data.refresh);
+            setSuccess('Login successful!');
+            console.log('Login successful', data);
+        } else {
+            throw new Error('Invalid response from server');
+        }
+    } catch (err) {
+        console.error('Login error:', err);
+        setError(err.message || 'Something went wrong');
+    } finally {
+        setIsLoading(false);
     }
+  };
 
+  const handleStep1 = async (e) => {
+    e.preventDefault();
     if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
-      setIsLoading(false);
+      setError('Please enter a valid email');
       return;
     }
+    setError('');
+    setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register/', {
+      console.log('Attempting to send OTP to:', email);
+      console.log('Making request to:', `${API_BASE_URL}/api/auth/otp/generate/`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/otp/generate/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email }),
+        credentials: 'include' // Include cookies if needed
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      const responseData = await response.json();
-      console.log('Registration successful', responseData);
-      // Handle successful registration - redirect or show success message
+      
+      console.log('OTP generation response status:', response.status);
+      
+      // Handle potential empty response
+      const text = await response.text();
+      console.log('Response text:', text);
+      
+      // Only parse as JSON if there's content
+      const data = text ? JSON.parse(text) : {};
+      
+      if (!response.ok) throw new Error(data.error || 'Failed to send OTP');
+      setStep(2);
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      console.error('OTP generation error:', err);
+      setError(err.message || 'Failed to send OTP');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleStep2 = async (e) => {
+    e.preventDefault();
+    if (!otp || otp.length !== 6) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
+    setError('');
+    setIsLoading(true);
+
+    try {
+      console.log('Verifying OTP for:', email);
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/otp/verify/`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email, otp }),
+        credentials: 'include' // Include cookies if needed
+      });
+      
+      console.log('OTP verification response status:', response.status);
+      
+      // Handle potential empty response
+      const text = await response.text();
+      console.log('Response text:', text);
+      
+      // Only parse as JSON if there's content
+      const data = text ? JSON.parse(text) : {};
+      
+      if (!response.ok) throw new Error(data.error || 'OTP verification failed');
+      setStep(3);
+    } catch (err) {
+      console.error('OTP verification error:', err);
+      setError(err.message || 'OTP verification failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStep3 = async (e) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+    }
+    if (password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
+    }
+    setError('');
+    setIsLoading(true);
+
+    try {
+        console.log('Completing registration for:', email);
+        
+        const response = await fetch(`${API_BASE_URL}/api/auth/register/complete/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, username: email.split('@')[0], password }),
+            credentials: 'include' // Include cookies if needed
+        });
+        
+        console.log('Registration response status:', response.status);
+        
+        // Handle potential empty response
+        const text = await response.text();
+        console.log('Response text:', text);
+        
+        // Only parse as JSON if there's content
+        const data = text ? JSON.parse(text) : {};
+        
+        if (!response.ok) throw new Error(data.error || 'Registration failed');
+        
+        if (data.access && data.refresh) {
+            localStorage.setItem('access_token', data.access);
+            localStorage.setItem('refresh_token', data.refresh);
+            setSuccess('Registration successful! Redirecting...');
+            setIsLogin(true);
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
+            setOtp('');
+            setStep(1);
+            // Redirect to dashboard or home
+            // window.location.href = '/dashboard';
+        } else {
+            throw new Error('Invalid response from server');
+        }
+    } catch (err) {
+        console.error('Registration error:', err);
+        setError(err.message || 'Registration failed');
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  // UI part (unchanged)
   return (
     <div className="min-h-screen flex items-center justify-center relative">
-      {/* Semi-transparent overlay for reduced opacity */}
-      <div 
-        style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          width: '100%', 
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.08)', // Light black overlay
-          zIndex: 1 
-        }}
-      />
-      
-      {/* Vanta.js background div */}
-      <div 
-        ref={myRef} 
-        style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          width: '100%', 
-          height: '100%',
-          zIndex: 0 
-        }}
-      />
-
-      {/* Header with custom-styled logo and login link */}
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.08)', zIndex: 1 }} />
+      <div ref={myRef} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }} />
       <div className="absolute top-0 w-full p-4 flex justify-between items-center z-20">
         <div className="text-left flex items-center">
           <h1 className="text-2xl font-bold">
-            <span className="text-white">&lt;</span>
-            <span className="text-white">Bit</span>
+            <span className="text-white">{'<'}</span>
+            <span className="text-white">Bit </span>
             <span className="text-green-500">Code</span>
-            <span className="text-white">&gt;</span>
+            <span className="text-white">{'>'}</span>
+            <div className="text-xs text-green-500 ml-2">01010101</div>
           </h1>
-          <div className="text-xs text-green-500 ml-2">01010101</div>
         </div>
-        <a href="#" className="text-white hover:text-green-500 transition-colors">Login</a>
+        <button onClick={() => setIsLogin(!isLogin)} className="text-white hover:text-green-500 transition-colors">
+          {isLogin ? 'Register' : 'Login'}
+        </button>
       </div>
 
-      {/* Registration Form */}
       <div className="relative z-10 w-full max-w-md p-8 space-y-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <h2 className="text-2xl font-semibold text-white">Create an account</h2>
-          <p className="text-gray-400">Enter your email below to create your account.</p>
+        {success && <div className="text-green-500 text-sm">{success}</div>}
 
-          <div>
-            <input 
+        {isLogin ? (
+          <form onSubmit={handleLogin} className="space-y-6">
+            <h2 className="text-2xl font-semibold text-white">Login</h2>
+            <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-          </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            {error && <div className="text-red-500 text-sm">{error}</div>}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-green-500 hover:text-white transition-colors duration-300"
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={step === 1 ? handleStep1 : step === 2 ? handleStep2 : handleStep3} className="space-y-6">
+            <h2 className="text-2xl font-semibold text-white">Register - Step {step} of 3</h2>
+            
+            {step === 1 && (
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            )}
+            
+            {step === 2 && (
+              <>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleStep1}
+                  className="text-sm text-gray-400 hover:text-green-500"
+                >
+                  Resend OTP
+                </button>
+              </>
+            )}
+            
+            {step === 3 && (
+              <>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </>
+            )}
 
-          {error && (
-            <div className="text-red-500 text-sm">
-              {error}
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-green-500 hover:text-white transition-colors duration-300 flex items-center justify-center"
-          >
-            {isLoading ? 'Signing in...' : 'Sign in with Email'}
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-black text-gray-500">
-                OR CONTINUE WITH
-              </span>
-            </div>
-          </div>
-
-          <button 
-            type="button"
-            className="w-full px-4 py-2 border border-gray-700 rounded-md text-white hover:bg-gray-800 transition-colors duration-300 flex items-center justify-center"
-          >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.75h3.57c2.09-1.73 3.28-4.3 3.28-7.37z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-1 7.28-2.69l-3.57-2.75c-.99.67-2.26 1.07-3.71 1.07-2.87 0-5.3-1.94-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.67-.35-1.39-.35-2.09s.13-1.42.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.66-2.84z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.46 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.86-2.59 3.29-4.53 6.16-4.53z"/>
-            </svg>
-            Google
-          </button>
-
-          <div className="text-center text-sm text-gray-500">
-            By clicking continue, you agree to our{' '}
-            <a href="#" className="underline hover:text-green-500 transition-colors">Terms of Service</a>{' '}
-            and{' '}
-            <a href="#" className="underline hover:text-green-500 transition-colors">Privacy Policy</a>
-          </div>
-        </form>
+            {error && <div className="text-red-500 text-sm">{error}</div>}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-green-500 hover:text-white transition-colors duration-300"
+            >
+              {isLoading ? 'Processing...' : step === 3 ? 'Complete Registration' : 'Next'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
 };
 
-export default RegistrationPage;
+export default AuthPage;

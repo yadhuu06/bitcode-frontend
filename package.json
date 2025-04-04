@@ -13,9 +13,10 @@
     "@fontsource/jetbrains-mono": "^5.2.5",
     "@tailwindcss/vite": "^4.0.17",
     "axios": "^1.8.4",
+    "lucide-react": "^0.487.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.4.0",
+    "react-router-dom": "^7.4.1",
     "tailwindcss": "^4.0.17",
     "three": "^0.150.1",
     "vanta": "^0.5.24"

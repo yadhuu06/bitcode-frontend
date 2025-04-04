@@ -1,1 +1,11 @@
 @import "tailwindcss";
+body, html, #root {
+    font-family: 'Fira Code', monospace;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Optional: Ensure all elements inherit the font */
+  * {
+    font-family: inherit;
+  }

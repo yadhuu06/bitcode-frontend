@@ -72,11 +72,10 @@ const AuthPage = () => {
     const refreshToken = query.get('refresh_token');
     const email = query.get('email');
     const username = query.get('username');
-
+  
     if (accessToken && refreshToken) {
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
-      // Assume role is sent or infer from backend; here we check via API if needed
       setIsLoading(true);
       fetch(`${API_BASE_URL}/api/auth/profile/`, {
         headers: {
@@ -87,9 +86,10 @@ const AuthPage = () => {
         .then((res) => res.json())
         .then((data) => {
           const role = data.is_superuser ? 'admin' : 'user';
+          localStorage.setItem('role', role); // Store the role
           setSuccess('Google login successful!');
           localStorage.removeItem('authPageState');
-          
+          navigate(role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
         })
         .catch((err) => {
           console.error('Profile fetch error:', err);
@@ -167,10 +167,10 @@ const AuthPage = () => {
     e.preventDefault();
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) return setError(emailValidation.error);
-
+  
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) return setError(passwordValidation.error);
-
+  
     setError('');
     setIsLoading(true);
     try {
@@ -181,12 +181,13 @@ const AuthPage = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Login failed');
-
+  
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem('role', data.role); 
       setSuccess('Login successful!');
       localStorage.removeItem('authPageState');
-      navigate(data.role === 'admin' ? '/dashboard/admin' : '/dashboard/user');
+      navigate(data.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
     } catch (err) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -354,6 +355,7 @@ const AuthPage = () => {
 
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem('role', data.role);
       setSuccess('Registration successful!');
       localStorage.removeItem('authPageState');
       setIsLogin(true);

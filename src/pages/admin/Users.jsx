@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
 
-BaseUrl='http://127.0.0.1:8000/'
+const BaseUrl='http://127.0.0.1:8000/'
 const Users = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch users from backend (example API call)
   useEffect(() => {
     const fetchUsers = async () => { 
       try {

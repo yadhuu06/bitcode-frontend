@@ -18,27 +18,47 @@ const Sidebar = ({ onCollapseChange }) => {
   const handleToggle = () => {
     setIsCollapsed(prev => !prev);
     if (onCollapseChange) {
-      onCollapseChange(!isCollapsed); // Notify parent of state change
+      onCollapseChange(!isCollapsed); 
     }
   };
 
   const handleLogout = async () => {
+    const accessToken = localStorage.getItem('access_token');
+    console.log('Access Token:', accessToken);
+  
+    if (!accessToken) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('role'); // Clear role
+      localStorage.removeItem('authPageState');
+      navigate('/');
+      return;
+    }
+  
     try {
-      await fetch('http://your-backend-api/logout', {
+      const response = await fetch('http://127.0.0.1:8000/api/auth/logout/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
       });
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('authPageState');
-      navigate('/');
+  
+      if (response.ok) {
+        console.log('Logout successful');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('role'); // Clear role
+        localStorage.removeItem('authPageState');
+        navigate('/');
+      } else {
+        throw new Error('Logout failed');
+      }
     } catch (error) {
       console.error('Logout error:', error);
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+      localStorage.removeItem('role'); // Clear role
       localStorage.removeItem('authPageState');
       navigate('/');
     }

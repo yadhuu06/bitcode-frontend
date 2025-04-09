@@ -1,52 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const Problems = () => {
-  // Sample problem data
-  const [problems] = useState([
+const Rooms = () => {
+  // Sample room data (can be replaced with WebSocket/API data)
+  const [rooms, setRooms] = useState([
     {
       id: 1,
-      title: 'Binary Search Implementation',
-      description: 'Implement a binary search algorithm to efficiently find elements in a sorted array.',
+      name: 'Binary Battle Royale',
+      participants: 5,
+      maxParticipants: 10,
+      status: 'Active',
       difficulty: 'Easy',
-      tags: ['algorithms', 'search', 'array'],
-      successRate: '65%',
-      status: 'Solved',
+      tags: ['algorithms', 'binary search'],
+      startTime: '2025-04-09 14:00',
     },
     {
       id: 2,
-      title: 'Matrix Path Finder',
-      description: 'Find the shortest path through a matrix of 1s and 0s, where 0s are walls and 1s are valid paths.',
+      name: 'Matrix Marathon',
+      participants: 3,
+      maxParticipants: 8,
+      status: 'Pending',
       difficulty: 'Medium',
-      tags: ['algorithms', 'graph', 'bfs'],
-      successRate: '47%',
-      status: 'Attempted',
+      tags: ['graph', 'bfs'],
+      startTime: '2025-04-09 15:30',
     },
     {
       id: 3,
-      title: 'Dynamic Programming - Coin Change',
-      description: 'Find the minimum number of coins required to make a given amount of change.',
+      name: 'DP Duel',
+      participants: 7,
+      maxParticipants: 12,
+      status: 'Active',
       difficulty: 'Medium',
-      tags: ['dynamic programming', 'array'],
-      successRate: '38%',
-      status: 'Unsolved',
+      tags: ['dynamic programming'],
+      startTime: '2025-04-09 16:00',
     },
     {
       id: 4,
-      title: 'Balanced Binary Tree',
-      description: 'Determine if a given binary tree is height-balanced.',
+      name: 'Tree Challenge',
+      participants: 2,
+      maxParticipants: 6,
+      status: 'Pending',
       difficulty: 'Easy',
-      tags: ['tree', 'dfs', 'recursion'],
-      successRate: '58%',
-      status: 'Solved',
+      tags: ['tree', 'dfs'],
+      startTime: '2025-04-09 17:00',
     },
     {
       id: 5,
-      title: 'LRU Cache Implementation',
-      description: 'Design and implement a data structure for Least Recently Used (LRU) cache.',
+      name: 'LRU Showdown',
+      participants: 4,
+      maxParticipants: 10,
+      status: 'Active',
       difficulty: 'Hard',
-      tags: ['design', 'hash table', 'linked list'],
-      successRate: '29%',
-      status: 'Unsolved',
+      tags: ['design', 'hash table'],
+      startTime: '2025-04-09 18:00',
     },
   ]);
 
@@ -55,28 +60,40 @@ const Problems = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter problems based on difficulty, status, and search
-  const filteredProblems = problems.filter((problem) => {
-    const matchesDifficulty = !difficultyFilter || problem.difficulty === difficultyFilter;
-    const matchesStatus = !statusFilter || problem.status === statusFilter;
-    const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Filter rooms based on difficulty, status, and search
+  const filteredRooms = rooms.filter((room) => {
+    const matchesDifficulty = !difficultyFilter || room.difficulty === difficultyFilter;
+    const matchesStatus = !statusFilter || room.status === statusFilter;
+    const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         room.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesDifficulty && matchesStatus && matchesSearch;
   });
+
+  // Simulate real-time updates (replace with WebSocket logic)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRooms(prevRooms =>
+        prevRooms.map(room => ({
+          ...room,
+          participants: room.participants + (Math.random() > 0.7 ? 1 : 0) % (room.maxParticipants + 1),
+        })).filter(room => room.participants <= room.maxParticipants)
+      );
+    }, 5000); // Update every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-24 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500 scrollbar-track-gray-800">
       {/* Main Content */}
       <div className="max-w-screen-2xl mx-auto ml-75 mr-75 px-0 py-8">
         {/* Header */}
-        <h1 className="text-2xl text-green-500 mb-8">Problems</h1>
+        <h1 className="text-2xl text-green-500 mb-8">Rooms</h1>
 
         {/* Search and Filter */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
           <input
             type="text"
-            placeholder="Search problems by name, description, or tags..."
+            placeholder="Search rooms by name or tags..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full md:w-2/3 p-3 bg-gray-800/60 border border-transparent rounded text-white placeholder-white focus:border-green-500 focus:outline-none transition-all duration-300"
@@ -93,7 +110,7 @@ const Problems = () => {
           </select>
         </div>
 
-        {/* Filters and Problem List */}
+        {/* Filters and Room List */}
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <div className="w-full lg:w-1/5 bg-gray-800/60 p-5 rounded-lg border-2 border-green-500 shadow-[0_0_8px_#00ff00]">
@@ -139,50 +156,39 @@ const Problems = () => {
                 <input
                   type="radio"
                   name="status"
-                  value="Solved"
-                  checked={statusFilter === 'Solved'}
-                  onChange={() => setStatusFilter('Solved')}
+                  value="Active"
+                  checked={statusFilter === 'Active'}
+                  onChange={() => setStatusFilter('Active')}
                   className="text-green-500 focus:ring-green-500"
                 />
-                <span className="text-green-500">Solved</span>
+                <span className="text-green-500">Active</span>
               </label>
               <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
                 <input
                   type="radio"
                   name="status"
-                  value="Attempted"
-                  checked={statusFilter === 'Attempted'}
-                  onChange={() => setStatusFilter('Attempted')}
+                  value="Pending"
+                  checked={statusFilter === 'Pending'}
+                  onChange={() => setStatusFilter('Pending')}
                   className="text-green-500 focus:ring-green-500"
                 />
-                <span className="text-yellow-500">Attempted</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="status"
-                  value="Unsolved"
-                  checked={statusFilter === 'Unsolved'}
-                  onChange={() => setStatusFilter('Unsolved')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-gray-400">Unsolved</span>
+                <span className="text-yellow-500">Pending</span>
               </label>
             </div>
           </div>
 
-          {/* Problem List */}
+          {/* Room List */}
           <div className="w-full lg:w-4/5">
-            {filteredProblems.map((problem) => (
+            {filteredRooms.map((room) => (
               <div
-                key={problem.id}
-                className="bg-gray-900/80 p-5 mb-6 rounded-lg border-2 border-green-500 hover:border-transparent hover:shadow-[0_0_8px_#00ff00] transition-all duration-300 flex justify-between items-start"
+                key={room.id}
+                className="bg-gray-900/80 p-5 mb-6 rounded-lg border-2 border-green-500 hover:border-transparent hover:shadow-[0_0_8px_#00ff00] transition-all duration-300 flex justify-between items-center"
               >
                 <div>
-                  <h3 className="text-lg font-bold text-white">{problem.title}</h3>
-                  <p className="text-gray-400 text-sm">{problem.description}</p>
+                  <h3 className="text-lg font-bold text-white">{room.name}</h3>
+                  <p className="text-gray-400 text-sm">Starts: {new Date(room.startTime).toLocaleString()}</p>
                   <div className="flex flex-wrap gap-3 mt-3">
-                    {problem.tags.map((tag, index) => (
+                    {room.tags.map((tag, index) => (
                       <span
                         key={index}
                         className="px-3 py-1 rounded-full bg-transparent border border-white text-white text-xs shadow-[0_0_2px_#ffffff]"
@@ -191,23 +197,39 @@ const Problems = () => {
                       </span>
                     ))}
                   </div>
+                  <p className="text-gray-400 text-sm mt-2">
+                    {room.participants}/{room.maxParticipants} Participants
+                  </p>
                 </div>
                 <div className="text-right">
                   <span
                     className={`px-2 py-1 rounded ${
-                      problem.difficulty === 'Easy' ? 'bg-green-500 text-black' :
-                      problem.difficulty === 'Medium' ? 'bg-yellow-500 text-black' :
+                      room.difficulty === 'Easy' ? 'bg-green-500 text-black' :
+                      room.difficulty === 'Medium' ? 'bg-yellow-500 text-black' :
                       'bg-red-500 text-white'
                     }`}
                   >
-                    {problem.difficulty}
+                    {room.difficulty}
                   </span>
-                  <p className="text-gray-400 text-sm mt-3">Success Rate: {problem.successRate}</p>
+                  <span
+                    className={`px-2 py-1 rounded ml-2 ${
+                      room.status === 'Active' ? 'bg-green-500 text-black' :
+                      'bg-yellow-500 text-black'
+                    }`}
+                  >
+                    {room.status}
+                  </span>
+                  <button
+                    className="mt-3 px-4 py-2 bg-green-500 text-black rounded hover:bg-green-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    onClick={() => alert(`Joining room: ${room.name}`)} // Replace with actual join logic
+                  >
+                    Join
+                  </button>
                 </div>
               </div>
             ))}
-            {filteredProblems.length === 0 && (
-              <p className="text-gray-400 text-center">No problems found.</p>
+            {filteredRooms.length === 0 && (
+              <p className="text-gray-400 text-center">No rooms found.</p>
             )}
           </div>
         </div>
@@ -234,4 +256,4 @@ const Problems = () => {
   );
 };
 
-export default Problems;
+export default Rooms;

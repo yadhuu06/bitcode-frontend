@@ -1,85 +1,155 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
+import { Eye } from 'lucide-react';
 
-const BaseUrl='http://127.0.0.1:8000/'
+const BaseUrl = 'http://127.0.0.1:8000/';
+
 const Users = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchUsers = async () => { 
+    const fetchUsers = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('No access token found');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch('{BaseUrl}', {
+        const response = await fetch(`${BaseUrl}admin-panel/users_list/`, {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         });
-        if (!response.ok) throw new Error('Failed to fetch users');
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch users: ${errorText}`);
+        }
+
         const data = await response.json();
-        setUsers(data);
+        setUsers(data.users || []); 
         setLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);
+        setError(error.message);
         setLoading(false);
       }
     };
+
     fetchUsers();
   }, []);
+
+  const handleToggleBlock = async (userId, isBlocked) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${BaseUrl}admin-panel/users/toggle-block/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ user_id: userId }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to toggle block: ${errorText}`);
+      }
+
+      const data = await response.json();
+      setUsers(users.map(user =>
+        user.id === userId ? { ...user, is_blocked: !isBlocked } : user
+      ));
+      console.log(data.message);
+    } catch (error) {
+      console.error('Error toggling block status:', error);
+      setError(error.message);
+    }
+  };
 
   const handleCollapseChange = (collapsed) => {
     setIsSidebarCollapsed(collapsed);
   };
 
+  const handleViewDetails = (userId) => {
+    console.log(`Viewing details for user ${userId}`);
+    // Navigate to user details page or open a modal
+  };
+
   return (
-    <div style={{ backgroundColor: '#000000', color: 'white', minHeight: '100vh' }}>
+    <div className="min-h-screen bg-black text-white">
       <Sidebar onCollapseChange={handleCollapseChange} />
       <div
-        style={{
-          marginLeft: isSidebarCollapsed ? '4rem' : '16rem',
-          padding: '2rem',
-          height: '100%',
-          transition: 'margin-left 0.3s',
-          backgroundColor: '#000000',
-        }}
+        className={`transition-all duration-300 ${
+          isSidebarCollapsed ? 'ml-16' : 'ml-64'
+        } p-8`}
       >
-        <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>User Listing</h1>
+        <h1 className="text-2xl font-bold mb-6 text-white">User Management</h1>
+        
         {loading ? (
-          <p>Loading users...</p>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-900 bg-opacity-20 rounded-md text-red-400">
+            {error}
+          </div>
+        ) : users.length === 0 ? (
+          <div className="p-4 bg-gray-800 rounded-md">No users found.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                backgroundColor: '#1a1a1a',
-                color: 'white',
-              }}
-            >
+          <div className="overflow-x-auto rounded-lg shadow-md">
+            <table className="w-full bg-gray-900 text-white">
               <thead>
-                <tr>
-                  <th style={tableHeaderStyle}>ID</th>
-                  <th style={tableHeaderStyle}>Username</th>
-                  <th style={tableHeaderStyle}>Email</th>
-                  <th style={tableHeaderStyle}>Role</th>
-                  <th style={tableHeaderStyle}>Actions</th>
+                <tr className="text-left border-b border-gray-700">
+                  <th className="p-4 font-mono font-medium">ID</th>
+                  <th className="p-4 font-mono font-medium">Username</th>
+                  <th className="p-4 font-mono font-medium">Email</th>
+                  <th className="p-4 font-mono font-medium">Blocked</th>
+                  <th className="p-4 font-mono font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} style={tableRowStyle}>
-                    <td style={tableCellStyle}>{user.id}</td>
-                    <td style={tableCellStyle}>{user.username}</td>
-                    <td style={tableCellStyle}>{user.email}</td>
-                    <td style={tableCellStyle}>{user.role}</td>
-                    <td style={tableCellStyle}>
-                      <button
-                        style={actionButtonStyle}
-                        onMouseOver={(e) => (e.target.style.boxShadow = '0 0 10px rgba(115, 230, 0, 0.3)')}
-                        onMouseOut={(e) => (e.target.style.boxShadow = 'none')}
-                      >
-                        Edit
-                      </button>
+                {users.map((user, index) => (
+                  <tr 
+                    key={user.id} 
+                    className={`border-b border-gray-800 hover:bg-gray-800 transition-colors ${
+                      index % 2 === 0 ? 'bg-gray-900' : 'bg-gray-950'
+                    }`}
+                  >
+                    <td className="p-4 font-mono">{user.id}</td>
+                    <td className="p-4 font-mono">{user.username || 'N/A'}</td>
+                    <td className="p-4 font-mono">{user.email}</td>
+                    <td className="p-4 font-mono">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer"
+                          checked={!user.is_blocked}
+                          onChange={() => handleToggleBlock(user.id, user.is_blocked)}
+                        />
+                        <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                      </label>
+                    </td>
+                    <td className="p-4 font-mono">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleViewDetails(user.id)}
+                          className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors text-white group relative"
+                          aria-label="View Details"
+                        >
+                          <Eye size={18} />
+                          <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            View Details
+                          </span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -90,33 +160,6 @@ const Users = () => {
       </div>
     </div>
   );
-};
-
-const tableHeaderStyle = {
-  padding: '1rem',
-  textAlign: 'left',
-  borderBottom: '2px solid #73E600',
-  fontFamily: "'Fira Code', monospace",
-};
-
-const tableRowStyle = {
-  borderBottom: '1px solid #333',
-};
-
-const tableCellStyle = {
-  padding: '1rem',
-  fontFamily: "'Fira Code', monospace",
-};
-
-const actionButtonStyle = {
-  backgroundColor: '#73E600',
-  color: '#000000',
-  border: 'none',
-  padding: '0.5rem 1rem',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  transition: 'box-shadow 0.3s',
-  fontFamily: "'Fira Code', monospace",
 };
 
 export default Users;

@@ -17,10 +17,9 @@ const UserNavbar = () => {
         {/* Logo */}
         <div className="text-2xl font-bold flex items-center h-full">
           <NavLink to="/user/dashboard" className="flex items-center h-full">
-            <span className="text-white">{'<'}</span>
-            <span className="text-white">Bit </span>
-            <span className="text-green-500">Code</span>
-            <span className="text-white">{'>'}</span>
+            
+            <span className="text-green-500">{'</>'}</span>
+            <span className="text-white">BitCode</span>
           </NavLink>
         </div>
 

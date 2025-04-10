@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
 import { Eye } from 'lucide-react';
 
-const BaseUrl = 'http://127.0.0.1:8000/';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const FRONTEND_BASE_URL = import.meta.env.VITE_FRONTEND_BASE_URL;
+
 
 const Users = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

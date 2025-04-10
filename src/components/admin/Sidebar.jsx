@@ -29,7 +29,7 @@ const Sidebar = ({ onCollapseChange }) => {
     if (!accessToken) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      localStorage.removeItem('role'); // Clear role
+      localStorage.removeItem('role');
       localStorage.removeItem('authPageState');
       navigate('/');
       return;
@@ -48,7 +48,7 @@ const Sidebar = ({ onCollapseChange }) => {
         console.log('Logout successful');
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        localStorage.removeItem('role'); // Clear role
+        localStorage.removeItem('role'); 
         localStorage.removeItem('authPageState');
         navigate('/');
       } else {
@@ -58,7 +58,7 @@ const Sidebar = ({ onCollapseChange }) => {
       console.error('Logout error:', error);
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      localStorage.removeItem('role'); // Clear role
+      localStorage.removeItem('role'); 
       localStorage.removeItem('authPageState');
       navigate('/');
     }

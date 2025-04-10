@@ -55,7 +55,6 @@ const Problems = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter problems based on difficulty, status, and search
   const filteredProblems = problems.filter((problem) => {
     const matchesDifficulty = !difficultyFilter || problem.difficulty === difficultyFilter;
     const matchesStatus = !statusFilter || problem.status === statusFilter;

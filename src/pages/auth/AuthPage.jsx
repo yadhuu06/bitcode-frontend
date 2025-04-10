@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import * as THREE from "three";
 import NET from "vanta/dist/vanta.net.min";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const FRONTEND_BASE_URL = import.meta.env.VITE_FRONTEND_BASE_URL;
@@ -28,8 +30,6 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(savedState?.timeRemaining ?? 60);
   const [otpSent, setOtpSent] = useState(savedState?.otpSent ?? false);
@@ -60,28 +60,32 @@ const AuthPage = () => {
       clearInterval(timerRef.current);
     }
   }, [isLogin]);
-// In AuthPage.jsx - Modify the useEffect that handles URL parameters
-useEffect(() => {
-  const query = new URLSearchParams(location.search);
-  const accessToken = query.get("access_token");
-  const refreshToken = query.get("refresh_token");
-  
 
-  if (accessToken && refreshToken) {
-    localStorage.setItem("access_token", accessToken);
-    localStorage.setItem("refresh_token", refreshToken);
-    
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const accessToken = query.get("access_token");
+    const refreshToken = query.get("refresh_token");
 
-    localStorage.setItem("role", role);
-    
-    setSuccess("Google login successful!");
-    localStorage.removeItem("authPageState");
-    
+    if (accessToken && refreshToken) {
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", refreshToken);
+      const role = query.get("role") || "user"; // Assuming role might come from query or default to 'user'
+      localStorage.setItem("role", role);
 
-    const path = location.pathname || '/user/dashboard';
-    navigate(path);
-  }
-}, [location, navigate]);
+      if (role === "admin") {
+        toast.info("You are an admin, please login as admin."); // Show admin message
+        localStorage.removeItem("access_token"); // Optionally clear tokens
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("role");
+      } else {
+        toast.success("Google login successful!");
+        localStorage.removeItem("authPageState");
+        const path = location.pathname || "/user/dashboard";
+        navigate(path);
+      }
+    }
+  }, [location, navigate]);
+
   const validateEmail = (email) => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return { isValid: false, error: "Email cannot be empty" };
@@ -120,12 +124,11 @@ useEffect(() => {
   const handleLogin = async (e) => {
     e.preventDefault();
     const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) return setError(emailValidation.error);
+    if (!emailValidation.isValid) return toast.error(emailValidation.error);
 
     const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) return setError(passwordValidation.error);
+    if (!passwordValidation.isValid) return toast.error(passwordValidation.error);
 
-    setError("");
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
@@ -139,15 +142,22 @@ useEffect(() => {
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
       localStorage.setItem("role", data.role);
-      setSuccess("Login successful!");
-      localStorage.removeItem("authPageState");
 
-      const redirectUrl = data.redirect_url.startsWith("http")
-        ? new URL(data.redirect_url).pathname 
-        : data.redirect_url;
-      navigate(redirectUrl);
+      if (data.role === "admin") {
+        toast.info("You are an admin, please login as admin."); // Show admin message
+        localStorage.removeItem("access_token"); // Clear tokens to prevent unauthorized access
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("role");
+      } else {
+        toast.success("Login successful!");
+        localStorage.removeItem("authPageState");
+        const redirectUrl = data.redirect_url.startsWith("http")
+          ? new URL(data.redirect_url).pathname
+          : data.redirect_url;
+        navigate(redirectUrl);
+      }
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      toast.error(err.message || "Something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -245,9 +255,8 @@ useEffect(() => {
   const handleStep1 = async (e) => {
     e.preventDefault();
     const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) return setError(emailValidation.error);
+    if (!emailValidation.isValid) return toast.error(emailValidation.error);
 
-    setError("");
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/otp/generate/`, {
@@ -261,8 +270,9 @@ useEffect(() => {
       setOtpSent(true);
       setTimeRemaining(60);
       setStep(2);
+      toast.success("OTP sent successfully!");
     } catch (err) {
-      setError(err.message || "Failed to send OTP");
+      toast.error(err.message || "Failed to send OTP");
     } finally {
       setIsLoading(false);
     }
@@ -271,9 +281,8 @@ useEffect(() => {
   const handleStep2 = async (e) => {
     e.preventDefault();
     const otpValidation = validateOtp(otp);
-    if (!otpValidation.isValid) return setError(otpValidation.error);
+    if (!otpValidation.isValid) return toast.error(otpValidation.error);
 
-    setError("");
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/otp/verify/`, {
@@ -285,8 +294,9 @@ useEffect(() => {
       if (!response.ok) throw new Error(data.error || "OTP verification failed");
 
       setStep(3);
+      toast.success("OTP verified successfully!");
     } catch (err) {
-      setError(err.message || "OTP verification failed");
+      toast.error(err.message || "OTP verification failed");
     } finally {
       setIsLoading(false);
     }
@@ -295,9 +305,8 @@ useEffect(() => {
   const handleStep3 = async (e) => {
     e.preventDefault();
     const passwordValidation = validatePassword(password, confirmPassword);
-    if (!passwordValidation.isValid) return setError(passwordValidation.error);
+    if (!passwordValidation.isValid) return toast.error(passwordValidation.error);
 
-    setError("");
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/register/complete/`, {
@@ -315,7 +324,7 @@ useEffect(() => {
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
       localStorage.setItem("role", data.role);
-      setSuccess("Registration successful!");
+      toast.success("Registration successful!");
       localStorage.removeItem("authPageState");
       setIsLogin(true);
       setEmail("");
@@ -324,13 +333,12 @@ useEffect(() => {
       setOtp("");
       setStep(1);
       setOtpSent(false);
-      // Handle full URL or relative path
       const redirectUrl = data.redirect_url.startsWith("http")
-        ? new URL(data.redirect_url).pathname // Extract path if full URL
+        ? new URL(data.redirect_url).pathname
         : data.redirect_url;
       navigate(redirectUrl);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      toast.error(err.message || "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -368,6 +376,18 @@ useEffect(() => {
         ref={myRef}
         style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0 }}
       />
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <div className="absolute top-0 w-full p-4 flex justify-between items-center z-20">
         <div className="text-left flex items-center">
           <h1 className="text-2xl font-bold">
@@ -390,8 +410,6 @@ useEffect(() => {
       </div>
 
       <div className="relative z-10 w-full max-w-md p-8 space-y-8 bg-black bg-opacity-40 rounded-lg shadow-xl border border-gray-800">
-        {success && <div className="text-green-500 text-sm">{success}</div>}
-
         {isLogin ? (
           <form onSubmit={handleLogin} className="space-y-6">
             <h2 className="text-2xl font-semibold text-white">Login</h2>
@@ -413,7 +431,6 @@ useEffect(() => {
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            {error && <div className="text-red-500 text-sm">{error}</div>}
             <button
               type="submit"
               disabled={isLoading}
@@ -554,7 +571,6 @@ useEffect(() => {
                 </div>
               </>
             )}
-            {error && <div className="text-red-500 text-sm">{error}</div>}
             <div className="flex space-x-4">
               {step !== 1 && (
                 <button

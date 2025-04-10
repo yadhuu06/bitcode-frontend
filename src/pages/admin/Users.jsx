@@ -80,7 +80,6 @@ const Users = () => {
 
   const handleViewDetails = (userId) => {
     console.log(`Viewing details for user ${userId}`);
-    // Navigate to user details page or open a modal
   };
 
   return (

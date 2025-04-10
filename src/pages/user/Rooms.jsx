@@ -1,73 +1,63 @@
 import React, { useState, useEffect } from 'react';
+import { Search, Lock, Trophy, Play } from 'lucide-react';
 
 const Rooms = () => {
   // Sample room data (can be replaced with WebSocket/API data)
   const [rooms, setRooms] = useState([
     {
       id: 1,
-      name: 'Binary Battle Royale',
-      participants: 5,
-      maxParticipants: 10,
-      status: 'Active',
-      difficulty: 'Easy',
-      tags: ['algorithms', 'binary search'],
-      startTime: '2025-04-09 14:00',
+      name: 'Binary Tree Challenge',
+      host: 'matrix_master',
+      participants: 3,
+      maxParticipants: 5,
+      difficulty: 'Medium',
+      status: 'In progress',
+      duration: '45 min',
+      isPrivate: false,
     },
     {
       id: 2,
-      name: 'Matrix Marathon',
-      participants: 3,
-      maxParticipants: 8,
-      status: 'Pending',
-      difficulty: 'Medium',
-      tags: ['graph', 'bfs'],
-      startTime: '2025-04-09 15:30',
+      name: 'Algorithm Speedrun',
+      host: 'codehack3r',
+      participants: 8,
+      maxParticipants: 10,
+      difficulty: 'Hard',
+      status: 'In progress',
+      duration: '60 min',
+      isPrivate: false,
     },
     {
       id: 3,
-      name: 'DP Duel',
-      participants: 7,
-      maxParticipants: 12,
-      status: 'Active',
-      difficulty: 'Medium',
-      tags: ['dynamic programming'],
-      startTime: '2025-04-09 16:00',
+      name: "Beginner's Challenge",
+      host: 'newbie_helper',
+      participants: 2,
+      maxParticipants: 8,
+      difficulty: 'Easy',
+      status: 'In progress',
+      duration: '30 min',
+      isPrivate: false,
     },
     {
       id: 4,
-      name: 'Tree Challenge',
-      participants: 2,
-      maxParticipants: 6,
-      status: 'Pending',
-      difficulty: 'Easy',
-      tags: ['tree', 'dfs'],
-      startTime: '2025-04-09 17:00',
-    },
-    {
-      id: 5,
-      name: 'LRU Showdown',
+      name: 'Private Team Practice',
+      host: 'team_lead',
       participants: 4,
-      maxParticipants: 10,
-      status: 'Active',
-      difficulty: 'Hard',
-      tags: ['design', 'hash table'],
-      startTime: '2025-04-09 18:00',
+      maxParticipants: 6,
+      difficulty: 'Medium',
+      status: 'In progress',
+      duration: '60 min',
+      isPrivate: true,
     },
   ]);
 
   // State for filters
-  const [difficultyFilter, setDifficultyFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter rooms based on difficulty, status, and search
-  const filteredRooms = rooms.filter((room) => {
-    const matchesDifficulty = !difficultyFilter || room.difficulty === difficultyFilter;
-    const matchesStatus = !statusFilter || room.status === statusFilter;
-    const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         room.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesDifficulty && matchesStatus && matchesSearch;
-  });
+  // Filter rooms based on search
+  const filteredRooms = rooms.filter((room) =>
+    room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    room.host.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Simulate real-time updates (replace with WebSocket logic)
   useEffect(() => {
@@ -83,173 +73,127 @@ const Rooms = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono pt-24 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500 scrollbar-track-gray-800">
-      {/* Main Content */}
-      <div className="max-w-screen-2xl mx-auto ml-75 mr-75 px-0 py-8">
-        {/* Header */}
-        <h1 className="text-2xl text-green-500 mb-8">Rooms</h1>
-
-        {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-          <input
-            type="text"
-            placeholder="Search rooms by name or tags..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-2/3 p-3 bg-gray-800/60 border border-transparent rounded text-white placeholder-white focus:border-green-500 focus:outline-none transition-all duration-300"
-          />
-          <select
-            value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value)}
-            className="w-full md:w-1/4 p-3 bg-gray-800/60 border border-transparent rounded text-white focus:border-green-500 focus:outline-none transition-all duration-300"
+    <div className="min-h-screen bg-black text-white font-mono pt-12 overflow-y-auto relative">
+      {/* Binary Particle Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 50 }, (_, i) => (
+          <span
+            key={i}
+            className="absolute text-xs text-green-500 opacity-50"
+            style={{
+              left: `${Math.random() * 100}vw`,
+              top: `${Math.random() * 100}vh`,
+              animation: `pulse 2s infinite ${Math.random() * 2}s`,
+            }}
           >
-            <option value="">Filter by Difficulty</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-          </select>
+            {Math.random() > 0.5 ? '1' : '0'}
+          </span>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl text-white flex items-center">
+            <span className="text-green-500 mr-2">0</span>Challenge Rooms
+          </h1>
+          <button
+            className="px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition-all duration-300 flex items-center"
+          >
+            <span className="mr-2">+</span> Create Room
+          </button>
         </div>
 
-        {/* Filters and Room List */}
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="w-full lg:w-1/5 bg-gray-800/60 p-5 rounded-lg border-2 border-green-500 shadow-[0_0_8px_#00ff00]">
-            <h2 className="text-lg text-green-500 mb-5">DIFFICULTY</h2>
-            <div className="space-y-3">
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="Easy"
-                  checked={difficultyFilter === 'Easy'}
-                  onChange={() => setDifficultyFilter('Easy')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-green-500">Easy</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="Medium"
-                  checked={difficultyFilter === 'Medium'}
-                  onChange={() => setDifficultyFilter('Medium')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-yellow-500">Medium</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="Hard"
-                  checked={difficultyFilter === 'Hard'}
-                  onChange={() => setDifficultyFilter('Hard')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-red-500">Hard</span>
-              </label>
-            </div>
-            <h2 className="text-lg text-green-500 mt-6 mb-5">STATUS</h2>
-            <div className="space-y-3">
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="status"
-                  value="Active"
-                  checked={statusFilter === 'Active'}
-                  onChange={() => setStatusFilter('Active')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-green-500">Active</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="status"
-                  value="Pending"
-                  checked={statusFilter === 'Pending'}
-                  onChange={() => setStatusFilter('Pending')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-yellow-500">Pending</span>
-              </label>
-            </div>
+        {/* Search */}
+        <div className="mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search rooms by name or host..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-3 pl-10 bg-gray-900 border border-gray-800 rounded text-white placeholder-gray-400 focus:outline-none focus:border-green-500 transition-all duration-300"
+            />
           </div>
+        </div>
 
-          {/* Room List */}
-          <div className="w-full lg:w-4/5">
-            {filteredRooms.map((room) => (
-              <div
-                key={room.id}
-                className="bg-gray-900/80 p-5 mb-6 rounded-lg border-2 border-green-500 hover:border-transparent hover:shadow-[0_0_8px_#00ff00] transition-all duration-300 flex justify-between items-center"
-              >
-                <div>
-                  <h3 className="text-lg font-bold text-white">{room.name}</h3>
-                  <p className="text-gray-400 text-sm">Starts: {new Date(room.startTime).toLocaleString()}</p>
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    {room.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 rounded-full bg-transparent border border-white text-white text-xs shadow-[0_0_2px_#ffffff]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-gray-400 text-sm mt-2">
-                    {room.participants}/{room.maxParticipants} Participants
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`px-2 py-1 rounded ${
-                      room.difficulty === 'Easy' ? 'bg-green-500 text-black' :
-                      room.difficulty === 'Medium' ? 'bg-yellow-500 text-black' :
-                      'bg-red-500 text-white'
-                    }`}
-                  >
-                    {room.difficulty}
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded ml-2 ${
-                      room.status === 'Active' ? 'bg-green-500 text-black' :
-                      'bg-yellow-500 text-black'
-                    }`}
-                  >
-                    {room.status}
-                  </span>
-                  <button
-                    className="mt-3 px-4 py-2 bg-green-500 text-black rounded hover:bg-green-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    onClick={() => alert(`Joining room: ${room.name}`)} // Replace with actual join logic
-                  >
-                    Join
-                  </button>
-                </div>
+        {/* Room Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRooms.map((room) => (
+            <div
+              key={room.id}
+              className="bg-gray-900 p-5 rounded-lg border border-gray-800 transition-all duration-300 relative"
+            >
+              {room.isPrivate && (
+                <Lock className="absolute top-5 right-5 text-yellow-500" size={18} />
+              )}
+
+              <h3 className="text-lg font-semibold text-white mb-2">{room.name}</h3>
+              
+              <div className="flex items-center mb-3 text-sm">
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="8" r="4" fill="currentColor" />
+                  <path d="M4 20C4 17 7.6 14 12 14C16.4 14 20 17 20 20" stroke="currentColor" strokeWidth="2" />
+                </svg>
+                <p className="text-gray-400">Hosted by {room.host}</p>
               </div>
-            ))}
-            {filteredRooms.length === 0 && (
-              <p className="text-gray-400 text-center">No rooms found.</p>
-            )}
-          </div>
+              
+              <div className="flex items-center mb-3 text-sm">
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="8" r="4" fill="currentColor" />
+                  <circle cx="16" cy="18" r="2" fill="currentColor" />
+                  <circle cx="8" cy="18" r="2" fill="currentColor" />
+                </svg>
+                <p className="text-gray-400">{room.participants}/{room.maxParticipants} participants</p>
+              </div>
+              
+              <div className="flex items-center mb-4 text-sm">
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                  <path d="M12 7V12L15 15" stroke="currentColor" strokeWidth="2" />
+                </svg>
+                <p className="text-gray-400">{room.duration}</p>
+              </div>
+              
+              <div className="flex justify-between items-center mb-4">
+                <span
+                  className={`px-2 py-1 rounded text-xs ${
+                    room.difficulty === 'Easy' ? 'bg-green-500 text-black' :
+                    room.difficulty === 'Medium' ? 'bg-yellow-500 text-black' :
+                    'bg-red-500 text-white'
+                  }`}
+                >
+                  {room.difficulty}
+                </span>
+                <span className="text-yellow-500 text-xs">In progress</span>
+              </div>
+              
+              <div className="flex justify-between mt-4">
+                <button
+                  className="px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition-all duration-300 flex items-center"
+                >
+                  <Trophy size={16} className="mr-1" /> Leaderboard
+                </button>
+                <button
+                  className={`px-3 py-1 ${room.id === 3 ? 'bg-yellow-500' : 'bg-white'} ${room.id === 3 ? 'text-black' : 'text-black'} rounded hover:opacity-90 transition-all duration-300 flex items-center`}
+                >
+                  <Play size={16} className="mr-1" /> {room.id === 3 ? 'Join Room' : 'Enter Room'}
+                </button>
+              </div>
+            </div>
+          ))}
+          {filteredRooms.length === 0 && (
+            <p className="text-gray-400 text-center col-span-full">No rooms found.</p>
+          )}
         </div>
       </div>
 
-      {/* Inline CSS for custom styles */}
       <style jsx>{`
-        @keyframes glow {
-          0% { text-shadow: 0 0 4px #00ff00; }
-          50% { text-shadow: 0 0 8px #00ff00; }
-          100% { text-shadow: 0 0 4px #00ff00; }
-        }
-        .glowing-text {
-          animation: glow 1.5s ease-in-out infinite;
-        }
-        .ml-75 {
-          margin-left: 75px;
-        }
-        .mr-75 {
-          margin-right: 75px;
+        @keyframes pulse {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.7; }
         }
       `}</style>
     </div>

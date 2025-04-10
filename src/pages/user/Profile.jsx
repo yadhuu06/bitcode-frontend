@@ -153,7 +153,7 @@ const Profile = () => {
           <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl relative">
             <h1 className="text-2xl font-mono text-green-500 mb-4 text-center tracking-wider relative group">
               <span className="animate-pulse">[ User Terminal ]</span>
-              <span className="absolute -left-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-green-300"></span>
+              <span className="absolute -left- top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-green-300"></span>
             </h1>
 
             <div className="flex justify-center mb-4">

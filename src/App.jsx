@@ -10,6 +10,8 @@ import NotFound from './components/user/NotFound';
 import Profile from './pages/user/Profile';
 import Compiler from './pages/user/Compiler';
 import Rooms from './pages/user/Rooms';
+import BitWarAdminLogin from './pages/admin/Login';
+
 import UserNavbar from './components/user/UserNavbar';
 
 
@@ -30,6 +32,8 @@ function App() {
       <Routes>
 
         <Route path="/" element={<AuthPage />} />
+        <Route path="admin_login" element={<BitWarAdminLogin />} />
+
 
 
         <Route element={<PrivateRoute />}>

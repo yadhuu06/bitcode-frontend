@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import * as THREE from "three";
 import NET from "vanta/dist/vanta.net.min";
 
-const API_BASE_URL = "http://localhost:8000";
-const FRONTEND_BASE_URL = "http://localhost:5173"; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const FRONTEND_BASE_URL = import.meta.env.VITE_FRONTEND_BASE_URL;
+
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();

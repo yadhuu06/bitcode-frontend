@@ -4,6 +4,8 @@ import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL; // http://127.0.0.1:8000 from .env
+
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -18,7 +20,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get('/api/auth/profile/', {
+        const response = await axios.get(`${BASE_URL}/api/auth/profile/`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
         });
         setUser(response.data);
@@ -101,7 +103,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await axios.patch('/api/auth/profile/', formData, {
+      const response = await axios.patch(`${BASE_URL}/api/auth/profile/`, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('access_token')}`,
           'Content-Type': 'multipart/form-data',
@@ -118,14 +120,29 @@ const Profile = () => {
 
   // Handle logout
   const handleLogout = async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      console.error('No refresh token found');
+      localStorage.clear();
+      window.location.href = '/';
+      return;
+    }
+
     try {
-      await axios.post('/api/auth/logout/', null, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+      await axios.post(`${BASE_URL}/api/auth/logout/`, { refresh_token: refreshToken }, {
+        headers: { 
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
       });
       localStorage.removeItem('access_token');
-      window.location.href = '/login';
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('role');
+      window.location.href = '/';
     } catch (error) {
       console.error('Error during logout:', error);
+      localStorage.clear();
+      window.location.href = '/';
     }
   };
 
@@ -160,14 +177,14 @@ const Profile = () => {
               <img
                 src={
                   user.profile_picture
-                    ? `http://localhost:8000${user.profile_picture}`
-                    : 'http://localhost:8000/media/profile_pics/default/coding_hacker.png'
+                    ? `${BASE_URL}${user.profile_picture}`
+                    : `${BASE_URL}/media/profile_pics/default/coding_hacker.png`
                 }
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover border-2 border-green-500 shadow-md transition-all duration-300 hover:shadow-lg"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = 'http://localhost:8000/media/profile_pics/default/coding_hacker.png';
+                  e.target.src = `${BASE_URL}/media/profile_pics/default/coding_hacker.png`;
                 }}
               />
             </div>

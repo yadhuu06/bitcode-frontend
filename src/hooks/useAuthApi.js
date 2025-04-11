@@ -77,6 +77,10 @@ export const useAuthApi = () => {
           : data.redirect_url;
         navigate(redirectUrl);
       }
+      return data; // Return response data if needed
+    } catch (error) {
+      console.error("Login error:", error.message);
+      throw error; // Rethrow for caller to handle
     } finally {
       setIsLoading(false);
     }
@@ -95,9 +99,17 @@ export const useAuthApi = () => {
         body: JSON.stringify({ email }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to send OTP");
+      if (!response.ok) {
+        const errorMsg = data.error || "Failed to send OTP";
+        console.error("Generate OTP error:", errorMsg, data.details || "");
+        throw new Error(errorMsg);
+      }
 
       toast.success("OTP sent successfully!");
+      return data; // Return { message, expires_in } for use in UI
+    } catch (error) {
+      console.error("Generate OTP error:", error.message);
+      throw error; // Rethrow for caller to handle
     } finally {
       setIsLoading(false);
     }
@@ -116,9 +128,17 @@ export const useAuthApi = () => {
         body: JSON.stringify({ email, otp }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "OTP verification failed");
+      if (!response.ok) {
+        const errorMsg = data.error || "OTP verification failed";
+        console.error("Verify OTP error:", errorMsg);
+        throw new Error(errorMsg);
+      }
 
       toast.success("OTP verified successfully!");
+      return data; // Return response data if needed
+    } catch (error) {
+      console.error("Verify OTP error:", error.message);
+      throw error; // Rethrow for caller to handle
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +161,11 @@ export const useAuthApi = () => {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Registration failed");
+      if (!response.ok) {
+        const errorMsg = data.error || "Registration failed";
+        console.error("Complete registration error:", errorMsg);
+        throw new Error(errorMsg);
+      }
 
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
@@ -152,6 +176,10 @@ export const useAuthApi = () => {
         ? new URL(data.redirect_url).pathname
         : data.redirect_url;
       navigate(redirectUrl);
+      return data; // Return response data if needed
+    } catch (error) {
+      console.error("Complete registration error:", error.message);
+      throw error; // Rethrow for caller to handle
     } finally {
       setIsLoading(false);
     }

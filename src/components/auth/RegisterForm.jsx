@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { useAuthApi } from "../../hooks/useAuthApi";
 import { useTimer } from "../../hooks/useTimer";
 import GoogleAuthButton from "./GoogleAuthButton";
@@ -12,27 +13,26 @@ const RegisterForm = () => {
   const { otpExpiration, resendCooldown, resetTimers } = useTimer();
   const { generateOtp, isLoading } = useAuthApi();
 
-  // Reset timers when switching to step 1
   useEffect(() => {
     if (step === 1) {
       resetTimers();
     }
   }, [step, resetTimers]);
 
-  // Save state to localStorage
   useEffect(() => {
     const stateToSave = { step, email, otpSent: step >= 2, otpExpiration, resendCooldown };
     localStorage.setItem("authPageState", JSON.stringify(stateToSave));
   }, [step, email, otpExpiration, resendCooldown]);
 
-  // Handle email submission
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     try {
-      await generateOtp(email);
-      setStep(2);
+      const data = await generateOtp(email);
+      setStep(2); 
+      console.log("OTP expires in:", data.expires_in);
     } catch (err) {
-      // Error handled in useAuthApi
+      toast.error(err.message || "Failed to send OTP"); 
+      console.error("OTP generation error:", err.message);
     }
   };
 

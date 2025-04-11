@@ -1,6 +1,5 @@
-// src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import AuthPage from './pages/auth/AuthPage';
+import AuthPage from './components/auth/AuthPage'; // Updated import path
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserDashboard from './pages/user/UserDashboard';
 import Users from './pages/admin/Users';
@@ -11,16 +10,13 @@ import Profile from './pages/user/Profile';
 import Compiler from './pages/user/Compiler';
 import Rooms from './pages/user/Rooms';
 import BitWarAdminLogin from './pages/admin/Login';
-
 import UserNavbar from './components/user/UserNavbar';
 
-
-
+// User layout with navbar
 const UserLayout = ({ children }) => {
   return (
     <>
       <UserNavbar />
-
       {children}
     </>
   );
@@ -30,11 +26,8 @@ function App() {
   return (
     <Router>
       <Routes>
-
         <Route path="/" element={<AuthPage />} />
         <Route path="admin_login" element={<BitWarAdminLogin />} />
-
-
 
         <Route element={<PrivateRoute />}>
           <Route
@@ -52,13 +45,11 @@ function App() {
           />
         </Route>
 
-
         <Route element={<AdminRoute />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<Users />} />
         </Route>
 
-       
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

@@ -28,10 +28,10 @@ const RegisterForm = () => {
     e.preventDefault();
     try {
       const data = await generateOtp(email);
-      setStep(2); 
+      setStep(2);
       console.log("OTP expires in:", data.expires_in);
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP"); 
+      toast.error(err.message || "Failed to send OTP");
       console.error("OTP generation error:", err.message);
     }
   };
@@ -48,16 +48,26 @@ const RegisterForm = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={isLoading}
             />
           </div>
-          <GoogleAuthButton label="Continue with Google" disabled={isLoading} />
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-green-500 hover:text-white transition-colors duration-300"
+            className={`w-full px-4 py-2 rounded-md transition-colors duration-300 ${
+              isLoading
+                ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+                : "bg-white text-black hover:bg-green-500 hover:text-white"
+            }`}
           >
             {isLoading ? "Processing..." : "Next"}
           </button>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="h-px w-1/4 bg-green-500" />
+            <span className="text-white">or</span>
+            <div className="h-px w-1/4 bg-green-500" />
+          </div>
+          <GoogleAuthButton label="Continue with Google" disabled={isLoading} />
         </form>
       )}
       {step === 2 && <OtpForm email={email} setStep={setStep} />}

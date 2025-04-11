@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useLoading } from "../context/LoadingContext"; // Import useLoading
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const useAuthApi = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Local state for button disabling
+  const { showLoading, hideLoading } = useLoading(); // Access global loading controls
 
   // Validate email
   const validateEmail = (email) => {
@@ -51,6 +53,7 @@ export const useAuthApi = () => {
     if (!passwordValidation.isValid) throw new Error(passwordValidation.error);
 
     setIsLoading(true);
+    showLoading("Logging in..."); // Trigger global animation
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
         method: "POST",
@@ -77,12 +80,13 @@ export const useAuthApi = () => {
           : data.redirect_url;
         navigate(redirectUrl);
       }
-      return data; // Return response data if needed
+      return data;
     } catch (error) {
       console.error("Login error:", error.message);
-      throw error; // Rethrow for caller to handle
+      throw error;
     } finally {
       setIsLoading(false);
+      hideLoading(); // Hide global animation
     }
   };
 
@@ -92,6 +96,7 @@ export const useAuthApi = () => {
     if (!emailValidation.isValid) throw new Error(emailValidation.error);
 
     setIsLoading(true);
+    showLoading("Sending OTP..."); // Trigger global animation
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/otp/generate/`, {
         method: "POST",
@@ -106,12 +111,13 @@ export const useAuthApi = () => {
       }
 
       toast.success("OTP sent successfully!");
-      return data; // Return { message, expires_in } for use in UI
+      return data;
     } catch (error) {
       console.error("Generate OTP error:", error.message);
-      throw error; // Rethrow for caller to handle
+      throw error;
     } finally {
       setIsLoading(false);
+      hideLoading(); // Hide global animation
     }
   };
 
@@ -121,6 +127,7 @@ export const useAuthApi = () => {
     if (!otpValidation.isValid) throw new Error(otpValidation.error);
 
     setIsLoading(true);
+    showLoading("Verifying OTP..."); // Trigger global animation
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/otp/verify/`, {
         method: "POST",
@@ -135,12 +142,13 @@ export const useAuthApi = () => {
       }
 
       toast.success("OTP verified successfully!");
-      return data; // Return response data if needed
+      return data;
     } catch (error) {
       console.error("Verify OTP error:", error.message);
-      throw error; // Rethrow for caller to handle
+      throw error;
     } finally {
       setIsLoading(false);
+      hideLoading(); // Hide global animation
     }
   };
 
@@ -150,6 +158,7 @@ export const useAuthApi = () => {
     if (!passwordValidation.isValid) throw new Error(passwordValidation.error);
 
     setIsLoading(true);
+    showLoading("Completing Registration..."); // Trigger global animation
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/register/complete/`, {
         method: "POST",
@@ -176,12 +185,13 @@ export const useAuthApi = () => {
         ? new URL(data.redirect_url).pathname
         : data.redirect_url;
       navigate(redirectUrl);
-      return data; // Return response data if needed
+      return data;
     } catch (error) {
       console.error("Complete registration error:", error.message);
-      throw error; // Rethrow for caller to handle
+      throw error;
     } finally {
       setIsLoading(false);
+      hideLoading(); // Hide global animation
     }
   };
 

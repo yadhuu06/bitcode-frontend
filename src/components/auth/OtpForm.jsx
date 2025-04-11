@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useAuthApi } from "../../hooks/useAuthApi";
 import { useTimer } from "../../hooks/useTimer";
@@ -7,6 +7,20 @@ const OtpForm = ({ email, setStep }) => {
   const [otp, setOtp] = useState("");
   const { verifyOtp, generateOtp, isLoading } = useAuthApi();
   const { otpExpiration, resendCooldown, formatTime } = useTimer();
+  
+  // State for resend delay (2 minutes) and resend countdown (10 seconds)
+  const [resendDelay, setResendDelay] = useState(120); // 120 seconds = 2 minutes
+  const [resendCountdown, setResendCountdown] = useState(0); // Countdown after resend
+
+  // Handle the 2-minute delay before showing "Resend OTP"
+  useEffect(() => {
+    if (resendDelay > 0) {
+      const timer = setInterval(() => {
+        setResendDelay((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resendDelay]);
 
   // Handle OTP submission
   const handleSubmit = async (e) => {
@@ -25,10 +39,22 @@ const OtpForm = ({ email, setStep }) => {
     try {
       await generateOtp(email);
       setOtp("");
+      setResendCountdown(10); // Start 10-second countdown
+      toast.success("OTP resent successfully!");
     } catch (err) {
       // Error handled in useAuthApi
     }
   };
+
+  // Handle the 10-second countdown after resending
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const countdownTimer = setInterval(() => {
+        setResendCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(countdownTimer);
+    }
+  }, [resendCountdown]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -44,6 +70,7 @@ const OtpForm = ({ email, setStep }) => {
             placeholder="Enter 6-digit OTP"
             maxLength={6}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            disabled={isLoading}
           />
         </div>
         <div className="flex justify-between items-center">
@@ -55,13 +82,20 @@ const OtpForm = ({ email, setStep }) => {
             )}
           </div>
           <div className="text-sm">
-            {resendCooldown > 0 ? (
-              <span className="text-gray-600">Resend in: {formatTime(resendCooldown)}</span>
+            {resendDelay > 0 ? (
+              <span className="text-gray-600">
+                Resend available in: {formatTime(resendDelay)}
+              </span>
+            ) : resendCountdown > 0 ? (
+              <span className="text-gray-600">
+                Resend in: {formatTime(resendCountdown)}
+              </span>
             ) : (
               <button
                 type="button"
                 onClick={handleResend}
-                className="text-green-500 hover:underline"
+                disabled={isLoading}
+                className="text-green-500 hover:underline disabled:text-gray-600 disabled:cursor-not-allowed"
               >
                 Resend OTP
               </button>
@@ -81,10 +115,10 @@ const OtpForm = ({ email, setStep }) => {
           type="submit"
           disabled={isLoading || otpExpiration === 0}
           className={`w-2/3 px-4 py-2 bg-white text-black rounded-md hover:bg-green-500 hover:text-white transition-colors duration-300 ${
-            otpExpiration === 0 ? "opacity-50 cursor-not-allowed" : ""
+            isLoading || otpExpiration === 0 ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {isLoading ? "Processing..." : "Next"}
+          Next {/* Rely on global LoadingAnimation */}
         </button>
       </div>
     </form>

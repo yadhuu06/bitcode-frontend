@@ -1,46 +1,49 @@
-import React from "react";
+import React from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 const GoogleAuthButton = ({ label, disabled }) => {
-  // Handle Google login
-  const handleClick = () => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/social-auth/login/google-oauth2/`;
+  const handleSuccess = async (credentialResponse) => {
+    console.log('Google credential response:', credentialResponse);
+    const credential = credentialResponse.credential;
+    if (!credential) {
+      console.error('No credential received from Google');
+      window.location.href = '/?error=no_credential';
+      return;
+    }
+    try {
+      console.log('Sending credential to backend:', credential);
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/google/callback/`,
+        { credential },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      const { user, access_token, refresh_token } = response.data;
+      localStorage.setItem('user_email', user.email);
+      localStorage.setItem('user_id', user.id);
+      localStorage.setItem('user_role', user.is_superuser ? 'admin' : 'user');
+      window.location.href = user.is_superuser ? '/admin/dashboard' : '/user/dashboard';
+    } catch (error) {
+      console.error('Google login error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      window.location.href = '/?error=auth_failed';
+    }
+  };
+
+  const handleError = () => {
+    console.error('Google login failed');
+    window.location.href = '/?error=auth_failed';
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
+    <GoogleLogin
+      onSuccess={handleSuccess}
+      onError={handleError}
       disabled={disabled}
-      className={`
-        w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md 
-        flex items-center justify-center space-x-2 shadow-md
-        transition-all duration-300 ease-in-out
-        hover:bg-green-500 hover:text-white hover:border-green-600 hover:shadow-xl
-        active:bg-green-600 active:shadow-inner
-        disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-200 disabled:shadow-none disabled:cursor-not-allowed
-        group
-      `}
-    >
-      <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path
-          fill="#4285F4"
-          d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
-        />
-        <path
-          fill="#34A853"
-          d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.565 24 12.255 24z"
-        />
-        <path
-          fill="#FBBC05"
-          d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z"
-        />
-        <path
-          fill="#EA4335"
-          d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
-        />
-      </svg>
-      <span className="font-medium">{disabled ? "Processing..." : label}</span>
-    </button>
+    />
   );
 };
 

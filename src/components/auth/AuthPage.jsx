@@ -53,7 +53,7 @@ const AuthPage = () => {
             this.material.color.set(0x00ff00);
           }
           this.material.transparent = true;
-          this.material.opacity = 0.45;
+          this.material.opacity = 0.5;
           this.material.color = new THREE.Color(0x000000);
           this.material.blending = THREE.NormalBlending;
           this.material.blurRadius = 15;

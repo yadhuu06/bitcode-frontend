@@ -10,7 +10,7 @@ export const useAuthApi = () => {
   const [isLoading, setIsLoading] = useState(false); // Local state for button disabling
   const { showLoading, hideLoading } = useLoading(); // Access global loading controls
 
-  // Validate email
+
   const validateEmail = (email) => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return { isValid: false, error: "Email cannot be empty" };
@@ -148,7 +148,7 @@ export const useAuthApi = () => {
       throw error;
     } finally {
       setIsLoading(false);
-      hideLoading(); // Hide global animation
+      hideLoading(); 
     }
   };
 

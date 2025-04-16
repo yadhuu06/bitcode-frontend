@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
 import { Eye } from 'lucide-react';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BaseUrl = import.meta.env.VITE_API_BASE_URL;
 const FRONTEND_BASE_URL = import.meta.env.VITE_FRONTEND_BASE_URL;
 
 
@@ -22,7 +22,7 @@ const Users = () => {
       }
 
       try {
-        const response = await fetch(`${BaseUrl}admin-panel/users_list/`, {
+        const response = await fetch(`${BaseUrl}/admin-panel/users_list/`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -51,7 +51,7 @@ const Users = () => {
   const handleToggleBlock = async (userId, isBlocked) => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`${BaseUrl}admin-panel/users/toggle-block/`, {
+      const response = await fetch(`${BaseUrl}/admin-panel/users/toggle-block/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,15 +1,17 @@
+// src/hooks/useAuthApi.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useLoading } from "../context/LoadingContext"; // Import useLoading
+import { useLoading } from "../context/LoadingContext";
+import { useAuth } from "../context/AuthContext"; // Import useAuth
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const useAuthApi = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false); // Local state for button disabling
-  const { showLoading, hideLoading } = useLoading(); // Access global loading controls
-
+  const [isLoading, setIsLoading] = useState(false);
+  const { showLoading, hideLoading } = useLoading();
+  const { updateAuthState } = useAuth(); // Get updateAuthState from context
 
   const validateEmail = (email) => {
     const trimmedEmail = email.trim();
@@ -19,7 +21,6 @@ export const useAuthApi = () => {
     return { isValid, error: isValid ? "" : "Please enter a valid email" };
   };
 
-  // Validate password
   const validatePassword = (password, confirmPassword = null) => {
     const trimmedPassword = password.trim();
     if (!trimmedPassword) return { isValid: false, error: "Password cannot be empty" };
@@ -34,7 +35,6 @@ export const useAuthApi = () => {
     return { isValid: true, error: "" };
   };
 
-  // Validate OTP
   const validateOtp = (otp) => {
     const trimmedOtp = otp.trim();
     if (!trimmedOtp) return { isValid: false, error: "OTP cannot be empty" };
@@ -44,7 +44,6 @@ export const useAuthApi = () => {
     return { isValid: true, error: "" };
   };
 
-  // Handle login
   const login = async (email, password) => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) throw new Error(emailValidation.error);
@@ -53,7 +52,7 @@ export const useAuthApi = () => {
     if (!passwordValidation.isValid) throw new Error(passwordValidation.error);
 
     setIsLoading(true);
-    showLoading("Logging in..."); // Trigger global animation
+    showLoading("Logging in...");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
         method: "POST",
@@ -63,16 +62,14 @@ export const useAuthApi = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Login failed");
 
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      localStorage.setItem("role", data.role);
-
       if (data.role === "admin") {
         toast.info("You are an admin, please login as admin.");
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("role");
+        navigate("/admin_login");
       } else {
+        updateAuthState(data); // Update context state
         toast.success("Login successful!");
         localStorage.removeItem("authPageState");
         const redirectUrl = data.redirect_url.startsWith("http")
@@ -86,17 +83,16 @@ export const useAuthApi = () => {
       throw error;
     } finally {
       setIsLoading(false);
-      hideLoading(); // Hide global animation
+      hideLoading();
     }
   };
 
-  // Generate OTP
   const generateOtp = async (email) => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) throw new Error(emailValidation.error);
 
     setIsLoading(true);
-    showLoading("Sending OTP..."); // Trigger global animation
+    showLoading("Sending OTP...");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/otp/generate/`, {
         method: "POST",
@@ -117,17 +113,16 @@ export const useAuthApi = () => {
       throw error;
     } finally {
       setIsLoading(false);
-      hideLoading(); // Hide global animation
+      hideLoading();
     }
   };
 
-  // Verify OTP
   const verifyOtp = async (email, otp) => {
     const otpValidation = validateOtp(otp);
     if (!otpValidation.isValid) throw new Error(otpValidation.error);
 
     setIsLoading(true);
-    showLoading("Verifying OTP..."); // Trigger global animation
+    showLoading("Verifying OTP...");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/otp/verify/`, {
         method: "POST",
@@ -148,17 +143,16 @@ export const useAuthApi = () => {
       throw error;
     } finally {
       setIsLoading(false);
-      hideLoading(); 
+      hideLoading();
     }
   };
 
-  // Complete registration
   const completeRegistration = async (email, password, confirmPassword) => {
     const passwordValidation = validatePassword(password, confirmPassword);
     if (!passwordValidation.isValid) throw new Error(passwordValidation.error);
 
     setIsLoading(true);
-    showLoading("Completing Registration..."); // Trigger global animation
+    showLoading("Completing Registration...");
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/register/complete/`, {
         method: "POST",
@@ -176,9 +170,7 @@ export const useAuthApi = () => {
         throw new Error(errorMsg);
       }
 
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      localStorage.setItem("role", data.role);
+      updateAuthState(data); // Update context state
       toast.success("Registration successful!");
       localStorage.removeItem("authPageState");
       const redirectUrl = data.redirect_url.startsWith("http")
@@ -191,7 +183,7 @@ export const useAuthApi = () => {
       throw error;
     } finally {
       setIsLoading(false);
-      hideLoading(); // Hide global animation
+      hideLoading();
     }
   };
 

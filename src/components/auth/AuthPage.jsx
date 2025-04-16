@@ -6,17 +6,27 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
+import { useAuth } from "../../context/AuthContext"; 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const AuthPage = () => {
+  const { isAuthenticated, user } = useAuth(); // Get auth state
   const navigate = useNavigate();
   const location = useLocation();
   const myRef = useRef(null);
   const [vantaEffect, setVantaEffect] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
 
-  // Handle Google login callback
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectPath = user?.is_superuser ? "/admin/dashboard" : "/user/dashboard";
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
+
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const accessToken = query.get("access_token");
@@ -33,11 +43,12 @@ const AuthPage = () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("role");
+        navigate("/admin_login", { replace: true });
       } else {
         toast.success("Google login successful!");
         localStorage.removeItem("authPageState");
         const path = location.pathname || "/user/dashboard";
-        navigate(path);
+        navigate(path, { replace: true });
       }
     }
   }, [location, navigate]);
@@ -132,13 +143,16 @@ const AuthPage = () => {
     };
   }, [vantaEffect]);
 
-
-
   // Reset state when switching modes
   const handleModeSwitch = () => {
     setIsLogin(!isLogin);
     localStorage.removeItem("authPageState");
   };
+
+
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center relative">

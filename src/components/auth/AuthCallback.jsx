@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoading } from '../../context/LoadingContext';
+import Cookies from 'js-cookie';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -9,7 +10,6 @@ const AuthCallback = () => {
 
   useEffect(() => {
     setLoading(true);
-
 
     const params = new URLSearchParams(window.location.search);
     const error = params.get('error');
@@ -21,8 +21,7 @@ const AuthCallback = () => {
       return;
     }
 
-
-    const userRole = localStorage.getItem('user_role');
+    const userRole = Cookies.get('user_role');
     if (userRole) {
       const redirectPath = userRole === 'admin' ? '/admin/dashboard' : '/user/dashboard';
       navigate(redirectPath, { replace: true });

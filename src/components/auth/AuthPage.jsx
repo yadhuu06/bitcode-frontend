@@ -7,17 +7,17 @@ import "react-toastify/dist/ReactToastify.css";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 import { useAuth } from "../../context/AuthContext"; 
+import Cookies from 'js-cookie';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const AuthPage = () => {
-  const { isAuthenticated, user } = useAuth(); // Get auth state
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const myRef = useRef(null);
   const [vantaEffect, setVantaEffect] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
-
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -26,34 +26,32 @@ const AuthPage = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
-
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const accessToken = query.get("access_token");
     const refreshToken = query.get("refresh_token");
 
     if (accessToken && refreshToken) {
-      localStorage.setItem("access_token", accessToken);
-      localStorage.setItem("refresh_token", refreshToken);
+      Cookies.set("access_token", accessToken, { secure: true, sameSite: 'Strict', expires: 7 });
+      Cookies.set("refresh_token", refreshToken, { secure: true, sameSite: 'Strict', expires: 7 });
       const role = query.get("role") || "user";
-      localStorage.setItem("role", role);
+      Cookies.set("role", role, { secure: true, sameSite: 'Strict', expires: 7 });
 
       if (role === "admin") {
         toast.info("You are an admin, please login as admin.");
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("role");
+        Cookies.remove("access_token");
+        Cookies.remove("refresh_token");
+        Cookies.remove("role");
         navigate("/admin_login", { replace: true });
       } else {
         toast.success("Google login successful!");
-        localStorage.removeItem("authPageState");
+        Cookies.remove("authPageState");
         const path = location.pathname || "/user/dashboard";
         navigate(path, { replace: true });
       }
     }
   }, [location, navigate]);
 
-  // Initialize Vanta background effect
   useEffect(() => {
     if (!vantaEffect && myRef.current && typeof NET !== "undefined") {
       const originalLineMethod = THREE.Line.prototype.computeLineDistances;
@@ -143,12 +141,10 @@ const AuthPage = () => {
     };
   }, [vantaEffect]);
 
-  // Reset state when switching modes
   const handleModeSwitch = () => {
     setIsLogin(!isLogin);
-    localStorage.removeItem("authPageState");
+    Cookies.remove("authPageState");
   };
-
 
   if (isAuthenticated) {
     return null;

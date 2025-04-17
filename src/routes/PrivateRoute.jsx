@@ -1,10 +1,8 @@
-
-import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 const PrivateRoute = () => {
-  const accessToken = localStorage.getItem('access_token');
-
+  const accessToken = Cookies.get('access_token');
 
   return accessToken ? <Outlet /> : <Navigate to="/" replace />;
 };

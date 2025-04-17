@@ -3,8 +3,13 @@ import axios from 'axios';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
+import Cookies from 'js-cookie';
+import { useAuth } from '../../context/AuthContext';
+import { useLoading } from '../../context/LoadingContext';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL; // http://127.0.0.1:8000 from .env
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -15,24 +20,28 @@ const Profile = () => {
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
   const [binaryElements, setBinaryElements] = useState([]);
+  const { logout } = useAuth();
+  const { showLoading, hideLoading } = useLoading();
 
-  // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
+      showLoading('Loading profile...');
       try {
         const response = await axios.get(`${BASE_URL}/api/auth/profile/`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+          headers: { Authorization: `Bearer ${Cookies.get('access_token')}` },
         });
         setUser(response.data);
         setUsername(response.data.username || '');
       } catch (error) {
         console.error('Error fetching user data:', error);
+        toast.error('Failed to load profile data');
+      } finally {
+        hideLoading();
       }
     };
     fetchUserData();
   }, []);
 
-  // Generate random 0s and 1s
   useEffect(() => {
     const generateBinary = () => {
       const newBinary = [];
@@ -51,7 +60,6 @@ const Profile = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle file input for profile picture
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -61,7 +69,6 @@ const Profile = () => {
     }
   };
 
-  // Handle cropping completion
   const onCropComplete = (crop) => {
     if (imageRef && crop.width && crop.height) {
       getCroppedImg(imageRef, crop);
@@ -92,9 +99,9 @@ const Profile = () => {
     setCroppedImage(croppedImgUrl);
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    showLoading('Updating profile...');
     const formData = new FormData();
     formData.append('username', username);
     if (croppedImage) {
@@ -105,7 +112,7 @@ const Profile = () => {
     try {
       const response = await axios.patch(`${BASE_URL}/api/auth/profile/`, formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${Cookies.get('access_token')}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -113,17 +120,22 @@ const Profile = () => {
       setIsEditing(false);
       setProfilePic(null);
       setCroppedImage(null);
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      hideLoading();
     }
   };
 
-  // Handle logout
   const handleLogout = async () => {
-    const refreshToken = localStorage.getItem('refresh_token');
+    showLoading('Logging out...');
+    const refreshToken = Cookies.get('refresh_token');
     if (!refreshToken) {
       console.error('No refresh token found');
-      localStorage.clear();
+      logout();
+      toast.success('Logged out successfully!');
       window.location.href = '/';
       return;
     }
@@ -131,22 +143,23 @@ const Profile = () => {
     try {
       await axios.post(`${BASE_URL}/api/auth/logout/`, { refresh_token: refreshToken }, {
         headers: { 
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${Cookies.get('access_token')}`,
           'Content-Type': 'application/json',
         },
       });
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('role');
+      logout();
+      toast.success('Logged out successfully!');
       window.location.href = '/';
     } catch (error) {
       console.error('Error during logout:', error);
-      localStorage.clear();
+      logout();
+      toast.error('Logout failed, but session cleared');
       window.location.href = '/';
+    } finally {
+      hideLoading();
     }
   };
 
-  // Dummy stats data
   const stats = {
     solvedQuestions: 42,
     attemptedDays: 15,
@@ -163,9 +176,28 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-26">
-      {/* Main Content */}
+      {binaryElements.map((element) => (
+        <span
+          key={element.key}
+          className="absolute text-green-500 font-mono opacity-30 animate-float"
+          style={{ left: `${element.left}%`, top: `${element.top}%` }}
+        >
+          {element.value}
+        </span>
+      ))}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <div className="w-full max-w-7xl flex flex-col lg:flex-row justify-between px-6 py-6 gap-14">
-        {/* User Terminal Section (Left) */}
         <div className="w-full lg:w-1/3 lg:order-1">
           <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl relative">
             <h1 className="text-2xl font-mono text-green-500 mb-4 text-center tracking-wider relative group">
@@ -287,34 +319,28 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Stats Section (Right) */}
         <div className="w-full lg:w-2/3 lg:order-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
-            {/* Solved Questions */}
             <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
               <h2 className="text-lg font-mono text-green-500 mb-4">Solved Questions</h2>
               <p className="text-5xl font-mono text-white">{stats.solvedQuestions}</p>
             </div>
 
-            {/* Attempted Days */}
             <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
               <h2 className="text-lg font-mono text-green-500 mb-4">Attempted Days</h2>
               <p className="text-5xl font-mono text-white">{stats.attemptedDays}</p>
             </div>
 
-            {/* Active Streak */}
             <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
               <h2 className="text-lg font-mono text-green-500 mb-4">Active Streak</h2>
               <p className="text-5xl font-mono text-white">{stats.activeStreak}</p>
             </div>
 
-            {/* Last Win */}
             <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
               <h2 className="text-lg font-mono text-green-500 mb-4">Last Win</h2>
               <p className="text-3xl font-mono text-white">{stats.lastWin}</p>
             </div>
 
-            {/* Recent History */}
             <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl col-span-1 sm:col-span-2 lg:col-span-2">
               <h2 className="text-lg font-mono text-green-500 mb-4">Recent History</h2>
               <ul className="list-disc pl-5 text-white font-mono text-base">

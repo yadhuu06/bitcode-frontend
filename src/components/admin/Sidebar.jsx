@@ -1,4 +1,3 @@
-// src/components/admin/Sidebar.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -9,11 +8,16 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import Cookies from 'js-cookie';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const Sidebar = ({ onCollapseChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const handleToggle = () => {
     setIsCollapsed(prev => !prev);
@@ -23,43 +27,39 @@ const Sidebar = ({ onCollapseChange }) => {
   };
 
   const handleLogout = async () => {
-    const accessToken = localStorage.getItem('access_token');
+    const accessToken = Cookies.get('access_token');
+    const refreshToken = Cookies.get('refresh_token');
     console.log('Access Token:', accessToken);
-  
-    if (!accessToken) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('authPageState');
+
+    if (!refreshToken) {
+      logout(); // Clears cookies and updates auth state
+      toast.success('Logged out successfully!');
       navigate('/');
       return;
     }
-  
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/auth/logout/', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/logout/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({ refresh_token: refreshToken }),
       });
-  
+
       if (response.ok) {
         console.log('Logout successful');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('role'); 
-        localStorage.removeItem('authPageState');
+        logout(); // Clears cookies and updates auth state
+        toast.success('Logged out successfully!');
         navigate('/');
       } else {
         throw new Error('Logout failed');
       }
     } catch (error) {
       console.error('Logout error:', error);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('role'); 
-      localStorage.removeItem('authPageState');
+      logout(); // Clears cookies even if backend request fails
+      toast.error('Logout failed, but session cleared');
       navigate('/');
     }
   };

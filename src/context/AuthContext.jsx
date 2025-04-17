@@ -1,7 +1,7 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import Cookies from 'js-cookie';
 
 const AuthContext = createContext();
 
@@ -10,10 +10,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // Check authentication status on mount
   useEffect(() => {
-    const accessToken = localStorage.getItem("access_token");
-    const role = localStorage.getItem("role");
+    const accessToken = Cookies.get("access_token");
+    const role = Cookies.get("role");
 
     if (accessToken && role) {
       setIsAuthenticated(true);
@@ -24,23 +23,21 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Logout function
   const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("role");
+    Cookies.remove("access_token");
+    Cookies.remove("refresh_token");
+    Cookies.remove("role");
     setIsAuthenticated(false);
     setUser(null);
     toast.success("Logged out successfully!");
     navigate("/");
   };
 
-  // Update auth state after login or registration
   const updateAuthState = (data) => {
     if (data.access && data.refresh && data.role) {
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      localStorage.setItem("role", data.role);
+      Cookies.set("access_token", data.access, { secure: true, sameSite: 'Strict', expires: 7 });
+      Cookies.set("refresh_token", data.refresh, { secure: true, sameSite: 'Strict', expires: 7 });
+      Cookies.set("role", data.role, { secure: true, sameSite: 'Strict', expires: 7 });
       setIsAuthenticated(true);
       setUser({ role: data.role, is_superuser: data.role === "admin" });
     }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Cookies from 'js-cookie';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -26,17 +27,15 @@ export default function AdminLogin() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store tokens and admin_id
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        localStorage.setItem('admin_id', data.admin_id);
+        Cookies.set('access_token', data.access, { secure: true, sameSite: 'Strict', expires: 7 });
+        Cookies.set('refresh_token', data.refresh, { secure: true, sameSite: 'Strict', expires: 7 });
+        Cookies.set('admin_id', data.admin_id, { secure: true, sameSite: 'Strict', expires: 7 });
 
         toast.success(data.message || 'Login successful!', {
           position: 'top-right',
           autoClose: 3000,
         });
 
-        // Navigate to admin dashboard
         navigate('/admin/dashboard');
       } else {
         toast.error(data.error || 'Login failed', {
@@ -56,7 +55,6 @@ export default function AdminLogin() {
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
-      {/* Header with Logo */}
       <header className="p-6">
         <div className="text-2xl font-bold">
           <span className="text-white">{'< '}</span>
@@ -66,7 +64,6 @@ export default function AdminLogin() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex flex-grow items-center justify-center">
         <div className="w-full max-w-md p-8 space-y-8 rounded-lg border" style={{ borderColor: '#00FF40' }}>
           <div className="text-center">
@@ -152,12 +149,10 @@ export default function AdminLogin() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="py-4 text-center text-sm text-gray-500">
         © 2025 BitCode. All rights reserved.
       </footer>
 
-      {/* Toast Container */}
       <ToastContainer />
     </div>
   );

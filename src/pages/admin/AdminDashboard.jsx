@@ -1,4 +1,4 @@
-// src/components/AdminDashboard/AdminDashboard.jsx
+
 import React, { useState } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
 
@@ -14,11 +14,11 @@ const AdminDashboard = () => {
       <Sidebar onCollapseChange={handleCollapseChange} />
       <div 
         style={{ 
-          marginLeft: isSidebarCollapsed ? '4rem' : '16rem', // Dynamic margin
+          marginLeft: isSidebarCollapsed ? '4rem' : '16rem', 
           padding: '2rem',
           height: '100%',
           transition: 'margin-left 0.3s',
-          backgroundColor: '#000000', // Matches sidebar
+          backgroundColor: '#000000', 
         }}
       >
         <h1 style={{ fontFamily: "'Fira Code', monospace" }}>

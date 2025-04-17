@@ -11,7 +11,7 @@ export const useAuthApi = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const { showLoading, hideLoading } = useLoading();
-  const { updateAuthState } = useAuth(); // Get updateAuthState from context
+  const { updateAuthState } = useAuth(); 
 
   const validateEmail = (email) => {
     const trimmedEmail = email.trim();

@@ -77,7 +77,7 @@ function App() {
             </Routes>
           </LoadingProvider>
         </AuthProvider>
-      </Router>
+      </Router>  
     </GoogleOAuthProvider>
   );
 }

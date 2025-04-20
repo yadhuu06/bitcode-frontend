@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api'; // Use custom Axios instance
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
@@ -27,9 +27,7 @@ const Profile = () => {
     const fetchUserData = async () => {
       showLoading('Loading profile...');
       try {
-        const response = await axios.get(`${BASE_URL}/api/auth/profile/`, {
-          headers: { Authorization: `Bearer ${Cookies.get('access_token')}` },
-        });
+        const response = await api.get('/api/auth/profile/');
         setUser(response.data);
         setUsername(response.data.username || '');
       } catch (error) {
@@ -110,9 +108,8 @@ const Profile = () => {
     }
 
     try {
-      const response = await axios.patch(`${BASE_URL}/api/auth/profile/`, formData, {
+      const response = await api.patch('/api/auth/profile/', formData, {
         headers: {
-          Authorization: `Bearer ${Cookies.get('access_token')}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -141,12 +138,7 @@ const Profile = () => {
     }
 
     try {
-      await axios.post(`${BASE_URL}/api/auth/logout/`, { refresh_token: refreshToken }, {
-        headers: { 
-          Authorization: `Bearer ${Cookies.get('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      await api.post('/api/auth/logout/', { refresh_token: refreshToken });
       logout();
       toast.success('Logged out successfully!');
       window.location.href = '/';

@@ -19,7 +19,9 @@ import { LoadingProvider } from './context/LoadingContext';
 import { AuthProvider } from './context/AuthContext'; 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-// User layout with navbar
+
+
+
 const UserLayout = ({ children }) => {
   return (
     <>

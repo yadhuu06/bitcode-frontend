@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
-import api, { setupInterceptors } from '../api'; // Import custom Axios instance
-
+import api, { setupInterceptors } from '../api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {

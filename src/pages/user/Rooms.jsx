@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Lock, Trophy, Play, X } from 'lucide-react';
+import CustomButton from "../../components/ui/CustomButton";
+
 
 const Rooms = () => {
   // Sample room data (replace with API/WebSocket data)
@@ -243,142 +245,138 @@ const Rooms = () => {
 
       {/* Create Room Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 px-4">
-          <div
-            className="bg-gray-900/80 backdrop-blur-md p-6 rounded-lg w-full max-w-lg border border-gray-700/50 shadow-2xl animate-modal-enter"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-white bg-gradient-to-r from-green-500 to-green-300 bg-clip-text text-transparent">
-                Create Coding Challenge
-              </h2>
-              <button onClick={handleCloseModal}>
-                <X className="text-gray-300 hover:text-white transition-colors" size={24} />
-              </button>
-            </div>
-            <form className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Room Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter room name"
-                  required
-                  className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-500 transition-all duration-200"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Topic</label>
-                <select
-                  name="topic"
-                  required
-                  className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-500 transition-all duration-200"
-                >
-                  <option value="Array">Array</option>
-                  <option value="String">String</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Difficulty</label>
-                <select
-                  name="difficulty"
-                  required
-                  className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-500 transition-all duration-200"
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Time Limit (minutes)</label>
-                <input
-                  type="number"
-                  name="time_limit"
-                  placeholder="Enter time limit"
-                  min="1"
-                  required
-                  className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-500 transition-all duration-200"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Capacity</label>
-                <select
-                  name="capacity"
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  required
-                  className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-500 transition-all duration-200"
-                >
-                  <option value="2">1 vs 1</option>
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                </select>
-                {getCapacityDescription() && (
-                  <p className="mt-1.5 text-xs text-gray-400">{getCapacityDescription()}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Visibility</label>
-                <select
-                  name="visibility"
-                  value={visibility}
-                  onChange={(e) => setVisibility(e.target.value)}
-                  className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-500 transition-all duration-200"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
-              </div>
-              {visibility === 'private' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Enter password"
-                    className="w-full p-3 bg-gray-800/50 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-500 transition-all duration-200"
-                  />
-                </div>
-              )}
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-5 py-2 bg-gray-700/50 text-gray-200 rounded-md hover:bg-gray-600 transition-all duration-200"
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-green-500 text-black rounded-md hover:bg-green-400 transition-all duration-200"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+    <div className="w-full max-w-lg rounded-xl border border-gray-700 bg-black p-6 shadow-xl">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-semibold text-green-400">
+          Create Battle Room
+        </h2>
+        <button onClick={handleCloseModal} className="text-gray-400 hover:text-white">
+          <X size={24} />
+        </button>
+      </div>
 
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.7; }
-        }
-        @keyframes modal-enter {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-modal-enter {
-          animation: modal-enter 0.3s ease-out;
-        }
-      `}</style>
+      <form className="space-y-5">
+        {/* Room Name */}
+        <div>
+          <label className="block text-sm font-medium text-green-400 mb-2">Room Name</label>
+          <input
+            type="text"
+            name="name"
+            placeholder="Ex: Clash Arena"
+            required
+            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none"
+          />
+        </div>
+
+        {/* Topic */}
+        <div>
+          <label className="block text-sm font-medium text-green-400 mb-2">Topic</label>
+          <select
+            name="topic"
+            required
+            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
+          >
+            <option value="Array">Array</option>
+            <option value="String">String</option>
+          </select>
+        </div>
+
+        {/* Difficulty */}
+        <div>
+          <label className="block text-sm font-medium text-green-400 mb-2">Difficulty</label>
+          <select
+            name="difficulty"
+            required
+            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        {/* Time Limit */}
+        <div>
+          <label className="block text-sm font-medium text-green-400 mb-2">Time Limit (minutes)</label>
+          <input
+            type="number"
+            name="time_limit"
+            placeholder="10"
+            min="1"
+            required
+            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none"
+          />
+        </div>
+
+        {/* Capacity */}
+        <div>
+          <label className="block text-sm font-medium text-green-400 mb-2">Capacity</label>
+          <select
+            name="capacity"
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            required
+            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
+          >
+            <option value="2">1 vs 1</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+          {getCapacityDescription() && (
+            <p className="mt-1 text-xs text-gray-500">{getCapacityDescription()}</p>
+          )}
+        </div>
+
+        {/* Visibility */}
+        <div>
+          <label className="block text-sm font-medium text-green-400 mb-2">Visibility</label>
+          <select
+            name="visibility"
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value)}
+            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
+          >
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+
+        {/* Password */}
+        {visibility === 'private' && (
+          <div>
+            <label className="block text-sm font-medium text-green-400 mb-2">Password</label>
+            <input
+              type="password"
+              name="password"
+              placeholder="Enter password"
+              className="w-full p-3 bg-black border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex justify-end gap-3 pt-4">
+          <button
+            type="button"
+            onClick={handleCloseModal}
+            className="px-5 py-2 text-sm text-gray-300 border border-gray-600 rounded hover:bg-gray-800"
+          >
+            Cancel
+          </button>
+
+          <CustomButton variant="create" onClick={() => alert("Room created!")}>
+            Create
+          </CustomButton>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
+      
+
+      
     </div>
   );
 };

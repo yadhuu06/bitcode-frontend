@@ -1,10 +1,28 @@
-
+// src/pages/user/Rooms.jsx
 import React, { useState, useEffect } from 'react';
 import { Search, Lock, Trophy, Play, X } from 'lucide-react';
-import CustomButton from "../../components/ui/CustomButton";
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import CustomButton from '../../components/ui/CustomButton';
+import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const Rooms = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    topic: 'Array',
+    difficulty: 'easy',
+    time_limit: '',
+    password: '',
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [visibility, setVisibility] = useState('public');
+  const [capacity, setCapacity] = useState('2');
+
   // Sample room data (replace with API/WebSocket data)
   const [rooms, setRooms] = useState([
     {
@@ -53,10 +71,89 @@ const Rooms = () => {
     },
   ]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [visibility, setVisibility] = useState('public');
-  const [capacity, setCapacity] = useState('2'); // Default to 1 vs 1 (2 participants)
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const CreateRoom = async () => {
+    setIsLoading(true);
+    try {
+      // Validate form data
+      if (!formData.name || !formData.time_limit || !formData.topic || !formData.difficulty) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Prepare payload
+      const payload = {
+        name: formData.name,
+        topic: formData.topic,
+        difficulty: formData.difficulty,
+        time_limit: parseInt(formData.time_limit),
+        capacity: parseInt(capacity),
+        visibility: visibility,
+        ...(visibility === 'private' && formData.password && { password: formData.password }),
+      };
+
+      // Make API call
+      const response = await axios.post(`${API_BASE_URL}/api/create`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${yourToken}`
+        },
+      });
+
+      // Handle success
+      toast.success('Room created successfully!');
+      setRooms((prevRooms) => [
+        ...prevRooms,
+        {
+          id: response.data.id || Date.now(),
+          name: formData.name,
+          host: response.data.host || 'current_user',
+          participants: 1,
+          maxParticipants: parseInt(capacity),
+          difficulty: formData.difficulty,
+          status: 'In progress',
+          duration: `${formData.time_limit} min`,
+          isPrivate: visibility === 'private',
+        },
+      ]);
+
+      // Reset form and close modal
+      setFormData({
+        name: '',
+        topic: 'Array',
+        difficulty: 'easy',
+        time_limit: '',
+        password: '',
+      });
+      setCapacity('2');
+      setVisibility('public');
+      setShowModal(false);
+
+      // Redirect to the new room
+      navigate(`/room/${response.data.id}`);
+
+    } catch (error) {
+      console.error('Error creating room:', error);
+      const errorMessage =
+        error.response?.data?.message || error.message || 'Failed to create room';
+      toast.error(errorMessage);
+
+      if (error.response?.status === 401) {
+        toast.error('Please log in to create a room');
+        navigate('/login');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter rooms based on search term
   const filteredRooms = rooms.filter(
@@ -65,7 +162,7 @@ const Rooms = () => {
       room.host.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Simulate real-time updates (replace with WebSocket logic)
+  // Simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
       setRooms((prevRooms) =>
@@ -88,6 +185,13 @@ const Rooms = () => {
     setShowModal(false);
     setVisibility('public');
     setCapacity('2');
+    setFormData({
+      name: '',
+      topic: 'Array',
+      difficulty: 'easy',
+      time_limit: '',
+      password: '',
+    });
   };
 
   // Dynamic description for capacity
@@ -227,6 +331,7 @@ const Rooms = () => {
                   <Trophy size={16} className="mr-1" /> Leaderboard
                 </button>
                 <button
+                  onClick={() => navigate(`/room/${room.id}`)}
                   className={`px-3 py-1 ${
                     room.id === 3 ? 'bg-yellow-500' : 'bg-white'
                   } ${room.id === 3 ? 'text-black' : 'text-black'} rounded hover:opacity-90 transition-all duration-300 flex items-center`}
@@ -245,138 +350,145 @@ const Rooms = () => {
 
       {/* Create Room Modal */}
       {showModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
-    <div className="w-full max-w-lg rounded-xl border border-gray-700 bg-black p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-green-400">
-          Create Battle Room
-        </h2>
-        <button onClick={handleCloseModal} className="text-gray-400 hover:text-white">
-          <X size={24} />
-        </button>
-      </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-gray-800 bg-black p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-green-400">
+                Create Battle Room
+              </h2>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
 
-      <form className="space-y-5">
-        {/* Room Name */}
-        <div>
-          <label className="block text-sm font-medium text-green-400 mb-2">Room Name</label>
-          <input
-            type="text"
-            name="name"
-            placeholder="Ex: Clash Arena"
-            required
-            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none"
-          />
-        </div>
+            <form className="space-y-5">
+              {/* Room Name */}
+              <div>
+                <label className="block text-sm font-medium text-green-400 mb-2">Room Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Ex: Clash Arena"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md placeholder-gray-500 focus:outline-none"
+                />
+              </div>
 
-        {/* Topic */}
-        <div>
-          <label className="block text-sm font-medium text-green-400 mb-2">Topic</label>
-          <select
-            name="topic"
-            required
-            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
-          >
-            <option value="Array">Array</option>
-            <option value="String">String</option>
-          </select>
-        </div>
+              {/* Topic */}
+              <div>
+                <label className="block text-sm font-medium text-green-400 mb-2">Topic</label>
+                <select
+                  name="topic"
+                  required
+                  value={formData.topic}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md focus:outline-none"
+                >
+                  <option value="Array">Array</option>
+                  <option value="String">String</option>
+                </select>
+              </div>
 
-        {/* Difficulty */}
-        <div>
-          <label className="block text-sm font-medium text-green-400 mb-2">Difficulty</label>
-          <select
-            name="difficulty"
-            required
-            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
+              {/* Difficulty */}
+              <div>
+                <label className="block text-sm font-medium text-green-400 mb-2">Difficulty</label>
+                <select
+                  name="difficulty"
+                  required
+                  value={formData.difficulty}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md focus:outline-none"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
 
-        {/* Time Limit */}
-        <div>
-          <label className="block text-sm font-medium text-green-400 mb-2">Time Limit (minutes)</label>
-          <input
-            type="number"
-            name="time_limit"
-            placeholder="10"
-            min="1"
-            required
-            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none"
-          />
-        </div>
+              {/* Time Limit */}
+              <div>
+                <label className="block text-sm font-medium text-green-400 mb-2">Time Limit (minutes)</label>
+                <input
+                  type="number"
+                  name="time_limit"
+                  placeholder="10"
+                  min="1"
+                  required
+                  value={formData.time_limit}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md placeholder-gray-500 focus:outline-none"
+                />
+              </div>
 
-        {/* Capacity */}
-        <div>
-          <label className="block text-sm font-medium text-green-400 mb-2">Capacity</label>
-          <select
-            name="capacity"
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-            required
-            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
-          >
-            <option value="2">1 vs 1</option>
-            <option value="5">5</option>
-            <option value="10">10</option>
-          </select>
-          {getCapacityDescription() && (
-            <p className="mt-1 text-xs text-gray-500">{getCapacityDescription()}</p>
-          )}
-        </div>
+              {/* Capacity */}
+              <div>
+                <label className="block text-sm font-medium text-green-400 mb-2">Capacity</label>
+                <select
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  required
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md focus:outline-none"
+                >
+                  <option value="2">1 vs 1</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                </select>
+                {getCapacityDescription() && (
+                  <p className="mt-1 text-xs text-gray-500">{getCapacityDescription()}</p>
+                )}
+              </div>
 
-        {/* Visibility */}
-        <div>
-          <label className="block text-sm font-medium text-green-400 mb-2">Visibility</label>
-          <select
-            name="visibility"
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value)}
-            className="w-full p-3 bg-black border border-gray-600 rounded-md text-white focus:outline-none"
-          >
-            <option value="public">Public</option>
-            <option value="private">Private</option>
-          </select>
-        </div>
+              {/* Visibility */}
+              <div>
+                <label className="block text-sm font-medium text-green-400 mb-2">Visibility</label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value)}
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md focus:outline-none"
+                >
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
 
-        {/* Password */}
-        {visibility === 'private' && (
-          <div>
-            <label className="block text-sm font-medium text-green-400 mb-2">Password</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter password"
-              className="w-full p-3 bg-black border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none"
-            />
+              {/* Password */}
+              {visibility === 'private' && (
+                <div>
+                  <label className="block text-sm font-medium text-green-400 mb-2">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Enter password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full p-3 bg-black border border-green-700 text-white rounded-md placeholder-gray-500 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-5 py-2 text-sm text-gray-300 border border-gray-600 rounded hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <CustomButton
+                  variant="create"
+                  onClick={CreateRoom}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Creating...' : 'Create'}
+                </CustomButton>
+              </div>
+            </form>
           </div>
-        )}
-
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-4">
-          <button
-            type="button"
-            onClick={handleCloseModal}
-            className="px-5 py-2 text-sm text-gray-300 border border-gray-600 rounded hover:bg-gray-800"
-          >
-            Cancel
-          </button>
-
-          <CustomButton variant="create" onClick={() => alert("Room created!")}>
-            Create
-          </CustomButton>
         </div>
-      </form>
-    </div>
-  </div>
-)}
-
-      
-
-      
+      )}
     </div>
   );
 };

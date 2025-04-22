@@ -1,21 +1,22 @@
-// src/pages/user/Rooms.jsx
 import React, { useState, useEffect } from 'react';
 import { Search, Lock, Trophy, Play, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import CustomButton from '../../components/ui/CustomButton';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { useAuth } from '../../context/AuthContext';
+import { useLoading } from '../../context/LoadingContext';
+import api, { setupInterceptors } from '../../api';
 
 const Rooms = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user, logout, refreshToken } = useAuth();
+  const { showLoading } = useLoading();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+
     topic: 'Array',
     difficulty: 'easy',
-    time_limit: '',
+    time_limit: '15',
     password: '',
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +24,6 @@ const Rooms = () => {
   const [visibility, setVisibility] = useState('public');
   const [capacity, setCapacity] = useState('2');
 
-  // Sample room data (replace with API/WebSocket data)
   const [rooms, setRooms] = useState([
     {
       id: 1,
@@ -71,6 +71,19 @@ const Rooms = () => {
     },
   ]);
 
+  // Set up axios interceptors
+  useEffect(() => {
+    setupInterceptors(refreshToken, logout);
+  }, [refreshToken, logout]);
+
+  // Check authentication status
+  useEffect(() => {
+    if (!isAuthenticated) {
+      showLoading('USER NOT FOUND');
+      navigate('/login');
+    }
+  }, [isAuthenticated, showLoading, navigate]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -80,17 +93,28 @@ const Rooms = () => {
   };
 
   const CreateRoom = async () => {
+    console.log("call coming");
     setIsLoading(true);
     try {
-      // Validate form data
-      if (!formData.name || !formData.time_limit || !formData.topic || !formData.difficulty) {
-        toast.error('Please fill in all required fields');
+      
+      if (!formData.topic) {
+        console.log("no topic");
+        toast.error('Please select a topic');
+        return;
+      }
+      if (!formData.difficulty) {
+        console.log("no difficulty");
+        toast.error('Please select a difficulty');
+        return;
+      }
+      if (!formData.time_limit) {
+        console.log("no time_limit");
+        toast.error('Please select a time limit');
         return;
       }
 
-      // Prepare payload
       const payload = {
-        name: formData.name,
+        
         topic: formData.topic,
         difficulty: formData.difficulty,
         time_limit: parseInt(formData.time_limit),
@@ -99,23 +123,17 @@ const Rooms = () => {
         ...(visibility === 'private' && formData.password && { password: formData.password }),
       };
 
-      // Make API call
-      const response = await axios.post(`${API_BASE_URL}/api/create`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${yourToken}`
-        },
-      });
+      console.log("Making API call with payload:", payload);
+      const response = await api.post('/room/create/', payload);
+      console.log("API called, response:", response.data);
 
-      // Handle success
       toast.success('Room created successfully!');
       setRooms((prevRooms) => [
         ...prevRooms,
         {
           id: response.data.id || Date.now(),
-          name: formData.name,
-          host: response.data.host || 'current_user',
+         
+          host: response.data.host || user?.role || 'current_user',
           participants: 1,
           maxParticipants: parseInt(capacity),
           difficulty: formData.difficulty,
@@ -125,21 +143,18 @@ const Rooms = () => {
         },
       ]);
 
-      // Reset form and close modal
       setFormData({
-        name: '',
+
         topic: 'Array',
         difficulty: 'easy',
-        time_limit: '',
+        time_limit: '15',
         password: '',
       });
       setCapacity('2');
       setVisibility('public');
       setShowModal(false);
 
-      // Redirect to the new room
       navigate(`/room/${response.data.id}`);
-
     } catch (error) {
       console.error('Error creating room:', error);
       const errorMessage =
@@ -155,14 +170,12 @@ const Rooms = () => {
     }
   };
 
-  // Filter rooms based on search term
   const filteredRooms = rooms.filter(
     (room) =>
       room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       room.host.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
       setRooms((prevRooms) =>
@@ -180,21 +193,19 @@ const Rooms = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Close modal and reset states
   const handleCloseModal = () => {
     setShowModal(false);
     setVisibility('public');
     setCapacity('2');
     setFormData({
-      name: '',
+     
       topic: 'Array',
       difficulty: 'easy',
-      time_limit: '',
+      time_limit: '15',
       password: '',
     });
   };
 
-  // Dynamic description for capacity
   const getCapacityDescription = () => {
     switch (capacity) {
       case '5':
@@ -208,7 +219,6 @@ const Rooms = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-12 overflow-y-auto relative">
-      {/* Binary Particle Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 50 }, (_, i) => (
           <span
@@ -225,22 +235,19 @@ const Rooms = () => {
         ))}
       </div>
 
-      {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl text-white flex items-center">
             <span className="text-green-500 mr-2">0</span>Challenge Rooms
           </h1>
-          <button
-            className="px-4 py-2 border border-green-500 text-green-500 rounded hover:bg-green-500 hover:text-black transition-all duration-300 flex items-center"
+          <CustomButton
+            
             onClick={() => setShowModal(true)}
           >
             <span className="mr-2">+</span> Create Room
-          </button>
+          </CustomButton>
         </div>
 
-        {/* Search */}
         <div className="mb-8">
           <div className="relative">
             <Search className="absolute left-3 top-3 text-gray-400" size={20} />
@@ -254,7 +261,6 @@ const Rooms = () => {
           </div>
         </div>
 
-        {/* Room Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map((room) => (
             <div
@@ -348,7 +354,6 @@ const Rooms = () => {
         </div>
       </div>
 
-      {/* Create Room Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
           <div className="w-full max-w-lg rounded-xl border border-gray-800 bg-black p-6 shadow-xl">
@@ -362,21 +367,7 @@ const Rooms = () => {
             </div>
 
             <form className="space-y-5">
-              {/* Room Name */}
-              <div>
-                <label className="block text-sm font-medium text-green-400 mb-2">Room Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Ex: Clash Arena"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md placeholder-gray-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Topic */}
+              
               <div>
                 <label className="block text-sm font-medium text-green-400 mb-2">Topic</label>
                 <select
@@ -390,8 +381,6 @@ const Rooms = () => {
                   <option value="String">String</option>
                 </select>
               </div>
-
-              {/* Difficulty */}
               <div>
                 <label className="block text-sm font-medium text-green-400 mb-2">Difficulty</label>
                 <select
@@ -406,23 +395,21 @@ const Rooms = () => {
                   <option value="hard">Hard</option>
                 </select>
               </div>
-
-              {/* Time Limit */}
               <div>
-                <label className="block text-sm font-medium text-green-400 mb-2">Time Limit (minutes)</label>
-                <input
-                  type="number"
-                  name="time_limit"
-                  placeholder="10"
-                  min="1"
-                  required
+                <label className="block text-sm font-medium text-green-400 mb-2">Time Limit (Minutes)</label>
+                <select
                   value={formData.time_limit}
+                  name="time_limit"
                   onChange={handleChange}
-                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md placeholder-gray-500 focus:outline-none"
-                />
+                  required
+                  className="w-full p-3 bg-black border border-green-700 text-white rounded-md focus:outline-none"
+                >
+                  <option value="" disabled>Select time limit</option>
+                  <option value="15">15 MIN</option>
+                  <option value="30">30 MIN</option>
+                  <option value="60">1 HR</option>
+                </select>
               </div>
-
-              {/* Capacity */}
               <div>
                 <label className="block text-sm font-medium text-green-400 mb-2">Capacity</label>
                 <select
@@ -439,8 +426,6 @@ const Rooms = () => {
                   <p className="mt-1 text-xs text-gray-500">{getCapacityDescription()}</p>
                 )}
               </div>
-
-              {/* Visibility */}
               <div>
                 <label className="block text-sm font-medium text-green-400 mb-2">Visibility</label>
                 <select
@@ -452,8 +437,6 @@ const Rooms = () => {
                   <option value="private">Private</option>
                 </select>
               </div>
-
-              {/* Password */}
               {visibility === 'private' && (
                 <div>
                   <label className="block text-sm font-medium text-green-400 mb-2">Password</label>
@@ -467,16 +450,14 @@ const Rooms = () => {
                   />
                 </div>
               )}
-
-              {/* Buttons */}
               <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
+                <CustomButton
+                  variant="cancel"
                   onClick={handleCloseModal}
-                  className="px-5 py-2 text-sm text-gray-300 border border-gray-600 rounded hover:bg-gray-800"
+                 
                 >
                   Cancel
-                </button>
+                </CustomButton>
                 <CustomButton
                   variant="create"
                   onClick={CreateRoom}

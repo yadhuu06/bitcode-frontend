@@ -15,29 +15,24 @@ const UserNavbar = () => {
     <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left-0 w-full z-10 shadow-md text-white font-mono flex items-center">
       <div className="container mx-auto flex justify-between items-center h-full px-4">
         {/* Logo */}
-        
         <div className="text-2xl font-bold flex items-center h-full">
           <NavLink to="/user/dashboard" className={navLinkClass}>
-            
             <span className="text-green-500">{'</>'}</span>
             <span className="text-white">BitCode</span>
           </NavLink>
         </div>
 
-
         <ul className="hidden md:flex space-x-8 items-center h-full">
-        <li className="h-full flex items-center">
+          <li className="h-full flex items-center">
             <NavLink to="/user/dashboard" className={navLinkClass}>
               Problems
             </NavLink>
           </li>
-
           <li className="h-full flex items-center">
             <NavLink to="/user/profile" className={navLinkClass}>
               Profile
             </NavLink>
           </li>
-         
           <li className="h-full flex items-center">
             <NavLink to="/user/rooms" className={navLinkClass}>
               Rooms
@@ -65,9 +60,19 @@ const UserNavbar = () => {
             xmlns="http://www.w3.org/2000/svg"
           >
             {isOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h16m-7 6h7"
+              />
             )}
           </svg>
         </button>
@@ -100,7 +105,7 @@ const UserNavbar = () => {
       )}
 
       {/* CSS for animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideDown {
           from {
             opacity: 0;

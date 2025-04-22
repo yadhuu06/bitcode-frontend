@@ -160,12 +160,10 @@ const Profile = () => {
     recentHistory: ['Solved "Binary Search"', 'Attempted "Dynamic Programming"', 'Won "Code Challenge #3"'],
   };
 
-  if (!user) return (
-    <div className="text-green-500 animate-pulse font-mono text-center absolute inset-0 flex items-center justify-center z-10">
-      Initializing...
-    </div>
-  );
-
+  if (!user) {
+    return showLoading('USER NOT FOUND');
+  }
+  
   return (
     <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-26">
       {binaryElements.map((element) => (

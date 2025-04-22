@@ -1,4 +1,6 @@
+// src/pages/user/Problems.jsx
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 
 const Problems = () => {
   // Sample problem data
@@ -55,12 +57,47 @@ const Problems = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Handle filter changes with toast notifications
+  const handleDifficultyFilter = (value) => {
+    setDifficultyFilter(value);
+    toast.info(`Filtering by ${value || 'All'} difficulty`, {
+      position: 'top-right',
+      autoClose: 2000,
+    });
+  };
+
+  const handleStatusFilter = (value) => {
+    setStatusFilter(value);
+    toast.info(`Filtering by ${value || 'All'} status`, {
+      position: 'top-right',
+      autoClose: 2000,
+    });
+  };
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    if (value) {
+      toast.info(`Searching for "${value}"`, {
+        position: 'top-right',
+        autoClose: 2000,
+      });
+    }
+  };
+
+  const handleProblemClick = (title) => {
+    toast.success(`Selected problem: ${title}`, {
+      position: 'top-right',
+      autoClose: 2000,
+    });
+  };
+
   const filteredProblems = problems.filter((problem) => {
     const matchesDifficulty = !difficultyFilter || problem.difficulty === difficultyFilter;
     const matchesStatus = !statusFilter || problem.status === statusFilter;
-    const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch =
+      problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      problem.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      problem.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesDifficulty && matchesStatus && matchesSearch;
   });
 
@@ -77,12 +114,12 @@ const Problems = () => {
             type="text"
             placeholder="Search problems by name, description, or tags..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="w-full md:w-2/3 p-3 bg-gray-800/60 border border-transparent rounded text-white placeholder-white focus:border-green-500 focus:outline-none transition-all duration-300"
           />
           <select
             value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value)}
+            onChange={(e) => handleDifficultyFilter(e.target.value)}
             className="w-full md:w-1/4 p-3 bg-gray-800/60 border border-transparent rounded text-white focus:border-green-500 focus:outline-none transition-all duration-300"
           >
             <option value="">Filter by Difficulty</option>
@@ -104,7 +141,7 @@ const Problems = () => {
                   name="difficulty"
                   value="Easy"
                   checked={difficultyFilter === 'Easy'}
-                  onChange={() => setDifficultyFilter('Easy')}
+                  onChange={() => handleDifficultyFilter('Easy')}
                   className="text-green-500 focus:ring-green-500"
                 />
                 <span className="text-green-500">Easy</span>
@@ -115,7 +152,7 @@ const Problems = () => {
                   name="difficulty"
                   value="Medium"
                   checked={difficultyFilter === 'Medium'}
-                  onChange={() => setDifficultyFilter('Medium')}
+                  onChange={() => handleDifficultyFilter('Medium')}
                   className="text-green-500 focus:ring-green-500"
                 />
                 <span className="text-yellow-500">Medium</span>
@@ -126,10 +163,21 @@ const Problems = () => {
                   name="difficulty"
                   value="Hard"
                   checked={difficultyFilter === 'Hard'}
-                  onChange={() => setDifficultyFilter('Hard')}
+                  onChange={() => handleDifficultyFilter('Hard')}
                   className="text-green-500 focus:ring-green-500"
                 />
                 <span className="text-red-500">Hard</span>
+              </label>
+              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value=""
+                  checked={difficultyFilter === ''}
+                  onChange={() => handleDifficultyFilter('')}
+                  className="text-green-500 focus:ring-green-500"
+                />
+                <span className="text-gray-400">All</span>
               </label>
             </div>
             <h2 className="text-lg text-green-500 mt-6 mb-5">STATUS</h2>
@@ -140,7 +188,7 @@ const Problems = () => {
                   name="status"
                   value="Solved"
                   checked={statusFilter === 'Solved'}
-                  onChange={() => setStatusFilter('Solved')}
+                  onChange={() => handleStatusFilter('Solved')}
                   className="text-green-500 focus:ring-green-500"
                 />
                 <span className="text-green-500">Solved</span>
@@ -151,21 +199,32 @@ const Problems = () => {
                   name="status"
                   value="Attempted"
                   checked={statusFilter === 'Attempted'}
-                  onChange={() => setStatusFilter('Attempted')}
+                  onChange={() => handleStatusFilter('Attempted')}
                   className="text-green-500 focus:ring-green-500"
                 />
                 <span className="text-yellow-500">Attempted</span>
               </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
+              <label class custodian="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
                 <input
                   type="radio"
                   name="status"
                   value="Unsolved"
                   checked={statusFilter === 'Unsolved'}
-                  onChange={() => setStatusFilter('Unsolved')}
+                  onChange={() => handleStatusFilter('Unsolved')}
                   className="text-green-500 focus:ring-green-500"
                 />
                 <span className="text-gray-400">Unsolved</span>
+              </label>
+              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
+                <input
+                  type="radio"
+                  name="status"
+                  value=""
+                  checked={statusFilter === ''}
+                  onChange={() => handleStatusFilter('')}
+                  className="text-green-500 focus:ring-green-500"
+                />
+                <span className="text-gray-400">All</span>
               </label>
             </div>
           </div>
@@ -175,7 +234,8 @@ const Problems = () => {
             {filteredProblems.map((problem) => (
               <div
                 key={problem.id}
-                className="bg-gray-900/80 p-5 mb-6 rounded-lg border-2 border-green-500 hover:border-transparent hover:shadow-[0_0_8px_#00ff00] transition-all duration-300 flex justify-between items-start"
+                className="bg-gray-900/80 p-5 mb-6 rounded-lg border-2 border-green-500 hover:border-transparent hover:shadow-[0_0_8px_#00ff00] transition-all duration-300 flex justify-between items-start cursor-pointer"
+                onClick={() => handleProblemClick(problem.title)}
               >
                 <div>
                   <h3 className="text-lg font-bold text-white">{problem.title}</h3>
@@ -194,14 +254,29 @@ const Problems = () => {
                 <div className="text-right">
                   <span
                     className={`px-2 py-1 rounded ${
-                      problem.difficulty === 'Easy' ? 'bg-green-500 text-black' :
-                      problem.difficulty === 'Medium' ? 'bg-yellow-500 text-black' :
-                      'bg-red-500 text-white'
+                      problem.difficulty === 'Easy'
+                        ? 'bg-green-500 text-black'
+                        : problem.difficulty === 'Medium'
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-red-500 text-white'
                     }`}
                   >
                     {problem.difficulty}
                   </span>
-                  <p className="text-gray-400 text-sm mt-3">Success Rate: {problem.successRate}</p>
+                  <p className="text-gray-400 text-sm mt-3">
+                    Success Rate: {problem.successRate}
+                  </p>
+                  <p
+                    className={`text-sm mt-2 ${
+                      problem.status === 'Solved'
+                        ? 'text-green-500'
+                        : problem.status === 'Attempted'
+                        ? 'text-yellow-500'
+                        : 'text-gray-400'
+                    }`}
+                  >
+                    Status: {problem.status}
+                  </p>
                 </div>
               </div>
             ))}
@@ -215,9 +290,15 @@ const Problems = () => {
       {/* Inline CSS for custom styles */}
       <style jsx>{`
         @keyframes glow {
-          0% { text-shadow: 0 0 4px #00ff00; }
-          50% { text-shadow: 0 0 8px #00ff00; }
-          100% { text-shadow: 0 0 4px #00ff00; }
+          0% {
+            text-shadow: 0 0 4px #00ff00;
+          }
+          50% {
+            text-shadow: 0 0 8px #00ff00;
+          }
+          100% {
+            text-shadow: 0 0 4px #00ff00;
+          }
         }
         .glowing-text {
           animation: glow 1.5s ease-in-out infinite;

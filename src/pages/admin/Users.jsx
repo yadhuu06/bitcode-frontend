@@ -1,26 +1,27 @@
 import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Sidebar from '../../components/admin/Sidebar';
 import { Eye } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const BaseUrl = import.meta.env.VITE_API_BASE_URL;
-const FRONTEND_BASE_URL = import.meta.env.VITE_FRONTEND_BASE_URL;
-
 
 const Users = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const token = localStorage.getItem('access_token');
       if (!token) {
         setError('No access token found');
-        setLoading(false);
         return;
       }
 
+      dispatch(setLoading({ isLoading: true, message: 'Fetching users...', style: 'compile' }));
       try {
         const response = await fetch(`${BaseUrl}/admin-panel/users_list/`, {
           method: 'GET',
@@ -36,21 +37,21 @@ const Users = () => {
         }
 
         const data = await response.json();
-        setUsers(data.users || []); 
-        setLoading(false);
+        setUsers(data.users || []);
       } catch (error) {
         console.error('Error fetching users:', error);
         setError(error.message);
-        setLoading(false);
+      } finally {
+        dispatch(resetLoading());
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [dispatch, token]);
 
   const handleToggleBlock = async (userId, isBlocked) => {
+    dispatch(setLoading({ isLoading: true, message: 'Toggling block status...', style: 'battle' }));
     try {
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`${BaseUrl}/admin-panel/users/toggle-block/`, {
         method: 'POST',
         headers: {
@@ -69,10 +70,13 @@ const Users = () => {
       setUsers(users.map(user =>
         user.id === userId ? { ...user, is_blocked: !isBlocked } : user
       ));
-      console.log(data.message);
+      toast.success(data.message || 'Block status updated!');
     } catch (error) {
       console.error('Error toggling block status:', error);
       setError(error.message);
+      toast.error('Failed to toggle block status');
+    } finally {
+      dispatch(resetLoading());
     }
   };
 
@@ -94,11 +98,7 @@ const Users = () => {
       >
         <h1 className="text-2xl font-bold mb-6 text-white">User Management</h1>
         
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="p-4 bg-red-900 bg-opacity-20 rounded-md text-red-400">
             {error}
           </div>

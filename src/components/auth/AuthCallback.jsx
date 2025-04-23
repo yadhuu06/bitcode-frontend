@@ -1,15 +1,23 @@
+// src/components/auth/AuthCallback.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLoading } from '../../context/LoadingContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import { loginSuccess } from '../../store/slices/authSlice';
 import Cookies from 'js-cookie';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { setLoading } = useLoading();
+  const dispatch = useDispatch();
   const [error, setError] = useState(null);
+  const userRole = useSelector((state) => state.auth.user?.role);
 
   useEffect(() => {
-    setLoading(true);
+    dispatch(setLoading({
+      isLoading: true,
+      message: 'Authenticating...',
+      style: 'battle', // Use battle style for authentication
+    }));
 
     const params = new URLSearchParams(window.location.search);
     const error = params.get('error');
@@ -17,19 +25,32 @@ const AuthCallback = () => {
     if (error) {
       setError('Authentication failed');
       navigate('/', { replace: true });
-      setLoading(false);
+      dispatch(resetLoading());
       return;
     }
 
-    const userRole = Cookies.get('user_role');
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const role = params.get('role') || 'user';
+
+    if (accessToken && refreshToken) {
+      dispatch(
+        loginSuccess({
+          user: { role, is_superuser: role === 'admin' },
+          accessToken,
+          refreshToken,
+        })
+      );
+    }
+
     if (userRole) {
       const redirectPath = userRole === 'admin' ? '/admin/dashboard' : '/user/dashboard';
       navigate(redirectPath, { replace: true });
     } else {
       navigate('/', { replace: true });
     }
-    setLoading(false);
-  }, [navigate, setLoading]);
+    dispatch(resetLoading());
+  }, [navigate, dispatch, userRole]);
 
   if (error) {
     return <div>Authentication failed. Redirecting...</div>;

@@ -9,15 +9,17 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Cookies from 'js-cookie';
-import { useAuth } from '../../context/AuthContext';
+import { useDispatch } from 'react-redux';
+import { logoutSuccess } from '../../store/slices/authSlice';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { toast } from 'react-toastify';
+import { logout as authLogout } from '../../services/AuthService';
 
 const Sidebar = ({ onCollapseChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const dispatch = useDispatch();
 
   const handleToggle = () => {
     setIsCollapsed(prev => !prev);
@@ -27,40 +29,19 @@ const Sidebar = ({ onCollapseChange }) => {
   };
 
   const handleLogout = async () => {
-    const accessToken = Cookies.get('access_token');
-    const refreshToken = Cookies.get('refresh_token');
-    console.log('Access Token:', accessToken);
-
-    if (!refreshToken) {
-      logout(); // Clears cookies and updates auth state
+    dispatch(setLoading({ isLoading: true, message: 'Logging out...', style: 'default' }));
+    try {
+      await authLogout();
+      dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
       navigate('/');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/logout/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      if (response.ok) {
-        console.log('Logout successful');
-        logout(); // Clears cookies and updates auth state
-        toast.success('Logged out successfully!');
-        navigate('/');
-      } else {
-        throw new Error('Logout failed');
-      }
     } catch (error) {
       console.error('Logout error:', error);
-      logout(); // Clears cookies even if backend request fails
+      dispatch(logoutSuccess());
       toast.error('Logout failed, but session cleared');
       navigate('/');
+    } finally {
+      dispatch(resetLoading());
     }
   };
 

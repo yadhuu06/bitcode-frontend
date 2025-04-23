@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import { loginSuccess } from '../../store/slices/authSlice';
+import { login as authLogin } from '../../services/AuthService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Cookies from 'js-cookie';
@@ -7,49 +11,30 @@ import Cookies from 'js-cookie';
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const dispatch = useDispatch();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-
+    dispatch(setLoading({ isLoading: true, message: 'Signing in...', style: 'default' }));
     try {
-      const response = await fetch(`${BASE_URL}/admin-panel/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const data = await authLogin({ email, password });
+      Cookies.set('access_token', data.access, { secure: true, sameSite: 'Strict', expires: 7 });
+      Cookies.set('refresh_token', data.refresh, { secure: true, sameSite: 'Strict', expires: 7 });
+      Cookies.set('admin_id', data.admin_id, { secure: true, sameSite: 'Strict', expires: 7 });
+      dispatch(loginSuccess({ user: { email }, accessToken: data.access, refreshToken: data.refresh }));
+      toast.success(data.message || 'Login successful!', {
+        position: 'top-right',
+        autoClose: 3000,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        Cookies.set('access_token', data.access, { secure: true, sameSite: 'Strict', expires: 7 });
-        Cookies.set('refresh_token', data.refresh, { secure: true, sameSite: 'Strict', expires: 7 });
-        Cookies.set('admin_id', data.admin_id, { secure: true, sameSite: 'Strict', expires: 7 });
-
-        toast.success(data.message || 'Login successful!', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
-
-        navigate('/admin/dashboard');
-      } else {
-        toast.error(data.error || 'Login failed', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
-      }
+      navigate('/admin/dashboard');
     } catch (err) {
-      toast.error('An error occurred. Please try again.', {
+      toast.error(err.message || 'Login failed', {
         position: 'top-right',
         autoClose: 3000,
       });
     } finally {
-      setIsLoading(false);
+      dispatch(resetLoading());
     }
   };
 
@@ -112,37 +97,10 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 className={`w-full flex justify-center items-center py-2 px-4 border-2 rounded-md text-sm font-medium transition-all duration-300 relative border-[#00FF40] bg-[#00FF40] text-black hover:bg-transparent hover:text-[#00FF40] overflow-hidden group`}
-                disabled={isLoading}
               >
-                {isLoading ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#00FF40]"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  <span className="relative z-10 transition-all duration-300 group-hover:animate-pulse">
-                    Sign In
-                  </span>
-                )}
+                <span className="relative z-10 transition-all duration-300 group-hover:animate-pulse">
+                  Sign In
+                </span>
               </button>
             </div>
           </form>

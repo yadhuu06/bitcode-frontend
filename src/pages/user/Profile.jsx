@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api'; // Use custom Axios instance
+import { useDispatch, useSelector } from 'react-redux';
+import { logoutSuccess } from '../../store/slices/authSlice';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import api from '../../api';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import Cookies from 'js-cookie';
-import { useAuth } from '../../context/AuthContext';
-import { useLoading } from '../../context/LoadingContext';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const Profile = () => {
+  const dispatch = useDispatch();
+  const { user: reduxUser, isAuthenticated } = useSelector((state) => state.auth);
+  const { isLoading } = useSelector((state) => state.loading);
+
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState('');
@@ -20,12 +25,10 @@ const Profile = () => {
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
   const [binaryElements, setBinaryElements] = useState([]);
-  const { logout } = useAuth();
-  const { showLoading, hideLoading } = useLoading();
 
   useEffect(() => {
     const fetchUserData = async () => {
-      showLoading('Loading profile...');
+      dispatch(setLoading({ isLoading: true, message: 'Loading profile...' }));
       try {
         const response = await api.get('/api/auth/profile/');
         setUser(response.data);
@@ -34,11 +37,11 @@ const Profile = () => {
         console.error('Error fetching user data:', error);
         toast.error('Failed to load profile data');
       } finally {
-        hideLoading();
+        dispatch(resetLoading());
       }
     };
     fetchUserData();
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     const generateBinary = () => {
@@ -99,7 +102,7 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    showLoading('Updating profile...');
+    dispatch(setLoading({ isLoading: true, message: 'Updating profile...' }));
     const formData = new FormData();
     formData.append('username', username);
     if (croppedImage) {
@@ -122,16 +125,16 @@ const Profile = () => {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
     } finally {
-      hideLoading();
+      dispatch(resetLoading());
     }
   };
 
   const handleLogout = async () => {
-    showLoading('Logging out...');
+    dispatch(setLoading({ isLoading: true, message: 'Logging out...' }));
     const refreshToken = Cookies.get('refresh_token');
     if (!refreshToken) {
       console.error('No refresh token found');
-      logout();
+      dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
       window.location.href = '/';
       return;
@@ -139,16 +142,16 @@ const Profile = () => {
 
     try {
       await api.post('/api/auth/logout/', { refresh_token: refreshToken });
-      logout();
+      dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
       window.location.href = '/';
     } catch (error) {
       console.error('Error during logout:', error);
-      logout();
+      dispatch(logoutSuccess());
       toast.error('Logout failed, but session cleared');
       window.location.href = '/';
     } finally {
-      hideLoading();
+      dispatch(resetLoading());
     }
   };
 
@@ -167,7 +170,7 @@ const Profile = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-26">
       {binaryElements.map((element) => (

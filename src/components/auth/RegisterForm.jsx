@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify";
-import { useAuthApi } from "../../hooks/useAuthApi";
-import { useTimer } from "../../hooks/useTimer";
-import GoogleAuthButton from "./GoogleAuthButton";
-import OtpForm from "./OtpForm";
-import PasswordForm from "./PasswordForm";
+import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import { generateOtp } from '../../services/AuthService';
+import { toast } from 'react-toastify';
+import GoogleAuthButton from './GoogleAuthButton';
+import OtpForm from './OtpForm';
+import PasswordForm from './PasswordForm';
+import { useTimer } from '../../hooks/useTimer';
 
 const RegisterForm = () => {
-  const savedState = JSON.parse(localStorage.getItem("authPageState")) || {};
+  const savedState = JSON.parse(localStorage.getItem('authPageState')) || {};
   const [step, setStep] = useState(savedState.step || 1);
-  const [email, setEmail] = useState(savedState.email || "");
-  const { otpExpiration, resendCooldown, resetTimers } = useTimer();
-  const { generateOtp, isLoading } = useAuthApi();
+  const [email, setEmail] = useState(savedState.email || '');
+  const dispatch = useDispatch();
+  const { resetTimers } = useTimer();
 
   useEffect(() => {
     if (step === 1) {
@@ -20,19 +22,22 @@ const RegisterForm = () => {
   }, [step, resetTimers]);
 
   useEffect(() => {
-    const stateToSave = { step, email, otpSent: step >= 2, otpExpiration, resendCooldown };
-    localStorage.setItem("authPageState", JSON.stringify(stateToSave));
-  }, [step, email, otpExpiration, resendCooldown]);
+    const stateToSave = { step, email };
+    localStorage.setItem('authPageState', JSON.stringify(stateToSave));
+  }, [step, email]);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
+    dispatch(setLoading({ isLoading: true, message: 'Sending OTP...', style: 'default' }));
     try {
       const data = await generateOtp(email);
       setStep(2);
-      console.log("OTP expires in:", data.expires_in);
+      console.log('OTP expires in:', data.expires_in);
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
-      console.error("OTP generation error:", err.message);
+      toast.error(err.message || 'Failed to send OTP');
+      console.error('OTP generation error:', err);
+    } finally {
+      dispatch(resetLoading());
     }
   };
 
@@ -48,26 +53,21 @@ const RegisterForm = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              disabled={isLoading}
+              disabled={false} // Loading state managed by Redux
             />
           </div>
           <button
             type="submit"
-            disabled={isLoading}
-            className={`w-full px-4 py-2 rounded-md transition-colors duration-300 ${
-              isLoading
-                ? "bg-gray-500 text-gray-300 cursor-not-allowed"
-                : "bg-white text-black hover:bg-green-500 hover:text-white"
-            }`}
+            className="w-full px-4 py-2 bg-white text-black rounded-md hover:bg-green-500 hover:text-white transition-colors duration-300"
           >
-            {isLoading ? "Processing..." : "Next"}
+            Next
           </button>
           <div className="flex items-center justify-center space-x-2">
             <div className="h-px w-1/4 bg-green-500" />
             <span className="text-white">or</span>
             <div className="h-px w-1/4 bg-green-500" />
           </div>
-          <GoogleAuthButton label="Continue with Google" disabled={isLoading} />
+          <GoogleAuthButton label="Continue with Google" disabled={false} />
         </form>
       )}
       {step === 2 && <OtpForm email={email} setStep={setStep} />}

@@ -1,63 +1,25 @@
-// src/pages/user/Rooms.jsx
 import React, { useState, useEffect } from 'react';
 import { Search, Lock, Trophy, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import CreateRoomModal from '../../components/modals/CreateRoomModal';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchRooms, createNewRoom } from '../../store/slices/roomSlice';
 
 const Rooms = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { rooms, loading, error } = useSelector((state) => state.rooms);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [rooms, setRooms] = useState([
-    {
-      id: 1,
-      name: 'Binary Tree Challenge',
-      host: 'matrix_master',
-      participants: 3,
-      maxParticipants: 5,
-      difficulty: 'Medium',
-      status: 'In progress',
-      duration: '45 min',
-      isPrivate: false,
-    },
-    {
-      id: 2,
-      name: 'Algorithm Speedrun',
-      host: 'codehack3r',
-      participants: 8,
-      maxParticipants: 10,
-      difficulty: 'Hard',
-      status: 'In progress',
-      duration: '60 min',
-      isPrivate: false,
-    },
-    {
-      id: 3,
-      name: "Beginner's Challenge",
-      host: 'newbie_helper',
-      participants: 2,
-      maxParticipants: 8,
-      difficulty: 'Easy',
-      status: 'In progress',
-      duration: '30 min',
-      isPrivate: false,
-    },
-    {
-      id: 4,
-      name: 'Private Team Practice',
-      host: 'team_lead',
-      participants: 4,
-      maxParticipants: 6,
-      difficulty: 'Medium',
-      status: 'In progress',
-      duration: '60 min',
-      isPrivate: true,
-    },
-  ]);
+
+  useEffect(() => {
+    dispatch(fetchRooms());
+  }, [dispatch]);
 
   const handleRoomCreated = (newRoom) => {
-    setRooms((prevRooms) => [...prevRooms, newRoom]);
+    dispatch(createNewRoom(newRoom));
   };
 
   const filteredRooms = rooms.filter(
@@ -65,23 +27,6 @@ const Rooms = () => {
       room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       room.host.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRooms((prevRooms) =>
-        prevRooms
-          .map((room) => ({
-            ...room,
-            participants: Math.min(
-              room.participants + (Math.random() > 0.7 ? 1 : 0),
-              room.maxParticipants
-            ),
-          }))
-          .filter((room) => room.participants <= room.maxParticipants)
-      );
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-12 overflow-y-auto relative">
@@ -126,6 +71,9 @@ const Rooms = () => {
             />
           </div>
         </div>
+
+        {loading && <p className="text-gray-400 text-center">Loading rooms...</p>}
+        {error && <p className="text-red-500 text-center">Error: {error}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map((room) => (
@@ -210,7 +158,7 @@ const Rooms = () => {
               </div>
             </div>
           ))}
-          {filteredRooms.length === 0 && (
+          {filteredRooms.length === 0 && !loading && (
             <p className="text-gray-400 text-center col-span-full">No rooms found.</p>
           )}
         </div>

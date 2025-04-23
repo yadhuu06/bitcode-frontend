@@ -1,18 +1,22 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import * as THREE from "three";
-import NET from "vanta/dist/vanta.net.min";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import LoginForm from "./LoginForm";
-import RegisterForm from "./RegisterForm";
-import { useAuth } from "../../context/AuthContext"; 
+// src/components/auth/AuthPage.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import * as THREE from 'three';
+import NET from 'vanta/dist/vanta.net.min';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Cookies from 'js-cookie';
+import { loginSuccess } from '../../store/slices/authSlice';
+import LoginForm from './LoginForm';
+import RegisterForm from './RegisterForm';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const AuthPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const user = useSelector((state) => state.auth.user);
   const navigate = useNavigate();
   const location = useLocation();
   const myRef = useRef(null);
@@ -21,39 +25,41 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectPath = user?.is_superuser ? "/admin/dashboard" : "/user/dashboard";
+      const redirectPath = user?.is_superuser ? '/admin/dashboard' : '/user/dashboard';
       navigate(redirectPath, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    const accessToken = query.get("access_token");
-    const refreshToken = query.get("refresh_token");
+    const accessToken = query.get('access_token');
+    const refreshToken = query.get('refresh_token');
 
     if (accessToken && refreshToken) {
-      Cookies.set("access_token", accessToken, { secure: true, sameSite: 'Strict', expires: 7 });
-      Cookies.set("refresh_token", refreshToken, { secure: true, sameSite: 'Strict', expires: 7 });
-      const role = query.get("role") || "user";
-      Cookies.set("role", role, { secure: true, sameSite: 'Strict', expires: 7 });
+      const role = query.get('role') || 'user';
+      dispatch(
+        loginSuccess({
+          user: { role, is_superuser: role === 'admin' },
+          accessToken,
+          refreshToken,
+        })
+      );
 
-      if (role === "admin") {
-        toast.info("You are an admin, please login as admin.");
-        Cookies.remove("access_token");
-        Cookies.remove("refresh_token");
-        Cookies.remove("role");
-        navigate("/admin_login", { replace: true });
+      if (role === 'admin') {
+        toast.info('You are an admin, please login as admin.');
+        dispatch(logoutSuccess());
+        navigate('/admin_login', { replace: true });
       } else {
-        toast.success("Google login successful!");
-        Cookies.remove("authPageState");
-        const path = location.pathname || "/user/dashboard";
+        toast.success('Google login successful!');
+        Cookies.remove('authPageState');
+        const path = location.pathname || '/user/dashboard';
         navigate(path, { replace: true });
       }
     }
-  }, [location, navigate]);
+  }, [location, navigate, dispatch]);
 
   useEffect(() => {
-    if (!vantaEffect && myRef.current && typeof NET !== "undefined") {
+    if (!vantaEffect && myRef.current && typeof NET !== 'undefined') {
       const originalLineMethod = THREE.Line.prototype.computeLineDistances;
       THREE.Line.prototype.computeLineDistances = function () {
         const result = originalLineMethod.apply(this, arguments);
@@ -97,21 +103,21 @@ const AuthPage = () => {
       });
 
       if (myRef.current) {
-        myRef.current.style.filter = "blur(.25px)";
-        const overlay = document.createElement("div");
-        overlay.style.position = "fixed";
-        overlay.style.top = "0";
-        overlay.style.left = "0";
-        overlay.style.width = "100%";
-        overlay.style.height = "100%";
-        overlay.style.backgroundColor = "rgba(0, 0, 0, 0.3)";
-        overlay.style.zIndex = "0";
+        myRef.current.style.filter = 'blur(.25px)';
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+        overlay.style.zIndex = '0';
         document.body.appendChild(overlay);
 
-        const content = document.querySelector(".your-content-container");
+        const content = document.querySelector('.your-content-container');
         if (content) {
-          content.style.position = "relative";
-          content.style.zIndex = "1";
+          content.style.position = 'relative';
+          content.style.zIndex = '1';
         }
       }
 
@@ -143,7 +149,7 @@ const AuthPage = () => {
 
   const handleModeSwitch = () => {
     setIsLogin(!isLogin);
-    Cookies.remove("authPageState");
+    Cookies.remove('authPageState');
   };
 
   if (isAuthenticated) {
@@ -154,18 +160,18 @@ const AuthPage = () => {
     <div className="min-h-screen flex items-center justify-center relative">
       <div
         style={{
-          position: "fixed",
+          position: 'fixed',
           top: 0,
           left: 0,
-          width: "100%",
-          height: "100%",
-          backgroundColor: "rgba(10, 10, 10, 0.08)",
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(10, 10, 10, 0.08)',
           zIndex: 1,
         }}
       />
       <div
         ref={myRef}
-        style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0 }}
+        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}
       />
       <ToastContainer
         position="top-right"
@@ -182,10 +188,10 @@ const AuthPage = () => {
       <div className="absolute top-0 w-full p-4 flex justify-between items-center z-20">
         <div className="text-left flex items-center">
           <h1 className="text-2xl font-bold">
-            <span className="text-white">{"<"}</span>
+            <span className="text-white">{'<'}</span>
             <span className="text-white">Bit </span>
             <span className="text-green-500">Code</span>
-            <span className="text-white">{">"}</span>
+            <span className="text-white">{'>'}</span>
             <div className="text-xs text-green-500 ml-2">01010101</div>
           </h1>
         </div>
@@ -193,7 +199,7 @@ const AuthPage = () => {
           onClick={handleModeSwitch}
           className="text-white hover:text-green-500 transition-colors"
         >
-          {isLogin ? "Register" : "Login"}
+          {isLogin ? 'Register' : 'Login'}
         </button>
       </div>
       <div className="relative z-10 w-full max-w-md p-8 space-y-8 bg-black bg-opacity-40 rounded-lg shadow-xl border border-gray-800">

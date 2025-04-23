@@ -1,10 +1,37 @@
+// src/components/user/UserNavbar.jsx
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { logoutSuccess } from '../../store/slices/authSlice';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import { toast } from 'react-toastify';
+import { logout } from '../../services/AuthService';
 
 const UserNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const toggleMenu = () => setIsOpen((prev) => !prev);
+
+  const handleLogout = async () => {
+    dispatch(setLoading({
+      isLoading: true,
+      message: 'Logging out...',
+      style: 'terminal',
+    }));
+    try {
+      await logout();
+      dispatch(logoutSuccess());
+      toast.success('Logged out successfully!');
+      navigate('/');
+    } catch (error) {
+      toast.error('Logout failed');
+    } finally {
+      dispatch(resetLoading());
+    }
+  };
 
   const navLinkClass = ({ isActive }) =>
     `text-lg font-semibold transition-colors duration-200 ${
@@ -14,30 +41,24 @@ const UserNavbar = () => {
   return (
     <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left-0 w-full z-10 shadow-md text-white font-mono flex items-center">
       <div className="container mx-auto flex justify-between items-center h-full px-4">
-        {/* Logo */}
-        
         <div className="text-2xl font-bold flex items-center h-full">
           <NavLink to="/user/dashboard" className={navLinkClass}>
-            
             <span className="text-green-500">{'</>'}</span>
             <span className="text-white">BitCode</span>
           </NavLink>
         </div>
 
-
         <ul className="hidden md:flex space-x-8 items-center h-full">
-        <li className="h-full flex items-center">
+          <li className="h-full flex items-center">
             <NavLink to="/user/dashboard" className={navLinkClass}>
               Problems
             </NavLink>
           </li>
-
           <li className="h-full flex items-center">
             <NavLink to="/user/profile" className={navLinkClass}>
               Profile
             </NavLink>
           </li>
-         
           <li className="h-full flex items-center">
             <NavLink to="/user/rooms" className={navLinkClass}>
               Rooms
@@ -48,9 +69,18 @@ const UserNavbar = () => {
               Compiler
             </NavLink>
           </li>
+          {isAuthenticated && (
+            <li className="h-full flex items-center">
+              <button
+                onClick={handleLogout}
+                className="text-lg font-semibold text-white hover:text-red-500 transition-colors duration-200"
+              >
+                Logout
+              </button>
+            </li>
+          )}
         </ul>
 
-        {/* Hamburger Menu (Mobile) */}
         <button
           className="md:hidden text-white focus:outline-none focus:ring-2 focus:ring-green-500 rounded p-2"
           onClick={toggleMenu}
@@ -73,17 +103,16 @@ const UserNavbar = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isOpen && (
         <ul className="md:hidden mt-2 space-y-2 bg-gray-900 p-4 absolute w-full top-16 left-0 shadow-md animate-slide-down">
           <li>
-            <NavLink to="/user/profile" className={navLinkClass} onClick={toggleMenu}>
-              Profile
+            <NavLink to="/user/dashboard" className={navLinkClass} onClick={toggleMenu}>
+              Problems
             </NavLink>
           </li>
           <li>
-            <NavLink to="/user/dashboard" className={navLinkClass} onClick={toggleMenu}>
-              Problems
+            <NavLink to="/user/profile" className={navLinkClass} onClick={toggleMenu}>
+              Profile
             </NavLink>
           </li>
           <li>
@@ -96,11 +125,23 @@ const UserNavbar = () => {
               Compiler
             </NavLink>
           </li>
+          {isAuthenticated && (
+            <li>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  toggleMenu();
+                }}
+                className="text-lg font-semibold text-white hover:text-red-500 transition-colors duration-200"
+              >
+                Logout
+              </button>
+            </li>
+          )}
         </ul>
       )}
 
-      {/* CSS for animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideDown {
           from {
             opacity: 0;

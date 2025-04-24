@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Sidebar from '../../components/admin/Sidebar';
-import { Eye } from 'lucide-react';
+import Table from '../../components/admin/Table';
 import { toast } from 'react-toastify';
 
 const BaseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -26,7 +26,7 @@ const Users = () => {
         const response = await fetch(`${BaseUrl}/admin-panel/users_list/`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
@@ -56,7 +56,7 @@ const Users = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ user_id: userId }),
       });
@@ -67,9 +67,11 @@ const Users = () => {
       }
 
       const data = await response.json();
-      setUsers(users.map(user =>
-        user.id === userId ? { ...user, is_blocked: !isBlocked } : user
-      ));
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, is_blocked: !isBlocked } : user
+        )
+      );
       toast.success(data.message || 'Block status updated!');
     } catch (error) {
       console.error('Error toggling block status:', error);
@@ -88,6 +90,14 @@ const Users = () => {
     console.log(`Viewing details for user ${userId}`);
   };
 
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'username', label: 'Username' },
+    { key: 'email', label: 'Email' },
+    { key: 'is_blocked', label: 'Blocked' },
+    { key: 'actions', label: 'Actions' },
+  ];
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Sidebar onCollapseChange={handleCollapseChange} />
@@ -96,67 +106,25 @@ const Users = () => {
           isSidebarCollapsed ? 'ml-16' : 'ml-64'
         } p-8`}
       >
-        <h1 className="text-2xl font-bold mb-6 text-white">User Management</h1>
-        
+        <h1 className="text-2xl font-bold mb-6 text-[#00FF40] font-mono">
+          User Management
+        </h1>
+
         {error ? (
-          <div className="p-4 bg-red-900 bg-opacity-20 rounded-md text-red-400">
+          <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700">
             {error}
           </div>
         ) : users.length === 0 ? (
-          <div className="p-4 bg-gray-800 rounded-md">No users found.</div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg shadow-md">
-            <table className="w-full bg-gray-900 text-white">
-              <thead>
-                <tr className="text-left border-b border-gray-700">
-                  <th className="p-4 font-mono font-medium">ID</th>
-                  <th className="p-4 font-mono font-medium">Username</th>
-                  <th className="p-4 font-mono font-medium">Email</th>
-                  <th className="p-4 font-mono font-medium">Blocked</th>
-                  <th className="p-4 font-mono font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, index) => (
-                  <tr 
-                    key={user.id} 
-                    className={`border-b border-gray-800 hover:bg-gray-800 transition-colors ${
-                      index % 2 === 0 ? 'bg-gray-900' : 'bg-gray-950'
-                    }`}
-                  >
-                    <td className="p-4 font-mono">{user.id}</td>
-                    <td className="p-4 font-mono">{user.username || 'N/A'}</td>
-                    <td className="p-4 font-mono">{user.email}</td>
-                    <td className="p-4 font-mono">
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer"
-                          checked={!user.is_blocked}
-                          onChange={() => handleToggleBlock(user.id, user.is_blocked)}
-                        />
-                        <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                      </label>
-                    </td>
-                    <td className="p-4 font-mono">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleViewDetails(user.id)}
-                          className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors text-white group relative"
-                          aria-label="View Details"
-                        >
-                          <Eye size={18} />
-                          <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            View Details
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-4 bg-gray-800/50 rounded-md text-white border border-gray-700">
+            No users found.
           </div>
+        ) : (
+          <Table
+            data={users}
+            columns={columns}
+            onToggleBlock={handleToggleBlock}
+            onViewDetails={handleViewDetails}
+          />
         )}
       </div>
     </div>

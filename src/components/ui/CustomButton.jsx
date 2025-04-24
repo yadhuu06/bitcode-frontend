@@ -16,13 +16,25 @@ const CustomButton = ({ variant = "create", children, ...props }) => {
       border: "border border-red-500",
       glow: "group-hover:shadow-[0_0_10px_#FF4D4D,0_0_20px_#FF4D4D]",
       bgLine:
-        "absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-1000 ease-linear bg-gradient-to-r from-transparent via-green-500  to-transparent opacity-60",
+        "absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-1000 ease-linear bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60",
     },
     edit: {
       border: "border border-yellow-400",
       glow: "group-hover:shadow-[0_0_10px_#FFD700,0_0_20px_#FFD700]",
       bgLine:
-        "absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-1000 ease-linear bg-gradient-to-r from-transparent via-green-500  to-transparent opacity-60",
+        "absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-1000 ease-linear bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-60",
+    },
+    primary: {
+      border: "border border-blue-500",
+      glow: "group-hover:shadow-[0_0_10px_#00B7EB,0_0_20px_#00B7EB]",
+      bgLine:
+        "absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-1000 ease-linear bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-60",
+    },
+    back: {
+      border: "border border-purple-500",
+      glow: "group-hover:shadow-[0_0_10px_#A100F2,0_0_20px_#A100F2]",
+      bgLine:
+        "absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-1000 ease-linear bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60",
     },
   };
 

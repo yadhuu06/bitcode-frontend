@@ -19,6 +19,8 @@ import NotFound from './components/user/NotFound';
 import Profile from './pages/user/Profile';
 import Compiler from './pages/user/Compiler';
 import Rooms from './pages/user/Rooms';
+import RoomLobby from './pages/user/RoomLobby';
+
 import BitWarAdminLogin from './pages/admin/Login';
 import UserNavbar from './components/user/UserNavbar';
 import AuthCallback from './components/auth/AuthCallback';
@@ -97,6 +99,8 @@ const AppWrapper = () => {
                   <Route path="profile" element={<Profile />} />
                   <Route path="compiler" element={<Compiler />} />
                   <Route path="rooms" element={<Rooms />} />
+                  <Route path="RoomLobby" element={<RoomLobby />} />
+
                 </Routes>
               </UserLayout>
             }

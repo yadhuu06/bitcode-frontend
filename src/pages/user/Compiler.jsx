@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-
+import axios from 'axios';
+import React, { useState ,useEffect} from 'react';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const Compiler = () => {
   const [code, setCode] = useState('// Write your code here\nconsole.log("Hello, quantum world!");');
   const [language, setLanguage] = useState('javascript');
@@ -8,6 +9,7 @@ const Compiler = () => {
 
   const handleRunCode = () => {
     setIsRunning(true);
+    
     
     // Simulate code execution
     setTimeout(() => {
@@ -110,6 +112,7 @@ const Compiler = () => {
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-800 relative h-full">
               <div className="p-4 border-b border-gray-800/80 flex justify-between items-center">
                 <h2 className="text-sm font-medium text-green-400">Console Output</h2>
+                
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
               </div>
               

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import store from '../store'; // Adjust path as needed
+import store from '../store'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -8,7 +8,7 @@ export const fetchRooms = async () => {
     const state = store.getState();
     const accessToken = state.auth.accessToken;
 
-    const response = await axios.get(`${API_BASE_URL}/api/rooms/`, {
+    const response = await axios.get(`${API_BASE_URL}/rooms/`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
@@ -27,7 +27,7 @@ export const createRoom = async (payload) => {
     const state = store.getState();
     const accessToken = state.auth.accessToken;
 
-    const response = await axios.post(`${API_BASE_URL}/api/rooms/`, payload, {
+    const response = await axios.post(`${API_BASE_URL}/rooms/create/`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,

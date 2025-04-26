@@ -10,8 +10,7 @@ const Compiler = () => {
   const handleRunCode = () => {
     setIsRunning(true);
     
-    
-    // Simulate code execution
+
     setTimeout(() => {
       let simulatedOutput = '';
       

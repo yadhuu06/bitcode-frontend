@@ -5,11 +5,32 @@ import { toast } from 'react-toastify';
 import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRooms, createNewRoom } from '../../store/slices/roomSlice';
+import { io } from 'socket.io-client';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 const Rooms = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { rooms, loading, error } = useSelector((state) => state.rooms);
+  const wsURL = API_BASE_URL.replace('http', 'ws') + '/ws/rooms/';
+  const socket = new WebSocket(wsURL);
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+  
+    socket.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server');
+    });
+  
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+  
+
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);

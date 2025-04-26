@@ -56,7 +56,16 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
     }
     return true;
   };
-
+  useEffect(() => {
+    socket.on('newRoomBroadcast', (room) => {
+      dispatch(createNewRoom(room));
+    });
+  
+    return () => {
+      socket.off('newRoomBroadcast');
+    };
+  }, [dispatch]);
+  
   const handleCreateRoom = async () => {
     if (!validateForm()) return;
 
@@ -73,6 +82,10 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       };
 
       const response = await createRoom(payload);
+      const handleRoomCreated = (newRoom) => {
+        dispatch(createNewRoom(newRoom));
+        socket.emit('createRoom', newRoom); 
+      };
 
       toast.success('Room created successfully!');
       onRoomCreated({

@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import CustomButton from '../ui/CustomButton';
 import { createRoom } from '../../services/RoomService';
+import { useSelector } from 'react-redux';
 
 const TOPIC_OPTIONS = [
   { value: 'Array', label: 'Array' },
@@ -14,6 +15,7 @@ const TIME_LIMIT_OPTIONS = [15, 30, 60];
 
 const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   const navigate = useNavigate();
+  const { accessToken } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -56,17 +58,14 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
     }
     return true;
   };
-  useEffect(() => {
-    socket.on('newRoomBroadcast', (room) => {
-      dispatch(createNewRoom(room));
-    });
-  
-    return () => {
-      socket.off('newRoomBroadcast');
-    };
-  }, [dispatch]);
-  
+
   const handleCreateRoom = async () => {
+    if (!accessToken) {
+      toast.error('Please log in to create a room');
+      navigate('/login');
+      return;
+    }
+
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -82,12 +81,6 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       };
 
       const response = await createRoom(payload);
-      const handleRoomCreated = (newRoom) => {
-        dispatch(createNewRoom(newRoom));
-        socket.emit('createRoom', newRoom); 
-      };
-
-      toast.success('Room created successfully!');
       onRoomCreated({
         id: response.room_id,
         name: formData.name,
@@ -101,15 +94,16 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         joinCode: response.join_code,
       });
 
+      toast.success('Room created successfully!');
       onClose();
       navigate(`/room/${response.room_id}`);
     } catch (error) {
       console.error('Error creating room:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to create room';
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
       toast.error(errorMessage);
 
       if (error.response?.status === 401) {
-        toast.error('Please log in to create a room');
+        toast.error('Session expired. Please log in again.');
         navigate('/login');
       }
     } finally {

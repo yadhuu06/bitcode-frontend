@@ -2,45 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { Search, Lock, Trophy, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import { useDispatch, useSelector } from 'react-redux';
+import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import { fetchRooms, createNewRoom } from '../../store/slices/roomSlice';
-import { io } from 'socket.io-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 const Rooms = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { rooms, loading, error } = useSelector((state) => state.rooms);
-  const wsURL = API_BASE_URL.replace('http', 'ws') + '/ws/rooms/';
-  const socket = new WebSocket(wsURL);
-  useEffect(() => {
-    socket.on('connect', () => {
-      console.log('Connected to WebSocket server');
-    });
-  
-    socket.on('disconnect', () => {
-      console.log('Disconnected from WebSocket server');
-    });
-  
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
-  
-
-
+  const { accessToken } = useSelector((state) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchRooms());
+    if (!accessToken) {
+      toast.error('Please log in to view rooms');
+      navigate('/login');
+      return;
+    }
+
+    // Initialize WebSocket with JWT token
+    const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${accessToken}`;
+    const ws = new WebSocket(wsURL);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      toast.success('Connected to server');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'room_list' || data.type === 'room_update') {
+          dispatch(fetchRooms()); // Refresh room list
+        }
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+        toast.error('Invalid server message');
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      toast.error('WebSocket connection error');
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      toast.warn('Disconnected from server');
+    };
+
+    setSocket(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, [accessToken, dispatch, navigate]);
+
+  useEffect(() => {
+    dispatch(fetchRooms()).catch((err) => {
+      console.error('Failed to fetch rooms:', err);
+      toast.error('Failed to load rooms');
+    });
   }, [dispatch]);
 
-  const handleRoomCreated = (newRoom) => {
-    dispatch(createNewRoom(newRoom));
+  useEffect(() => {
+    if (error) {
+      toast.error(`Error: ${error}`);
+    }
+  }, [error]);
+
+  const handleRoomCreated = async (newRoom) => {
+    try {
+      await dispatch(createNewRoom(newRoom)).unwrap();
+      toast.success('Room created successfully');
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      toast.error('Failed to create room');
+    }
   };
 
   const filteredRooms = rooms.filter(
@@ -169,12 +211,9 @@ const Rooms = () => {
                 </button>
                 <button
                   onClick={() => navigate(`/room/${room.id}`)}
-                  className={`px-3 py-1 ${
-                    room.id === 3 ? 'bg-yellow-500' : 'bg-white'
-                  } ${room.id === 3 ? 'text-black' : 'text-black'} rounded hover:opacity-90 transition-all duration-300 flex items-center`}
+                  className="px-3 py-1 bg-white text-black rounded hover:opacity-90 transition-all duration-300 flex items-center"
                 >
-                  <Play size={16} className="mr-1" />{' '}
-                  {room.id === 3 ? 'Join Room' : 'Enter Room'}
+                  <Play size={16} className="mr-1" /> Enter Room
                 </button>
               </div>
             </div>

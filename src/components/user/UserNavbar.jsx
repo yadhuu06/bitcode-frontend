@@ -1,4 +1,3 @@
-// src/components/user/UserNavbar.jsx
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -6,6 +5,7 @@ import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { toast } from 'react-toastify';
 import { logout } from '../../services/AuthService';
+import { LogOut } from 'lucide-react';
 
 const UserNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,10 +24,21 @@ const UserNavbar = () => {
     try {
       await logout();
       dispatch(logoutSuccess());
-      toast.success('Logged out successfully!');
+      toast.success('Logged out successfully!', {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'dark',
+      });
       navigate('/');
     } catch (error) {
-      toast.error('Logout failed');
+      console.error('Logout error:', error.message);
+      dispatch(logoutSuccess()); // Clear session even if API fails
+      toast.error('Logout failed, but session cleared', {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'dark',
+      });
+      navigate('/');
     } finally {
       dispatch(resetLoading());
     }
@@ -70,13 +81,17 @@ const UserNavbar = () => {
             </NavLink>
           </li>
           {isAuthenticated && (
-            <li className="h-full flex items-center">
+            <li className="h-full flex items-center relative group">
               <button
                 onClick={handleLogout}
-                className="text-lg font-semibold text-white hover:text-red-500 transition-colors duration-200"
+                className="text-white hover:text-red-500 transition-colors duration-200 p-2"
+                aria-label="Logout"
               >
-                Logout
+                <LogOut className="w-6 h-6" />
               </button>
+              <span className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-gray-800 text-white text-sm font-semibold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                Logout
+              </span>
             </li>
           )}
         </ul>
@@ -132,9 +147,10 @@ const UserNavbar = () => {
                   handleLogout();
                   toggleMenu();
                 }}
-                className="text-lg font-semibold text-white hover:text-red-500 transition-colors duration-200"
+                className="text-lg font-semibold text-white hover:text-red-500 transition-colors duration-200 flex items-center space-x-2"
               >
-                Logout
+                <LogOut className="w-6 h-6" />
+                <span>Logout</span>
               </button>
             </li>
           )}

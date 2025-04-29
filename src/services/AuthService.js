@@ -1,7 +1,5 @@
-// src/services/AuthService.js
+import api from '../api'; // Use the api instance from api.js
 import store from '../store';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Utility function to validate email format
 const validateEmail = (email) => {
@@ -22,7 +20,6 @@ const validateOtp = (otp) => {
 export const login = async (credentials) => {
   const { email, password } = credentials;
 
-  // Input validation
   if (!email || !password) {
     throw new Error('Email and password are required');
   }
@@ -34,57 +31,33 @@ export const login = async (credentials) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email.trim(), password: password.trim() }),
+    const response = await api.post('/api/auth/login/', {
+      email: email.trim(),
+      password: password.trim(),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Login failed (Status: ${response.status})`);
-    }
-
-    const data = await response.json();
     return {
-      refresh: data.refresh,
-      access: data.access,
-      role: data.role,
-      redirect_url: data.redirect_url,
+      refresh: response.data.refresh,
+      access: response.data.access,
+      role: response.data.role,
+      redirect_url: response.data.redirect_url,
     };
   } catch (error) {
     console.error('Error during login:', error.message);
-    throw error;
+    throw new Error(error.response?.data?.error || `Login failed (Status: ${error.response?.status || 'unknown'})`);
   }
 };
 
 export const logout = async () => {
   try {
     const state = store.getState();
-    const accessToken = state.auth.accessToken;
     const refreshToken = state.auth.refreshToken;
 
-    if (!accessToken || !refreshToken) {
-      throw new Error('No access or refresh token available for logout');
+    if (!refreshToken) {
+      throw new Error('No refresh token available for logout');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/logout/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Logout failed (Status: ${response.status})`);
-    }
-
-    return await response.json();
+    const response = await api.post('/api/auth/logout/', { refresh_token: refreshToken });
+    return response.data;
   } catch (error) {
     console.error('Error during logout:', error.message);
     throw error;
@@ -97,27 +70,16 @@ export const refreshToken = async (refreshToken) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/token/refresh/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh: refreshToken }),
+    const response = await api.post('/api/auth/token/refresh/', {
+      refresh: refreshToken,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Token refresh failed (Status: ${response.status})`);
-    }
-
-    const data = await response.json();
     return {
-      access: data.access,
-      refresh: data.refresh,
+      access: response.data.access,
+      refresh: response.data.refresh || refreshToken, // Fallback if refresh token not rotated
     };
   } catch (error) {
     console.error('Error refreshing token:', error.message);
-    throw error;
+    throw new Error(error.response?.data?.error || `Token refresh failed (Status: ${error.response?.status || 'unknown'})`);
   }
 };
 
@@ -130,27 +92,16 @@ export const generateOtp = async (email) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/otp/generate/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email.trim() }),
+    const response = await api.post('/api/auth/otp/generate/', {
+      email: email.trim(),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `OTP generation failed (Status: ${response.status})`);
-    }
-
-    const data = await response.json();
     return {
-      message: data.message,
-      expires_in: data.expires_in,
+      message: response.data.message,
+      expires_in: response.data.expires_in,
     };
   } catch (error) {
     console.error('Error generating OTP:', error.message);
-    throw error;
+    throw new Error(error.response?.data?.error || `OTP generation failed (Status: ${error.response?.status || 'unknown'})`);
   }
 };
 
@@ -166,23 +117,14 @@ export const verifyOtp = async (email, otp) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/otp/verify/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email.trim(), otp: otp.trim() }),
+    const response = await api.post('/api/auth/otp/verify/', {
+      email: email.trim(),
+      otp: otp.trim(),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `OTP verification failed (Status: ${response.status})`);
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error verifying OTP:', error.message);
-    throw error;
+    throw new Error(error.response?.data?.error || `OTP verification failed (Status: ${error.response?.status || 'unknown'})`);
   }
 };
 
@@ -195,32 +137,21 @@ export const resendOtp = async (email) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/otp/generate/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email.trim() }),
+    const response = await api.post('/api/auth/otp/generate/', {
+      email: email.trim(),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      if (errorData.error && errorData.error.includes('Please wait')) {
-        const cooldownMatch = errorData.error.match(/(\d+)/);
-        const cooldown = cooldownMatch ? parseInt(cooldownMatch[0], 10) : 0;
-        throw Object.assign(new Error(errorData.error), { cooldown });
-      }
-      throw new Error(errorData.error || `OTP resend failed (Status: ${response.status})`);
-    }
-
-    const data = await response.json();
     return {
-      message: data.message,
-      expires_in: data.expires_in,
+      message: response.data.message,
+      expires_in: response.data.expires_in,
     };
   } catch (error) {
     console.error('Error resending OTP:', error.message);
-    throw error;
+    if (error.response?.data?.error?.includes('Please wait')) {
+      const cooldownMatch = error.response.data.error.match(/(\d+)/);
+      const cooldown = cooldownMatch ? parseInt(cooldownMatch[0], 10) : 0;
+      throw Object.assign(new Error(error.response.data.error), { cooldown });
+    }
+    throw new Error(error.response?.data?.error || `OTP resend failed (Status: ${error.response?.status || 'unknown'})`);
   }
 };
 
@@ -239,35 +170,25 @@ export const completeRegistration = async (email, password, confirmPassword) => 
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register/complete/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email.trim(), password: password.trim(), confirmPassword: confirmPassword.trim() }),
+    const response = await api.post('/api/auth/register/complete/', {
+      email: email.trim(),
+      password: password.trim(),
+      confirmPassword: confirmPassword.trim(),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      if (errorData.error) {
-        throw new Error(errorData.error);
-      } else {
-        const errorMessage = Object.values(errorData)
-          .flat()
-          .join(', ') || `Registration failed (Status: ${response.status})`;
-        throw new Error(errorMessage);
-      }
-    }
-
-    const data = await response.json();
     return {
-      refresh: data.refresh,
-      access: data.access,
-      role: data.role,
-      redirect_url: data.redirect_url,
+      refresh: response.data.refresh,
+      access: response.data.access,
+      role: response.data.role,
+      redirect_url: response.data.redirect_url,
     };
   } catch (error) {
     console.error('Error completing registration:', error.message);
-    throw error;
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    const errorMessage = Object.values(error.response?.data || {})
+      .flat()
+      .join(', ') || `Registration failed (Status: ${error.response?.status || 'unknown'})`;
+    throw new Error(errorMessage);
   }
 };

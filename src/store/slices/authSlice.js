@@ -1,4 +1,3 @@
-// src/store/slices/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 import Cookies from 'js-cookie';
 

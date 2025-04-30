@@ -62,7 +62,7 @@ const Rooms = () => {
 
     ws.onopen = () => {
       console.log('WebSocket connected');
-      toast.success('Connected to server');
+      
     };
 
     ws.onmessage = (event) => {
@@ -79,19 +79,19 @@ const Rooms = () => {
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
-      toast.error('Failed to connect to server');
+     
     };
 
     ws.onclose = (event) => {
       console.warn('WebSocket disconnected:', event);
-      if (event.code === 4001) { // Assuming 4001 is used for unauthorized
+      if (event.code === 401) { // Assuming 4001 is used for unauthorized
         toast.error('Session expired. Please log in again.');
         dispatch(logoutSuccess());
         Cookies.remove('access_token');
         Cookies.remove('refresh_token');
         navigate('/login');
       } else {
-        toast.warn('Disconnected from server');
+        
       }
     };
 

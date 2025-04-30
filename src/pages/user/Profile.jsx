@@ -174,7 +174,7 @@ const Profile = () => {
     try {
       const formData = new FormData();
       formData.append('username', username.trim());
-      formData.append('bio', bio);
+      
       if (croppedImage) {
         const blob = await fetch(croppedImage).then((res) => res.blob());
         formData.append('profile_picture', blob, 'profile.jpg');
@@ -417,7 +417,7 @@ const Profile = () => {
                       setProfilePic(null);
                       setCroppedImage(null);
                       setUsername(user?.username || '');
-                      setBio(user?.bio || '');
+                      
                     }}
                   >
                     <FaTimes />

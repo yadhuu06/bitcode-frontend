@@ -6,6 +6,8 @@ import CustomButton from '../ui/CustomButton';
 import { createRoom } from '../../services/RoomService';
 import { useSelector } from 'react-redux';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const TOPIC_OPTIONS = [
   { value: 'Array', label: 'Array' },
   { value: 'String', label: 'String' },
@@ -81,6 +83,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       };
 
       const response = await createRoom(payload);
+      console.log(response)
       onRoomCreated({
         id: response.room_id,
         name: formData.name,
@@ -96,7 +99,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
 
       toast.success('Room created successfully!');
       onClose();
-      navigate(`/room/${response.room_id}`);
+      navigate(`user/room/RoomLobby`);
     } catch (error) {
       console.error('Error creating room:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';

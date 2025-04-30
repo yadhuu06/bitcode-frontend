@@ -19,8 +19,9 @@ export const fetchRooms = async () => {
       },
     });
 
-    return response.data.rooms; // Adjust based on backend response structure
-  } catch (error) {
+    return response.data.rooms;
+  }
+   catch (error) {
     console.error('Error fetching rooms:', error);
     throw new pilferError(error.response?.data?.error || error.message);
   }

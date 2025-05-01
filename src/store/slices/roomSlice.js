@@ -1,4 +1,3 @@
-// src/store/slices/roomSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { fetchRooms as fetchRoomsApi, createRoom } from '../../services/RoomService';
 
@@ -22,6 +21,9 @@ const roomSlice = createSlice({
   reducers: {
     addRoom(state, action) {
       state.rooms.push(action.payload);
+    },
+    updateRooms(state, action) {
+      state.rooms = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -53,5 +55,5 @@ const roomSlice = createSlice({
   },
 });
 
-export const { addRoom } = roomSlice.actions;
+export const { addRoom, updateRooms } = roomSlice.actions;
 export default roomSlice.reducer;

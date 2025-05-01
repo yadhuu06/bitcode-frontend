@@ -50,7 +50,8 @@ const UserNavbar = () => {
     }`;
 
   return (
-    <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left-0 w-full z-10 shadow-md text-white font-mono flex items-center">
+    
+    <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left-0 w-full z-50 shadow-md text-white font-mono flex items-center">
       <div className="container mx-auto flex justify-between items-center h-full px-4">
         <div className="text-2xl font-bold flex items-center h-full">
           <NavLink to="/user/dashboard" className={navLinkClass}>
@@ -119,7 +120,7 @@ const UserNavbar = () => {
       </div>
 
       {isOpen && (
-        <ul className="md:hidden mt-2 space-y-2 bg-gray-900 p-4 absolute w-full top-16 left-0 shadow-md animate-slide-down">
+        <ul className="md:hidden mt-2 space-y-2 bg-gray-900 p-4 absolute w-full top-16 left-0 shadow-md animate-slide-down z-50">
           <li>
             <NavLink to="/user/dashboard" className={navLinkClass} onClick={toggleMenu}>
               Problems

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import store from '../store';
-
+import api from '../api';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const fetchRooms = async () => {
@@ -12,7 +12,7 @@ export const fetchRooms = async () => {
       throw new Error('No access token available');
     }
 
-    const response = await axios.get(`${API_BASE_URL}/rooms/`, {
+    const response = await api.get(`${API_BASE_URL}/rooms/`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
@@ -36,7 +36,7 @@ export const createRoom = async (payload) => {
       throw new Error('No access token available');
     }
 
-    const response = await axios.post(`${API_BASE_URL}/rooms/create/`, payload, {
+    const response = await api.post(`${API_BASE_URL}/rooms/create/`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,

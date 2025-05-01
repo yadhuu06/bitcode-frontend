@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { jwtDecode } from 'jwt-decode'; // Fixed: Use named import
+import { jwtDecode } from 'jwt-decode'; 
 import  store  from '../src/store';
 import { updateTokens, logoutSuccess } from '../src/store/slices/authSlice';
 

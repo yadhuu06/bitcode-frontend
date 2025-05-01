@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Lock, Trophy, Play, Users, Clock, Layers, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
-import { fetchRooms, createNewRoom } from '../../store/slices/roomSlice';
+import { fetchRooms, createNewRoom, updateRooms } from '../../store/slices/roomSlice';
 import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
@@ -46,8 +46,12 @@ const Rooms = () => {
   const { isLoading, message, progress, style } = useSelector((state) => state.loading);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const [wsError, setWsError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  const wsRef = useRef(null); // Track WebSocket instance
+  const reconnectAttempts = useRef(0); // Track reconnection attempts
+  const maxReconnectAttempts = 5; // Limit reconnection attempts
+  const reconnectInterval = 5000; 
 
   useEffect(() => {
     if (!accessToken) {
@@ -56,71 +60,91 @@ const Rooms = () => {
       return;
     }
 
-    // Initialize WebSocket with JWT token
-    const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${accessToken}`;
-    const ws = new WebSocket(wsURL);
+    const connectWebSocket = () => {
+      // Only create a new WebSocket if none exists or it's closed
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        console.log('WebSocket already connected');
+        return;
+      }
 
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      
-    };
+      if (reconnectAttempts.current >= maxReconnectAttempts) {
+        setWsError('Max reconnection attempts reached');
+        toast.error('Unable to connect to server. Please try again later.');
+        return;
+      }
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'room_list' || data.type === 'room_update') {
-          dispatch(fetchRooms());
+      console.log('Initiating WebSocket connection', accessToken);
+      const encodedToken = encodeURIComponent(accessToken);
+      const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${accessToken}`;
+      wsRef.current = new WebSocket(wsURL);
+
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connected');
+        setWsError(null);
+        reconnectAttempts.current = 0; // Reset on successful connection
+      };
+
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket message:', data);
+          if (data.type === 'room_list' || data.type === 'room_update') {
+            dispatch(updateRooms(data.rooms)); // Update Redux store
+          } else if (data.type === 'error') {
+            console.error('Server error:', data.message);
+            setWsError(data.message);
+            toast.error(data.message);
+          } else {
+            console.warn('Unknown message type:', data.type);
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+          setWsError('Invalid server message');
+          toast.error('Invalid server message');
         }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-        toast.error('Invalid server message');
-      }
-    };
+      };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-     
-    };
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setWsError('WebSocket connection failed');
+        toast.error('WebSocket connection failed');
+      };
 
-    ws.onclose = (event) => {
-      console.warn('WebSocket disconnected:', event);
-      if (event.code === 401) { // Assuming 4001 is used for unauthorized
-        toast.error('Session expired. Please log in again.');
-        dispatch(logoutSuccess());
-        Cookies.remove('access_token');
-        Cookies.remove('refresh_token');
-        navigate('/login');
-      } else {
+      wsRef.current.onclose = (event) => {
+        console.warn('WebSocket disconnected:', event.code, event.reason);
+        setWsError(`WebSocket closed with code ${event.code}: ${event.reason || 'Unknown reason'}`);
         
-      }
-    };
-
-    setSocket(ws);
-
-    return () => {
-      ws.close();
-    };
-  }, [accessToken, dispatch, navigate]);
-
-  useEffect(() => {
-    dispatch(setLoading({ isLoading: true, message: 'Loading rooms...', style: 'terminal', progress: 0 }));
-    dispatch(fetchRooms())
-      .unwrap()
-      .catch((err) => {
-        console.error('Failed to fetch rooms:', err);
-        const errorMessage = err.response?.data?.error || err.message || 'Failed to load rooms';
-        toast.error(errorMessage);
-        if (err.response?.status === 401) {
+        if (event.code === 4001 || event.code === 4002) {
+          // Token-related errors: log out and redirect
+          toast.error('Session expired. Please log in again.');
           dispatch(logoutSuccess());
           Cookies.remove('access_token');
           Cookies.remove('refresh_token');
           navigate('/login');
+        } else {
+          // Attempt to reconnect for other errors (e.g., 1006)
+          reconnectAttempts.current += 1;
+          setTimeout(() => {
+            console.log(`Reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
+            connectWebSocket();
+          }, reconnectInterval);
         }
-      })
-      .finally(() => {
-        dispatch(resetLoading());
-      });
-  }, [dispatch, navigate]);
+      };
+    };
+
+    connectWebSocket();
+
+
+    return () => {
+      console.log('Cleaning up WebSocket');
+      // Only close WebSocket on permanent unmount (e.g., logout or navigation)
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close(1000, 'Component unmounted');
+      }
+    };
+  }, [accessToken, navigate, dispatch]);
+
+
 
   useEffect(() => {
     if (error) {
@@ -170,6 +194,14 @@ const Rooms = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-16 overflow-y-auto relative">
+      {/* Display WebSocket error */}
+      {wsError && (
+        <div className="bg-red-500/20 border border-red-500 p-4 rounded-md flex items-center mb-6 mx-auto max-w-6xl">
+          <AlertTriangle className="text-red-500 mr-2" size={20} />
+          <p className="text-red-500">{wsError}</p>
+        </div>
+      )}
+
       {/* Futuristic background matrix effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 100 }, (_, i) => (
@@ -418,11 +450,15 @@ const Rooms = () => {
         />
       )}
 
-      {/* Add CSS for animated matrix effect */}
+      {/* CSS for animated matrix effect */}
       <style jsx>{`
         @keyframes pulse {
-          0%, 100% { opacity: 0.1; }
-          50% { opacity: 0.5; }
+          0%, 100% {
+            opacity: 0.1;
+          }
+          50% {
+            opacity: 0.5;
+          }
         }
       `}</style>
     </div>

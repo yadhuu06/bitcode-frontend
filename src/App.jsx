@@ -92,7 +92,7 @@ const AppWrapper = () => {
 
         <Route element={<PrivateRoute />}>
           <Route
-            path="/user/*"
+            path="/user/*"    
             element={
               <UserLayout>
                 <Routes>
@@ -100,7 +100,7 @@ const AppWrapper = () => {
                   <Route path="profile" element={<Profile />} />
                   <Route path="compiler" element={<Compiler />} />
                   <Route path="rooms" element={<Rooms />} />
-                  <Route path="room/RoomLobby" element={<RoomLobby />} />
+                  <Route path="room/:roomId" element={<RoomLobby />} />
 
                 </Routes>
               </UserLayout>

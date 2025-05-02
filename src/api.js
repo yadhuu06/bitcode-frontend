@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { jwtDecode } from 'jwt-decode'; 
-import  store  from '../src/store';
+import { jwtDecode } from 'jwt-decode';
+import store from '../src/store';
 import { updateTokens, logoutSuccess } from '../src/store/slices/authSlice';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -32,9 +32,9 @@ const isTokenExpiringSoon = (token) => {
   try {
     const { exp } = jwtDecode(token);
     const now = Date.now() / 1000;
-    return exp - now < 300; // 5-minute buffer
+    return exp - now < 600; // 10-minute buffer for smoother refresh
   } catch {
-    return true;
+    return true; // Assume expired if token is invalid
   }
 };
 
@@ -49,12 +49,18 @@ const refreshAccessToken = async () => {
       refresh: refreshToken,
     });
     const { access, refresh } = response.data;
-    store.dispatch(updateTokens({ accessToken: access, refreshToken: refresh || refreshToken }));
+
+    // Always use new refresh token if provided, otherwise keep the old one
+    const newRefreshToken = refresh || refreshToken;
+    store.dispatch(updateTokens({ accessToken: access, refreshToken: newRefreshToken }));
     Cookies.set('access_token', access, { secure: true, sameSite: 'Strict', expires: 30 / (24 * 60) });
-    Cookies.set('refresh_token', refresh || refreshToken, { secure: true, sameSite: 'Strict', expires: 7 });
+    Cookies.set('refresh_token', newRefreshToken, { secure: true, sameSite: 'Strict', expires: 7 });
+
     return access;
   } catch (error) {
-    throw new Error('Token refresh failed');
+    // Log the error for debugging
+    console.error('Token refresh failed:', error.message);
+    throw new Error('Unable to refresh token');
   }
 };
 
@@ -62,6 +68,12 @@ export const setupInterceptors = () => {
   api.interceptors.request.use(
     async (config) => {
       let accessToken = store.getState().auth.accessToken || Cookies.get('access_token');
+
+      // Skip token check for refresh endpoint to avoid infinite loop
+      if (config.url.includes('/api/auth/token/refresh/')) {
+        return config;
+      }
+
       if (accessToken && isTokenExpiringSoon(accessToken)) {
         if (!isRefreshing) {
           isRefreshing = true;
@@ -77,14 +89,19 @@ export const setupInterceptors = () => {
             isRefreshing = false;
           }
         } else {
+          // Queue the request until refresh is complete
           return new Promise((resolve, reject) => {
             failedQueue.push({
-              resolve: () => resolve(config),
+              resolve: (token) => {
+                config.headers['Authorization'] = `Bearer ${token}`;
+                resolve(config);
+              },
               reject,
             });
           });
         }
       }
+
       if (accessToken) {
         config.headers['Authorization'] = `Bearer ${accessToken}`;
       }
@@ -97,34 +114,44 @@ export const setupInterceptors = () => {
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
+
+      // Skip retry for refresh endpoint to avoid infinite loop
+      if (originalRequest.url.includes('/api/auth/token/refresh/')) {
+        return Promise.reject(error);
+      }
+
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              originalRequest.headers['Authorization'] = `Bearer ${token}`;
-              return api(originalRequest);
-            })
-            .catch((err) => Promise.reject(err));
-        }
 
-        isRefreshing = true;
-        try {
-          const newToken = await refreshAccessToken();
-          processQueue(null, newToken);
-          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError);
-          store.dispatch(logoutSuccess());
-          window.location.href = '/login';
-          return Promise.reject(new Error('Session expired. Please log in again.'));
-        } finally {
-          isRefreshing = false;
+        if (!isRefreshing) {
+          isRefreshing = true;
+          try {
+            const newToken = await refreshAccessToken();
+            processQueue(null, newToken);
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+            return api(originalRequest);
+          } catch (refreshError) {
+            processQueue(refreshError);
+            store.dispatch(logoutSuccess());
+            window.location.href = '/login';
+            return Promise.reject(new Error('Session expired. Please log in again.'));
+          } finally {
+            isRefreshing = false;
+          }
+        } else {
+          // Queue the request until refresh is complete
+          return new Promise((resolve, reject) => {
+            failedQueue.push({
+              resolve: (token) => {
+                originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                resolve(api(originalRequest));
+              },
+              reject,
+            });
+          });
         }
       }
+
       return Promise.reject(error);
     }
   );

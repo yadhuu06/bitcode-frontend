@@ -13,7 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// BitCodeProgressLoading Component
+// Enhanced BitCodeProgressLoading Component with glitch effect
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style }) => {
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -21,19 +21,21 @@ const BitCodeProgressLoading = ({ message, progress, size, showBackground, style
     large: 'w-32 h-32',
   };
   const styleClasses = {
-    terminal: 'bg-green-600 animate-pulse',
-    compile: 'bg-blue-600 animate-spin',
-    battle: 'bg-red-600 animate-bounce',
+    terminal: 'bg-gradient-to-r from-green-600 to-green-400 animate-pulse',
+    compile: 'bg-gradient-to-r from-blue-600 to-blue-400 animate-spin',
+    battle: 'bg-gradient-to-r from-red-600 to-red-400 animate-bounce',
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center ${showBackground ? 'bg-black bg-opacity-70' : ''} p-4 rounded-lg`}>
+    <div className={`flex flex-col items-center justify-center ${showBackground ? 'bg-black bg-opacity-80' : ''} p-4 rounded-lg relative`}>
       <div
-        className={`${sizeClasses[size] || sizeClasses.large} ${styleClasses[style] || styleClasses.terminal} rounded-full flex items-center justify-center`}
+        className={`${sizeClasses[size] || sizeClasses.large} ${styleClasses[style] || styleClasses.terminal} rounded-full flex items-center justify-center relative overflow-hidden`}
       >
-        <span className="text-white font-mono text-sm">{Math.round(progress)}%</span>
+        <span className="text-white font-mono text-sm z-10">{Math.round(progress)}%</span>
+        {/* Glitch effect overlay */}
+        <div className="absolute inset-0 bg-green-500/20 animate-glitch"></div>
       </div>
-      <p className="mt-2 text-white font-mono">{message}</p>
+      <p className="mt-2 text-white font-mono text-lg tracking-wider">{message}</p>
     </div>
   );
 };
@@ -48,9 +50,11 @@ const Rooms = () => {
   const [showModal, setShowModal] = useState(false);
   const [wsError, setWsError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
-  const wsRef = useRef(null); // Track WebSocket instance
-  const reconnectAttempts = useRef(0); // Track reconnection attempts
-  const maxReconnectAttempts = 5; // Limit reconnection attempts
+  const [passwordRoomId, setPasswordRoomId] = useState(null);
+  const [passwords, setPasswords] = useState({});
+  const wsRef = useRef(null); 
+  const reconnectAttempts = useRef(0); 
+  const maxReconnectAttempts = 5;
   const reconnectInterval = 5000; 
 
   useEffect(() => {
@@ -61,7 +65,6 @@ const Rooms = () => {
     }
 
     const connectWebSocket = () => {
-      // Only create a new WebSocket if none exists or it's closed
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         console.log('WebSocket already connected');
         return;
@@ -74,14 +77,14 @@ const Rooms = () => {
       }
 
       console.log('Initiating WebSocket connection', accessToken);
-      const encodedToken = encodeURIComponent(accessToken);
+      const encodeddellToken = encodeURIComponent(accessToken);
       const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${accessToken}`;
       wsRef.current = new WebSocket(wsURL);
 
       wsRef.current.onopen = () => {
         console.log('WebSocket connected');
         setWsError(null);
-        reconnectAttempts.current = 0; // Reset on successful connection
+        reconnectAttempts.current = 0;
       };
 
       wsRef.current.onmessage = (event) => {
@@ -89,7 +92,7 @@ const Rooms = () => {
           const data = JSON.parse(event.data);
           console.log('WebSocket message:', data);
           if (data.type === 'room_list' || data.type === 'room_update') {
-            dispatch(updateRooms(data.rooms)); // Update Redux store
+            dispatch(updateRooms(data.rooms));
           } else if (data.type === 'error') {
             console.error('Server error:', data.message);
             setWsError(data.message);
@@ -115,14 +118,12 @@ const Rooms = () => {
         setWsError(`WebSocket closed with code ${event.code}: ${event.reason || 'Unknown reason'}`);
         
         if (event.code === 4001 || event.code === 4002) {
-          // Token-related errors: log out and redirect
           toast.error('Session expired. Please log in again.');
           dispatch(logoutSuccess());
           Cookies.remove('access_token');
           Cookies.remove('refresh_token');
           navigate('/login');
         } else {
-          // Attempt to reconnect for other errors (e.g., 1006)
           reconnectAttempts.current += 1;
           setTimeout(() => {
             console.log(`Reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
@@ -134,17 +135,13 @@ const Rooms = () => {
 
     connectWebSocket();
 
-
     return () => {
       console.log('Cleaning up WebSocket');
-      // Only close WebSocket on permanent unmount (e.g., logout or navigation)
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close(1000, 'Component unmounted');
       }
     };
   }, [accessToken, navigate, dispatch]);
-
-
 
   useEffect(() => {
     if (error) {
@@ -173,6 +170,34 @@ const Rooms = () => {
     }
   };
 
+  const handleJoinRoom = (room) => {
+    if (room.visibility === 'private') {
+      setPasswordRoomId(room.room_id);
+    } else {
+      navigate(`/room/${room.room_id}`);
+    }
+  };
+
+  const handlePasswordSubmit = (roomId) => {
+    const password = passwords[roomId];
+    if (!password) {
+      toast.error('Please enter a password');
+      return;
+    }
+    navigate(`/room/${roomId}`, { state: { password } });
+    setPasswordRoomId(null);
+    setPasswords((prev) => ({ ...prev, [roomId]: '' }));
+  };
+
+  const handlePasswordChange = (roomId, value) => {
+    setPasswords((prev) => ({ ...prev, [roomId]: value }));
+  };
+
+  const handleCancel = (roomId) => {
+    setPasswordRoomId(null);
+    setPasswords((prev) => ({ ...prev, [roomId]: '' }));
+  };
+
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch =
       room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -186,7 +211,6 @@ const Rooms = () => {
     return matchesSearch;
   });
 
-  // Animation for background matrix effect
   const getRandomMatrixElement = () => {
     const chars = '01';
     return chars.charAt(Math.floor(Math.random() * chars.length));
@@ -194,7 +218,7 @@ const Rooms = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-16 overflow-y-auto relative">
-      {/* Display WebSocket error */}
+      {/* WebSocket error display */}
       {wsError && (
         <div className="bg-red-500/20 border border-red-500 p-4 rounded-md flex items-center mb-6 mx-auto max-w-6xl">
           <AlertTriangle className="text-red-500 mr-2" size={20} />
@@ -202,17 +226,17 @@ const Rooms = () => {
         </div>
       )}
 
-      {/* Futuristic background matrix effect */}
+      {/* Enhanced matrix background with denser effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 100 }, (_, i) => (
+        {Array.from({ length: 150 }, (_, i) => (
           <span
             key={i}
-            className="absolute text-xs text-green-500 opacity-30"
+            className="absolute text-xs text-green-500 opacity-20"
             style={{
               left: `${Math.random() * 100}vw`,
               top: `${Math.random() * 100}vh`,
               animation: `pulse ${Math.random() * 3 + 1}s infinite ${Math.random() * 2}s`,
-              fontSize: `${Math.random() * 10 + 8}px`,
+              fontSize: `${Math.random() * 12 + 8}px`,
             }}
           >
             {getRandomMatrixElement()}
@@ -221,40 +245,40 @@ const Rooms = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-        {/* Header section with improved styling */}
+        {/* Header with futuristic typography */}
         <div className="flex justify-between items-center mb-8 border-b border-green-500/30 pb-4">
-          <h1 className="text-3xl text-white flex items-center tracking-wider">
-            <span className="text-green-500 mr-2 font-bold">&lt;</span>
+          <h1 className="text-4xl text-white flex items-center tracking-widest font-['Orbitron']">
+            <span className="text-green-400 mr-2 font-bold">&lt;</span>
             Challenge Rooms
-            <span className="text-green-500 ml-2 font-bold">/&gt;</span>
+            <span className="text-green-400 ml-2 font-bold">&gt;</span>
           </h1>
           <CustomButton variant="create" onClick={() => setShowModal(true)}>
             Create Room
           </CustomButton>
         </div>
 
-        {/* Search and filter section */}
+        {/* Search and filter section with gradient input */}
         <div className="mb-8 flex flex-col md:flex-row gap-4">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-500" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400" size={20} />
             <input
               type="text"
               placeholder="Search rooms by name or host..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full p-3 pl-10 bg-gray-900/80 border border-gray-800 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-300 backdrop-blur-sm"
+              className="w-full p-3 pl-10 bg-gray-900/90 border border-gray-800 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-500/50 transition-all duration-300 backdrop-blur-sm"
               aria-label="Search rooms"
             />
           </div>
 
-          {/* Filter buttons */}
+          {/* Filter buttons with gradient hover */}
           <div className="flex space-x-2">
             <button
               onClick={() => setActiveFilter('all')}
               className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
                 activeFilter === 'all'
-                  ? 'bg-green-500 text-black font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-green-500 to-green-400 text-black font-medium'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-green-600 hover:to-green-500 hover:text-black'
               }`}
             >
               All
@@ -263,8 +287,8 @@ const Rooms = () => {
               onClick={() => setActiveFilter('active')}
               className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
                 activeFilter === 'active'
-                  ? 'bg-yellow-500 text-black font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-yellow-500 to-yellow-400 text-black font-medium'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-yellow-600 hover:to-yellow-500 hover:text-black'
               }`}
             >
               Active
@@ -273,8 +297,8 @@ const Rooms = () => {
               onClick={() => setActiveFilter('public')}
               className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
                 activeFilter === 'public'
-                  ? 'bg-blue-500 text-white font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-400 text-white font-medium'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-500 hover:text-white'
               }`}
             >
               Public
@@ -283,8 +307,8 @@ const Rooms = () => {
               onClick={() => setActiveFilter('private')}
               className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
                 activeFilter === 'private'
-                  ? 'bg-purple-500 text-white font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-400 text-white font-medium'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-purple-600 hover:to-purple-500 hover:text-white'
               }`}
             >
               Private
@@ -313,128 +337,168 @@ const Rooms = () => {
           </div>
         )}
 
-        {/* Redesigned room grid */}
+        {/* Room grid with enhanced animations */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map((room) => (
             <div
               key={room.room_id}
-              className="bg-gray-900/80 backdrop-blur-sm p-6 rounded-lg border border-gray-800 hover:border-green-500 transition-all duration-300 group relative overflow-hidden"
+              className="bg-gray-900/85 backdrop-blur-md p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all duration-300 group relative overflow-hidden transform hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
             >
-              {/* Private room indicator */}
-              {room.visibility === 'private' && (
-                <div className="absolute top-3 right-3 bg-grey-500/20 p-1 rounded-md">
-                  <Lock className="text-gray-700" size={16} aria-label="Private room" />
-                </div>
-              )}
+              {room.visibility === 'private' && passwordRoomId === room.room_id ? (
+                <>
+                  {/* Enhanced password input form */}
+                  <div className="flex flex-col h-full justify-center p-4 bg-gradient-to-b from-gray-900/95 to-gray-800/90 rounded-lg relative animate-fadeIn">
+  <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_8px_rgba(34,197,94,0.5)]">
+    {room.name}
+  </h3>
+  <input
+    type="password"
+    value={passwords[room.room_id] || ''}
+    onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
+    placeholder="Enter room password"
+    className="w-full p-3 bg-gray-900/90 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-500/50 focus:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 mb-6 animate-pulse-border"
+    aria-label="Room password"
+  />
+  <div className="flex justify-between gap-3">
+    <button
+      onClick={() => handleCancel(room.room_id)}
+      className="flex-1 px-3 py-2 bg-gradient-to-r from-gray-800 to-red-900/50 text-gray-300 rounded-md hover:from-gray-700 hover:to-red-800 hover:shadow-[0_0_8px_rgba(239,68,68,0.3)] transition-all duration-300 text-sm font-medium"
+    >
+      Cancel
+    </button>
+    <button
+      onClick={() => handlePasswordSubmit(room.room_id)}
+      className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-green-400 text-black font-medium rounded-md hover:from-green-600 hover:to-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 text-sm"
+    >
+      Join Battle
+    </button>
+  </div>
+</div>
+                  {/* Futuristic corner embellishments */}
+                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
+                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
+                </>
+              ) : (
+                <>
+                  {/* Private room indicator */}
+                  {room.visibility === 'private' && (
+                    <div className="absolute top-3 right-3 bg-gray-500/20 p-1 rounded-md">
+                      <Lock className="text-gray-700" size={18} aria-label="Private room" />
+                    </div>
+                  )}
 
-              {/* Active status indicator */}
-              {room.status === 'active' && (
-                <div className="absolute top-3 right-12 bg-yellow-500/20 p-1 rounded-md">
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full mr-1 animate-pulse"></span>
-                    <span className="text-yellow-500 text-xs">LIVE</span>
+                  {/* Active status indicator */}
+                  {room.status === 'active' && (
+                    <div className="absolute top-3 right-12 bg-yellow-500/20 p-1 rounded-md">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 bg-yellow-400 rounded-full mr-1 animate-pulse"></span>
+                        <span className="text-yellow-400 text-xs font-medium">LIVE</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Room name with futuristic typography */}
+                  <div className="relative mb-4">
+                    <h3 className="text-xl font-semibold text-white mb-1 group-hover:text-green-400 transition-all duration-300 font-['Orbitron'] tracking-wide">
+                      {room.name}
+                    </h3>
                   </div>
-                </div>
+
+                  {/* Room details with consistent icon sizes */}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center text-sm">
+                      <Users className="w-5 h-5 mr-2 text-gray-400" />
+                      <p className="text-gray-300">
+                        Hosted by <span className="text-white">{room.owner__username}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                      <Users className="w-5 h-5 mr-2 text-gray-400" />
+                      <p className="text-gray-300">
+                        <span className="text-white">{room.participant_count}</span>/{room.capacity} participants
+                      </p>
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                      <Clock className="w-5 h-5 mr-2 text-gray-400" />
+                      <p className="text-gray-300">
+                        <span className="text-white">{room.time_limit}</span> minutes
+                      </p>
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                      <Layers className="w-5 h-5 mr-2 text-gray-400" />
+                      <p className="text-gray-300">
+                        Topic: <span className="text-white">{room.topic}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Room badges with gradient borders */}
+                  <div className="flex items-center gap-2 mb-5">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        room.difficulty === 'easy'
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                          : room.difficulty === 'medium'
+                          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50'
+                          : 'bg-red-500/20 text-red-400 border border-red-500/50'
+                      }`}
+                    >
+                      {room.difficulty.toUpperCase()}
+                    </span>
+
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        room.visibility === 'public'
+                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                          : 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                      }`}
+                    >
+                      {room.visibility.toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Action buttons with gradient hover */}
+                  <div className="flex justify-between items-center">
+                    <button
+                      className="px-3 py-2 bg-gray-800 text-gray-300 rounded-md hover:bg-gradient-to-r hover:from-gray-700 hover:to-gray-600 transition-all duration-300 flex items-center text-sm"
+                      aria-label="View leaderboard"
+                    >
+                      <Trophy size={18} className="mr-2 text-yellow-400" /> Leaderboard
+                    </button>
+
+                    <button
+                      onClick={() => handleJoinRoom(room)}
+                      className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-400 text-black font-medium rounded-md hover:from-green-600 hover:to-green-500 transition-all duration-300 flex items-center text-sm"
+                      aria-label={`Enter room ${room.name}`}
+                    >
+                      <Play size={18} className="mr-2" /> Enter Room
+                    </button>
+                  </div>
+
+                  {/* Futuristic corner embellishments */}
+                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
+                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
+                </>
               )}
-
-              {/* Room name with futuristic line */}
-              <div className="relative mb-4">
-                <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-green-400 transition-all duration-300">
-                  {room.name}
-                </h3>
-              </div>
-
-              {/* Room details with improved icons */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 mr-2 text-gray-400" />
-                  <p className="text-gray-300">
-                    Hosted by <span className="text-white">{room.owner__username}</span>
-                  </p>
-                </div>
-
-                <div className="flex items-center text-sm">
-                  <Users className="w-4 h-4 mr-2 text-gray-400" />
-                  <p className="text-gray-300">
-                    <span className="text-white">{room.participant_count}</span>/{room.capacity} participants
-                  </p>
-                </div>
-
-                <div className="flex items-center text-sm">
-                  <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                  <p className="text-gray-300">
-                    <span className="text-white">{room.time_limit}</span> minutes
-                  </p>
-                </div>
-
-                <div className="flex items-center text-sm">
-                  <Layers className="w-4 h-4 mr-2 text-gray-400" />
-                  <p className="text-gray-300">
-                    Topic: <span className="text-white">{room.topic}</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Room badges in a cleaner layout */}
-              <div className="flex items-center gap-2 mb-5">
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    room.difficulty === 'easy'
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : room.difficulty === 'medium'
-                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}
-                >
-                  {room.difficulty.toUpperCase()}
-                </span>
-
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    room.visibility === 'public'
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                  }`}
-                >
-                  {room.visibility.toUpperCase()}
-                </span>
-              </div>
-
-              {/* Action buttons with improved styling */}
-              <div className="flex justify-between items-center">
-                <button
-                  className="px-3 py-2 bg-gray-800 text-gray-300 rounded-md hover:bg-gray-700 transition-all duration-300 flex items-center text-sm"
-                  aria-label="View leaderboard"
-                >
-                  <Trophy size={16} className="mr-2 text-yellow-500" /> Leaderboard
-                </button>
-
-                <button
-                  onClick={() => navigate(`/room/${room.room_id}`)}
-                  className="px-3 py-2 bg-green-500 text-black font-medium rounded-md hover:bg-green-400 transition-all duration-300 flex items-center text-sm"
-                  aria-label={`Enter room ${room.name}`}
-                >
-                  <Play size={16} className="mr-2" /> Enter Room
-                </button>
-              </div>
-
-              {/* Futuristic corner embellishments */}
-              <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-500/30"></div>
-              <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-500/30"></div>
             </div>
           ))}
 
-          {/* Empty state */}
+          {/* Empty state with enhanced styling */}
           {filteredRooms.length === 0 && !loading && (
             <div className="col-span-full flex flex-col items-center justify-center py-16 border border-dashed border-gray-700 rounded-lg">
               <Search className="text-gray-500 mb-4" size={40} />
-              <p className="text-gray-400 text-center">No rooms match your search criteria.</p>
+              <p className="text-gray-400 text-center font-['Orbitron'] text-lg">
+                No <span className="text-green-400">&lt;BATTLE/&gt;</span> matches your search criteria.
+              </p>
               <button
                 onClick={() => {
                   setSearchTerm('');
                   setActiveFilter('all');
                 }}
-                className="mt-4 text-green-500 hover:text-green-400 text-sm underline"
+                className="mt-4 text-green-400 hover:text-green-300 text-sm underline transition-all duration-300"
               >
                 Reset filters
               </button>
@@ -450,7 +514,7 @@ const Rooms = () => {
         />
       )}
 
-      {/* CSS for animated matrix effect */}
+      {/* CSS for animations */}
       <style jsx>{`
         @keyframes pulse {
           0%, 100% {
@@ -458,6 +522,28 @@ const Rooms = () => {
           }
           50% {
             opacity: 0.5;
+          }
+        }
+        @keyframes glitch {
+          0% {
+            transform: translate(0);
+            opacity: 0.2;
+          }
+          2% {
+            transform: translate(-2px, 2px);
+            opacity: 0.1;
+          }
+          4% {
+            transform: translate(2px, -2px);
+            opacity: 0.3;
+          }
+          6% {
+            transform: translate(0);
+            opacity: 0.2;
+          }
+          100% {
+            transform: translate(0);
+            opacity: 0.2;
           }
         }
       `}</style>

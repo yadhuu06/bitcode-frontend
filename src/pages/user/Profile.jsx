@@ -6,14 +6,13 @@ import api from '../../api';
 import { logout } from '../../services/AuthService';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt, FaUserPlus, FaUserMinus } from 'react-icons/fa';
-import Cookies from 'js-cookie';
+import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// BitCodeProgressLoading Component
+// BitCodeProgressLoading Component (unchanged)
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -46,7 +45,6 @@ const Profile = () => {
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState('');
-
   const [profilePic, setProfilePic] = useState(null);
   const [crop, setCrop] = useState({ unit: '%', width: 50, aspect: 1 / 1 });
   const [croppedImage, setCroppedImage] = useState(null);
@@ -57,24 +55,13 @@ const Profile = () => {
     const fetchUserData = async () => {
       dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
       try {
-        const response = await api.get('/api/auth/profile/', {
-          headers: {
-            Authorization: `Bearer ${Cookies.get('access_token')}`,
-          },
-        });
+        const response = await api.get('/api/auth/profile/');
         setUser(response.data);
         setUsername(response.data.username || '');
-   
       } catch (error) {
         console.error('Error fetching user data:', error);
         const errorMessage = error.response?.data?.error || error.message || 'Failed to load profile data';
         toast.error(errorMessage);
-        if (error.response?.status === 401 || error.message === 'Session expired. Please log in again.') {
-          dispatch(logoutSuccess());
-          Cookies.remove('access_token');
-          Cookies.remove('refresh_token');
-          window.location.href = '/login';
-        }
       } finally {
         dispatch(resetLoading());
       }
@@ -174,7 +161,7 @@ const Profile = () => {
     try {
       const formData = new FormData();
       formData.append('username', username.trim());
-      
+
       if (croppedImage) {
         const blob = await fetch(croppedImage).then((res) => res.blob());
         formData.append('profile_picture', blob, 'profile.jpg');
@@ -183,7 +170,6 @@ const Profile = () => {
       const response = await api.patch('/api/auth/profile/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${Cookies.get('access_token')}`,
         },
       });
       setUser(response.data);
@@ -195,12 +181,6 @@ const Profile = () => {
       console.error('Error updating profile:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to update profile';
       toast.error(errorMessage);
-      if (error.response?.status === 401 || error.message === 'Session expired. Please log in again.') {
-        dispatch(logoutSuccess());
-        Cookies.remove('access_token');
-        Cookies.remove('refresh_token');
-        window.location.href = '/login';
-      }
     } finally {
       dispatch(resetLoading());
     }
@@ -211,25 +191,16 @@ const Profile = () => {
     try {
       await logout();
       dispatch(logoutSuccess());
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
       toast.success('Logged out successfully!');
       window.location.href = '/';
     } catch (error) {
       console.error('Error during logout:', error);
       dispatch(logoutSuccess());
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
       toast.error(error.message || 'Logout failed, but session cleared');
       window.location.href = '/';
     } finally {
       dispatch(resetLoading());
     }
-  };
-
-  const handleFollowToggle = () => {
-    setIsFollowing(!isFollowing);
-    toast.success(`You ${isFollowing ? 'unfollowed' : 'followed'} the user!`);
   };
 
   const stats = {
@@ -355,7 +326,6 @@ const Profile = () => {
                     <span>[ LOGOUT ]</span>
                   </button>
                 </div>
-               
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 font-mono text-white">
@@ -371,7 +341,6 @@ const Profile = () => {
                     className="w-full p-2 bg-black border border-green-500 rounded text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-300"
                   />
                 </div>
-
                 <div className="space-y-1">
                   <label className="flex items-center space-x-2 text-green-500">
                     <FaCamera />
@@ -417,7 +386,6 @@ const Profile = () => {
                       setProfilePic(null);
                       setCroppedImage(null);
                       setUsername(user?.username || '');
-                      
                     }}
                   >
                     <FaTimes />

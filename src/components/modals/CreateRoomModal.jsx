@@ -99,7 +99,20 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
 
       toast.success('Room created successfully!');
       onClose();
-      navigate(`user/room/RoomLobby`);
+      navigate(`/user/room/${response.room_id}`,{
+        state: {
+          roomId: response.room_id,
+          roomName: formData.name,
+          isHost: true,
+          isPrivate: formData.visibility === 'private',
+          joinCode: response.join_code,
+          difficulty: formData.difficulty,
+          timeLimit: formData.time_limit,
+          capacity: formData.capacity,
+        },
+
+      })
+      
     } catch (error) {
       console.error('Error creating room:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';

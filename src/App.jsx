@@ -11,6 +11,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { setupInterceptors } from './api';
 import AuthPage from './components/auth/AuthPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import Battles from './pages/admin/Battles';
 import UserDashboard from './pages/user/UserDashboard';
 import Users from './pages/admin/Users';
 import PrivateRoute from './routes/PrivateRoute';
@@ -111,6 +112,7 @@ const AppWrapper = () => {
         <Route element={<AdminRoute />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/battles" element={<Battles />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

@@ -161,11 +161,11 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   const getDifficultyColor = (level) => {
     switch (level) {
       case 'easy':
-        return 'bg-[#00FF40]/20 border-[#00FF40] shadow-[0_0_5px_#00FF40]';
+        return 'bg-[##22c55e]/-20 border-[#00FF40] shadow-[0_0_5px_#00FF40]';
       case 'medium':
-        return 'bg-orange-500/20 border-orange-500 shadow-[0_0_5px_#F97316]';
+        return 'bg-orange-500/0 border-orange-500 shadow-[0_0_5px_#F97316]';
       case 'hard':
-        return 'bg-red-500/20 border-red-500 shadow-[0_0_5px_#EF4444]';
+        return 'bg-red-500/0 border-red-500 shadow-[0_0_5px_#EF4444]';
       default:
         return 'border-gray-700';
     }
@@ -174,7 +174,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   const getDifficultyTextColor = (level) => {
     switch (level) {
       case 'easy':
-        return 'text-[#00FF40]';
+        return 'text-[#22c55e]';
       case 'medium':
         return 'text-orange-400';
       case 'hard':
@@ -189,7 +189,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       case 1:
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-medium text-[#00FF40]">Room Details</h3>
+            <h3 className="text-lg font-medium text-[#22c55e]">Room Details</h3>
             <div className="space-y-4">
               <div className="relative">
                 <input
@@ -203,7 +203,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-[#00FF40] tracking-wider">
+              <label className="block text-sm font-medium text-[#22c55e] tracking-wider">
                 Choose Topic
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -213,7 +213,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                     onClick={() => handleChange('topic', topic.value)}
                     className={`cursor-pointer p-3 rounded-lg border transition-all duration-300 ${
                       formData.topic === topic.value
-                        ? 'border-[#00FF40] bg-[#00FF40]/20 shadow-[0_0_5px_#00FF40]'
+                        ? 'border-[#22c55e] bg-[#22c55e]/-10 shadow-[0_0_5px_#22c55e]'
                         : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
                     }`}
                   >
@@ -227,10 +227,10 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       case 2:
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-medium text-[#00FF40]">Configuration</h3>
+            <h3 className="text-lg font-medium text-[#22c55e]">Configuration</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#00FF40] mb-2 tracking-wider">
+                <label className="block text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
                   Difficulty Level
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -252,7 +252,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                 </div>
               </div>
               <div>
-                <label className="flex items-center text-sm font-medium text-[#00FF40] mb-2 tracking-wider">
+                <label className="flex items-center text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
                   <Clock className="w-4 h-4 mr-1" /> Time Limit (minutes)
                 </label>
                 <div className="relative">
@@ -279,7 +279,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                         onClick={() => handleChange('time_limit', time)}
                         className={`cursor-pointer p-2 rounded-lg border transition-all duration-300 text-center ${
                           formData.time_limit === time
-                            ? 'border-[#00FF40] bg-[#00FF40]/20 shadow-[0_0_5px_#00FF40]'
+                            ? 'border-[#22c55e] bg-[#00FF40]/3 shadow-[0_0_5px_#00FF40]'
                             : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
                         }`}
                       >
@@ -300,7 +300,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                       onClick={() => handleChange('capacity', cap)}
                       className={`cursor-pointer p-2 rounded-lg border transition-all duration-300 text-center ${
                         formData.capacity === cap
-                          ? 'border-[#00FF40] bg-[#00FF40]/20 shadow-[0_0_5px_#00FF40]'
+                          ? 'border-[#22c55e] bg-[#22c55e]/-20 shadow-[0_0_5px_#00FF40]'
                           : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
                       }`}
                     >
@@ -322,17 +322,17 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       case 3:
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-medium text-[#00FF40]">Security</h3>
+            <h3 className="text-lg font-medium text-[#22c55e]">Security</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#00FF40] mb-2 tracking-wider">
+                <label className="block text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
                   Room Visibility
                 </label>
                 <div
                   className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-300 cursor-pointer ${
                     formData.visibility === 'public'
-                      ? 'border-[#00FF40] bg-[#00FF40]/20 shadow-[0_0_5px_#00FF40]'
-                      : 'border-gray-700 bg-gray-800/50 hover:border-[#00FF40] hover:bg-gray-800'
+                      ? 'border-[#22c55e] bg-[#22c55e]/-20 shadow-[0_0_5px_#00FF40]'
+                      : 'border-gray-700 bg-gray-800/50 hover:border-[##22c55e] hover:bg-gray-800'
                   }`}
                   onClick={() =>
                     handleChange('visibility', formData.visibility === 'public' ? 'private' : 'public')
@@ -348,7 +348,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                         : 'Password required to join'}
                     </p>
                   </div>
-                  <div className="text-[#00FF40]">
+                  <div className="text-[##22c55e]">
                     {formData.visibility === 'public' ? (
                       <Unlock className="w-5 h-5" />
                     ) : (
@@ -359,7 +359,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
               </div>
               {formData.visibility === 'private' && (
                 <div className="relative">
-                  <label className="block text-sm font-medium text-[#00FF40] mb-2 tracking-wider">
+                  <label className="block text-sm font-medium text-[##22c55e] mb-2 tracking-wider">
                     <Lock className="w-4 h-4 inline mr-1" /> Room Password
                   </label>
                   <input
@@ -373,7 +373,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                 </div>
               )}
               <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
-                <h4 className="text-[#00FF40] flex items-center mb-2">
+                <h4 className="text-[#22c55e] flex items-center mb-2">
                   <Command className="w-4 h-4 mr-1" /> Room Summary
                 </h4>
                 <div className="grid grid-cols-2 gap-y-2 text-sm">
@@ -413,7 +413,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       >
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#00FF40]/0 via-[#00FF40] to-[#00FF40]/0" />
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[#00FF40] flex items-center md:text-2xl">
+          <h2 className="text-xxl font-bold text-[white] flex items-center md:text-2xl">
             <Command className="w-5 h-5 mr-2" />
             Create Battle Room
           </h2>

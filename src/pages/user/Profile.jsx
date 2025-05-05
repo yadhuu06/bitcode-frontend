@@ -9,7 +9,6 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // BitCodeProgressLoading Component (unchanged)

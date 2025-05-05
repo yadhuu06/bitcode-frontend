@@ -6,7 +6,8 @@ import {
   HelpCircle, 
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Swords
 } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { useDispatch } from 'react-redux';
@@ -48,6 +49,7 @@ const Sidebar = ({ onCollapseChange }) => {
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Users', path: '/admin/users', icon: Users },
+    { name: 'Battles', path: '/admin/battles', icon: Swords },
     { name: 'Questions', path: '/admin/questions', icon: HelpCircle },
   ];
 

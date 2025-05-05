@@ -13,7 +13,6 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Enhanced BitCodeProgressLoading Component with glitch effect
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style }) => {
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -32,7 +31,6 @@ const BitCodeProgressLoading = ({ message, progress, size, showBackground, style
         className={`${sizeClasses[size] || sizeClasses.large} ${styleClasses[style] || styleClasses.terminal} rounded-full flex items-center justify-center relative overflow-hidden`}
       >
         <span className="text-white font-mono text-sm z-10">{Math.round(progress)}%</span>
-        {/* Glitch effect overlay */}
         <div className="absolute inset-0 bg-green-500/20 animate-glitch"></div>
       </div>
       <p className="mt-2 text-white font-mono text-lg tracking-wider">{message}</p>
@@ -52,10 +50,10 @@ const Rooms = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [passwordRoomId, setPasswordRoomId] = useState(null);
   const [passwords, setPasswords] = useState({});
-  const wsRef = useRef(null); 
-  const reconnectAttempts = useRef(0); 
+  const wsRef = useRef(null);
+  const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
-  const reconnectInterval = 5000; 
+  const reconnectInterval = 5000;
 
   useEffect(() => {
     if (!accessToken) {
@@ -77,7 +75,6 @@ const Rooms = () => {
       }
 
       console.log('Initiating WebSocket connection', accessToken);
-      const encodeddellToken = encodeURIComponent(accessToken);
       const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${accessToken}`;
       wsRef.current = new WebSocket(wsURL);
 
@@ -116,7 +113,6 @@ const Rooms = () => {
       wsRef.current.onclose = (event) => {
         console.warn('WebSocket disconnected:', event.code, event.reason);
         setWsError(`WebSocket closed with code ${event.code}: ${event.reason || 'Unknown reason'}`);
-        
         if (event.code === 4001 || event.code === 4002) {
           toast.error('Session expired. Please log in again.');
           dispatch(logoutSuccess());
@@ -170,23 +166,64 @@ const Rooms = () => {
     }
   };
 
-  const handleJoinRoom = (room) => {
-    if (room.visibility === 'private') {
-      setPasswordRoomId(room.room_id);
-    } else {
-      navigate(`/room/${room.room_id}`);
+  const handleJoinRoom = async (room) => {
+    dispatch(setLoading({ isLoading: true, message: 'Joining room...', style: 'battle', progress: 0 }));
+    try {
+      let password = null;
+      if (room.visibility === 'private') {
+        password = passwords[room.room_id];
+        if (!password) {
+          setPasswordRoomId(room.room_id);
+          dispatch(resetLoading());
+          return;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/rooms/${room.room_id}/join/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(password ? { password } : {}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join room');
+      }
+
+      toast.success('Joined room successfully');
+      navigate(`/user/room/${room.room_id}`, {
+        state: {
+          roomName: room.name,
+          isHost: false,
+          isPrivate: room.visibility === 'private',
+          joinCode: room.join_code,
+          difficulty: room.difficulty,
+          timeLimit: room.time_limit,
+          capacity: room.capacity,
+        },
+      });
+    } catch (err) {
+      console.error('Error joining room:', err);
+      toast.error(err.message || 'Failed to join room');
+      if (err.message.includes('401')) {
+        dispatch(logoutSuccess());
+        Cookies.remove('access_token');
+        Cookies.remove('refresh_token');
+        navigate('/login');
+      }
+    } finally {
+      dispatch(resetLoading());
     }
   };
 
   const handlePasswordSubmit = (roomId) => {
-    const password = passwords[roomId];
-    if (!password) {
-      toast.error('Please enter a password');
-      return;
+    const room = rooms.find((r) => r.room_id === roomId);
+    if (room) {
+      handleJoinRoom(room);
     }
-    navigate(`/room/${roomId}`, { state: { password } });
-    setPasswordRoomId(null);
-    setPasswords((prev) => ({ ...prev, [roomId]: '' }));
   };
 
   const handlePasswordChange = (roomId, value) => {
@@ -218,24 +255,21 @@ const Rooms = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-16 overflow-y-auto relative">
-      {/* WebSocket error display */}
       {wsError && (
         <div className="bg-red-500/20 border border-red-500 p-4 rounded-md flex items-center mb-6 mx-auto max-w-6xl">
           <AlertTriangle className="text-red-500 mr-2" size={20} />
           <p className="text-red-500">{wsError}</p>
         </div>
       )}
-
-      {/* Enhanced matrix background with denser effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 150 }, (_, i) => (
+        {Array.from({ length: 60 }, (_, i) => (
           <span
             key={i}
             className="absolute text-xs text-green-500 opacity-20"
             style={{
               left: `${Math.random() * 100}vw`,
               top: `${Math.random() * 100}vh`,
-              animation: `pulse ${Math.random() * 3 + 1}s infinite ${Math.random() * 2}s`,
+              animation: `pulse ${Math.random() * 4 + 1}s infinite ${Math.random() * 2}s`,
               fontSize: `${Math.random() * 12 + 8}px`,
             }}
           >
@@ -243,21 +277,18 @@ const Rooms = () => {
           </span>
         ))}
       </div>
-
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-        {/* Header with futuristic typography */}
         <div className="flex justify-between items-center mb-8 border-b border-green-500/30 pb-4">
-          <h1 className="text-4xl text-white flex items-center tracking-widest font-['Orbitron']">
-            <span className="text-green-400 mr-2 font-bold">&lt;</span>
-            Challenge Rooms
-            <span className="text-green-400 ml-2 font-bold">&gt;</span>
-          </h1>
+        <h1 className="text-4xl text-white flex items-center tracking-widest font-['Orbitron']">
+  <span className="text-[#22c55e] mr-2 font-bold">&lt;</span>
+  <span className="text-[#22c55e] font-bold">BATTLE</span>
+  <span className="text-[#22c55e] ml-2 font-bold">&gt;</span>
+</h1>
+
           <CustomButton variant="create" onClick={() => setShowModal(true)}>
             Create Room
           </CustomButton>
         </div>
-
-        {/* Search and filter section with gradient input */}
         <div className="mb-8 flex flex-col md:flex-row gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400" size={20} />
@@ -270,53 +301,30 @@ const Rooms = () => {
               aria-label="Search rooms"
             />
           </div>
-
-          {/* Filter buttons with gradient hover */}
           <div className="flex space-x-2">
-            <button
-              onClick={() => setActiveFilter('all')}
-              className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
-                activeFilter === 'all'
-                  ? 'bg-gradient-to-r from-green-500 to-green-400 text-black font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-green-600 hover:to-green-500 hover:text-black'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setActiveFilter('active')}
-              className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
-                activeFilter === 'active'
-                  ? 'bg-gradient-to-r from-yellow-500 to-yellow-400 text-black font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-yellow-600 hover:to-yellow-500 hover:text-black'
-              }`}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setActiveFilter('public')}
-              className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
-                activeFilter === 'public'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-400 text-white font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-500 hover:text-white'
-              }`}
-            >
-              Public
-            </button>
-            <button
-              onClick={() => setActiveFilter('private')}
-              className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
-                activeFilter === 'private'
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-400 text-white font-medium'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-purple-600 hover:to-purple-500 hover:text-white'
-              }`}
-            >
-              Private
-            </button>
+            {['all', 'active', 'public', 'private'].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
+                  activeFilter === filter
+                    ? `bg-gradient-to-r from-${
+                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
+                      }-500 to-${
+                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
+                      }-400 text-${filter === 'all' || filter === 'active' ? 'red' : 'white'} font-medium`
+                    : `bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-${
+                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
+                      }-600 hover:to-${
+                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
+                      }-500 hover:text-${filter === 'all' || filter === 'active' ? 'black' : 'white'}`
+                }`}
+              >
+                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-
-        {/* Loading state */}
         {loading && (
           <div className="flex justify-center items-center py-12">
             <BitCodeProgressLoading
@@ -328,16 +336,12 @@ const Rooms = () => {
             />
           </div>
         )}
-
-        {/* Error state */}
         {error && (
           <div className="bg-red-500/20 border border-red-500 p-4 rounded-md flex items-center mb-6">
             <AlertTriangle className="text-red-500 mr-2" size={20} />
             <p className="text-red-500">Error: {error}</p>
           </div>
         )}
-
-        {/* Room grid with enhanced animations */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map((room) => (
             <div
@@ -345,49 +349,42 @@ const Rooms = () => {
               className="bg-gray-900/85 backdrop-blur-md p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all duration-300 group relative overflow-hidden transform hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
             >
               {room.visibility === 'private' && passwordRoomId === room.room_id ? (
-                <>
-                  {/* Enhanced password input form */}
-                  <div className="flex flex-col h-full justify-center p-4 bg-gradient-to-b from-gray-900/95 to-gray-800/90 rounded-lg relative animate-fadeIn">
-  <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_8px_rgba(34,197,94,0.5)]">
-    {room.name}
-  </h3>
-  <input
-    type="password"
-    value={passwords[room.room_id] || ''}
-    onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
-    placeholder="Enter room password"
-    className="w-full p-3 bg-gray-900/90 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-500/50 focus:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 mb-6 animate-pulse-border"
-    aria-label="Room password"
-  />
-  <div className="flex justify-between gap-3">
-    <button
-      onClick={() => handleCancel(room.room_id)}
-      className="flex-1 px-3 py-2 bg-gradient-to-r from-gray-800 to-red-900/50 text-gray-300 rounded-md hover:from-gray-700 hover:to-red-800 hover:shadow-[0_0_8px_rgba(239,68,68,0.3)] transition-all duration-300 text-sm font-medium"
-    >
-      Cancel
-    </button>
-    <button
-      onClick={() => handlePasswordSubmit(room.room_id)}
-      className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-green-400 text-black font-medium rounded-md hover:from-green-600 hover:to-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 text-sm"
-    >
-      Join Battle
-    </button>
-  </div>
-</div>
-                  {/* Futuristic corner embellishments */}
+                <div className="flex flex-col h-full justify-center p-4 bg-gradient-to-b from-gray-900/95 to-gray-800/90 rounded-lg relative animate-fadeIn">
+                  <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_8px_rgba(34,197,94,0.5)]">
+                    {room.name}
+                  </h3>
+                  <input
+                    type="password"
+                    value={passwords[room.room_id] || ''}
+                    onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
+                    placeholder="Enter room password"
+                    className="w-full p-3 bg-gray-900/90 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-500/50 focus:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 mb-6 animate-pulse-border"
+                    aria-label="Room password"
+                  />
+                  <div className="flex justify-between gap-3">
+                    <button
+                      onClick={() => handleCancel(room.room_id)}
+                      className="flex-1 px-3 py-2 bg-gradient-to-r from-gray-800 to-red-900/50 text-gray-300 rounded-md hover:from-gray-700 hover:to-red-800 hover:shadow-[0_0_8px_rgba(239,68,68,0.3)] transition-all duration-300 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handlePasswordSubmit(room.room_id)}
+                      className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-green-400 text-black font-medium rounded-md hover:from-green-600 hover:to-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 text-sm"
+                    >
+                      Join Battle
+                    </button>
+                  </div>
                   <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
                   <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
-                </>
+                </div>
               ) : (
                 <>
-                  {/* Private room indicator */}
                   {room.visibility === 'private' && (
                     <div className="absolute top-3 right-3 bg-gray-500/20 p-1 rounded-md">
                       <Lock className="text-gray-700" size={18} aria-label="Private room" />
                     </div>
                   )}
-
-                  {/* Active status indicator */}
                   {room.status === 'active' && (
                     <div className="absolute top-3 right-12 bg-yellow-500/20 p-1 rounded-md">
                       <div className="flex items-center">
@@ -396,15 +393,11 @@ const Rooms = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* Room name with futuristic typography */}
                   <div className="relative mb-4">
                     <h3 className="text-xl font-semibold text-white mb-1 group-hover:text-green-400 transition-all duration-300 font-['Orbitron'] tracking-wide">
                       {room.name}
                     </h3>
                   </div>
-
-                  {/* Room details with consistent icon sizes */}
                   <div className="space-y-3 mb-4">
                     <div className="flex items-center text-sm">
                       <Users className="w-5 h-5 mr-2 text-gray-400" />
@@ -412,21 +405,18 @@ const Rooms = () => {
                         Hosted by <span className="text-white">{room.owner__username}</span>
                       </p>
                     </div>
-
                     <div className="flex items-center text-sm">
                       <Users className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
                         <span className="text-white">{room.participant_count}</span>/{room.capacity} participants
                       </p>
                     </div>
-
                     <div className="flex items-center text-sm">
                       <Clock className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
                         <span className="text-white">{room.time_limit}</span> minutes
                       </p>
                     </div>
-
                     <div className="flex items-center text-sm">
                       <Layers className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
@@ -434,8 +424,6 @@ const Rooms = () => {
                       </p>
                     </div>
                   </div>
-
-                  {/* Room badges with gradient borders */}
                   <div className="flex items-center gap-2 mb-5">
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
@@ -448,7 +436,6 @@ const Rooms = () => {
                     >
                       {room.difficulty.toUpperCase()}
                     </span>
-
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
                         room.visibility === 'public'
@@ -459,8 +446,6 @@ const Rooms = () => {
                       {room.visibility.toUpperCase()}
                     </span>
                   </div>
-
-                  {/* Action buttons with gradient hover */}
                   <div className="flex justify-between items-center">
                     <button
                       className="px-3 py-2 bg-gray-800 text-gray-300 rounded-md hover:bg-gradient-to-r hover:from-gray-700 hover:to-gray-600 transition-all duration-300 flex items-center text-sm"
@@ -468,31 +453,27 @@ const Rooms = () => {
                     >
                       <Trophy size={18} className="mr-2 text-yellow-400" /> Leaderboard
                     </button>
-
                     <button
-                      onClick={() => handleJoinRoom(room)}
-                      className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-400 text-black font-medium rounded-md hover:from-green-600 hover:to-green-500 transition-all duration-300 flex items-center text-sm"
-                      aria-label={`Enter room ${room.name}`}
-                    >
-                      <Play size={18} className="mr-2" /> Enter Room
-                    </button>
+  onClick={() => handleJoinRoom(room)}
+  className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-all duration-300 flex items-center text-sm"
+  aria-label={`Enter room ${room.name}`}
+>
+  <Play size={18} className="mr-2" /> Battle
+</button>
                   </div>
-
-                  {/* Futuristic corner embellishments */}
                   <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
                   <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
                 </>
               )}
             </div>
           ))}
-
-          {/* Empty state with enhanced styling */}
           {filteredRooms.length === 0 && !loading && (
             <div className="col-span-full flex flex-col items-center justify-center py-16 border border-dashed border-gray-700 rounded-lg">
               <Search className="text-gray-500 mb-4" size={40} />
               <p className="text-gray-400 text-center font-['Orbitron'] text-lg">
-                No <span className="text-green-400">&lt;BATTLE/&gt;</span> matches your search criteria.
-              </p>
+  No <span className="text-[#00FF40] font-bold">&lt;BATTLE/&gt;</span> matches your search criteria.
+</p>
+
               <button
                 onClick={() => {
                   setSearchTerm('');
@@ -506,15 +487,12 @@ const Rooms = () => {
           )}
         </div>
       </div>
-
       {showModal && (
         <CreateRoomModal
           onClose={() => setShowModal(false)}
           onRoomCreated={handleRoomCreated}
         />
       )}
-
-      {/* CSS for animations */}
       <style jsx>{`
         @keyframes pulse {
           0%, 100% {

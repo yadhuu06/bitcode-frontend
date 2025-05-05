@@ -1,61 +1,81 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState, useEffect, useRef, memo } from 'react';
+import { Users, Clock, Send, Play, Shield, UserX } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { updateRooms } from '../../store/slices/roomSlice';
-import CustomButton from '../../components/ui/CustomButton';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const RoomLobby = () => {
+const BitCodeProgressLoading = memo(({ message }) => (
+  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div className="text-center">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gradient-to-r from-[#00FF40] to-[#22c55e] rounded-full flex items-center justify-center animate-spin">
+        <span className="text-black font-mono text-sm sm:text-lg md:text-xl">LOADING</span>
+      </div>
+      <p className="mt-4 text-[#00FF40] font-mono text-sm sm:text-base md:text-lg">{message}</p>
+    </div>
+  </div>
+));
+
+const BattleWaitingLobby = () => {
   const { roomId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const wsRef = useRef(null);
-  const isWsConnected = useRef(false); // Track WebSocket connection status
   const accessToken = useSelector((state) => state.auth.accessToken);
+  const username = useSelector((state) => state.auth.username);
+  const [activeTab, setActiveTab] = useState('details');
+  const [chatMessage, setChatMessage] = useState('');
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      user: 'System',
+      message: 'Welcome to the battle arena!',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isSystem: true,
+    },
+  ]);
+  const [currentTime, setCurrentTime] = useState(
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  );
   const [roomDetails, setRoomDetails] = useState(null);
   const [participants, setParticipants] = useState([]);
-  const [error, setError] = useState(null);
+  const [countdown, setCountdown] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const rules = [
+    'Complete challenges within the allocated time.',
+    'Points awarded for solution accuracy and speed.',
+    'External resources are prohibited during the battle.',
+    'Maintain respect and fair play among participants.',
+  ];
 
   // Initialize room details
   useEffect(() => {
-    console.log('RoomLobby: Initializing with roomId:', roomId, 'location.state:', location.state);
-    if (location.state) {
-      console.log('RoomLobby: Setting roomDetails from location.state:', location.state);
-      setRoomDetails({
-        roomId,
-        roomName: location.state.roomName,
-        isHost: location.state.isHost,
-        isPrivate: location.state.isPrivate,
-        joinCode: location.state.joinCode,
-        difficulty: location.state.difficulty,
-        timeLimit: location.state.timeLimit,
-        capacity: location.state.capacity,
-        participantCount: 1, // Initial value
-        status: 'active', // Initial value
-      });
-    } else {
-      console.log('RoomLobby: Fetching room details for roomId:', roomId);
-      const fetchRoomDetails = async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/rooms/`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
+    const fetchRoomDetails = async () => {
+      setIsLoading(true);
+      try {
+        if (location.state) {
+          setRoomDetails({
+            roomId,
+            roomName: location.state.roomName,
+            isHost: location.state.isHost || username === location.state.owner__username,
+            isPrivate: location.state.isPrivate,
+            joinCode: location.state.joinCode,
+            difficulty: location.state.difficulty,
+            timeLimit: location.state.timeLimit,
+            capacity: location.state.capacity,
+            participantCount: location.state.participantCount || 1,
+            status: location.state.status || 'active',
           });
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.json();
-          console.log('RoomLobby: Fetched rooms data:', data);
-          const room = data.rooms.find((r) => r.room_id === roomId);
+        } else {
+          const room = await getRoom(roomId, accessToken); // Use RoomService
           if (room) {
             setRoomDetails({
               roomId,
               roomName: room.name,
-              isHost: room.owner__username === useSelector((state) => state.auth.username),
+              isHost: room.owner__username === username,
               isPrivate: room.visibility === 'private',
               joinCode: room.join_code,
               difficulty: room.difficulty,
@@ -67,118 +87,72 @@ const RoomLobby = () => {
           } else {
             throw new Error('Room not found');
           }
-        } catch (err) {
-          console.error('RoomLobby: Error fetching room details:', err);
-          toast.error('Failed to load room details');
-          navigate('/user/rooms');
-        }
-      };
-      if (accessToken && roomId) {
-        fetchRoomDetails();
-      } else {
-        console.error('RoomLobby: Missing accessToken or roomId:', { accessToken, roomId });
-        toast.error('Invalid room data or session');
-        navigate('/user/rooms');
-      }
-    }
-  }, [location, navigate, roomId, accessToken]);
-
-  // WebSocket connection
-  useEffect(() => {
-    if (!accessToken || isWsConnected.current) {
-      console.log('RoomLobby: Skipping WebSocket setup, missing accessToken or already connected');
-      return;
-    }
-
-    console.log('RoomLobby: Establishing WebSocket connection');
-    const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${encodeURIComponent(accessToken)}`;
-    wsRef.current = new WebSocket(wsURL);
-    isWsConnected.current = true;
-
-    wsRef.current.onopen = () => {
-      console.log('RoomLobby WebSocket connected');
-      setError(null);
-      wsRef.current.send(JSON.stringify({ type: 'request_room_list' }));
-    };
-
-    wsRef.current.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('RoomLobby WebSocket message:', data);
-        if (data.type === 'room_list' || data.type === 'room_update') {
-          dispatch(updateRooms(data.rooms));
-          if (roomDetails) {
-            const currentRoom = data.rooms.find((room) => room.room_id === roomDetails.roomId);
-            if (currentRoom) {
-              setParticipants(currentRoom.participants || []);
-              // Update only specific fields to avoid new object reference
-              setRoomDetails((prev) => ({
-                ...prev,
-                participantCount: currentRoom.participant_count ?? prev.participantCount,
-                status: currentRoom.status ?? prev.status,
-              }));
-            }
-          }
-        } else if (data.type === 'error') {
-          setError(data.message);
-          toast.error(data.message);
         }
       } catch (err) {
-        console.error('RoomLobby: Error parsing WebSocket message:', err);
-        setError('Invalid server message');
-        toast.error('Invalid server message');
+        console.error('Error fetching room details:', err);
+        toast.error('Failed to load room details');
+        navigate('/user/rooms');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    wsRef.current.onerror = (error) => {
-      console.error('RoomLobby WebSocket error:', error);
-      setError('WebSocket connection failed');
-      toast.error('WebSocket connection failed');
-      isWsConnected.current = false;
-    };
-
-    wsRef.current.onclose = (event) => {
-      console.warn('RoomLobby WebSocket disconnected:', event.code, event.reason);
-      setError(`WebSocket closed: ${event.reason || 'Unknown reason'} (Code: ${event.code})`);
-      isWsConnected.current = false;
-      if (event.code === 4001 || event.code === 4002) {
-        toast.error('Session expired. Please log in again.');
-        navigate('/login');
-      }
-    };
-
-    return () => {
-      if (wsRef.current) {
-        console.log('RoomLobby: Cleaning up WebSocket connection');
-        wsRef.current.close();
-        isWsConnected.current = false;
-      }
-    };
-  }, [accessToken, dispatch, navigate]); // Removed roomDetails from dependencies
-
-  const handleStartSession = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/rooms/${roomDetails.roomId}/start/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (response.ok) {
-        toast.success('Session started!');
-        navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to start session');
-      }
-    } catch (err) {
-      console.error('Error starting session:', err);
-      toast.error('Failed to start session');
+    if (accessToken && roomId) fetchRoomDetails();
+    else {
+      toast.error('Invalid room data or session');
+      navigate('/user/rooms');
     }
+  }, [location, navigate, roomId, accessToken, username]);
+
+  // Update current time
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Handle countdown
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    setTimeout(() => {
+      setCountdown(null);
+      handleStartBattle();
+    }, 1000);
+  }, [countdown]);
+
+  // Scroll to bottom of chat
+  useEffect(() => {
+    if (activeTab === 'chat') scrollToBottom();
+  }, [messages, activeTab]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleKickParticipant = async (username) => {
+  const handleSendMessage = () => {
+    if (!chatMessage.trim()) return;
+    const newMessage = {
+      id: messages.length + 1,
+      user: username || 'You',
+      message: chatMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isSystem: false,
+    };
+    setMessages([...messages, newMessage]);
+    setChatMessage('');
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') handleSendMessage();
+  };
+
+  const handleKickParticipant = async (participantUsername) => {
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/rooms/${roomDetails.roomId}/kick/`, {
         method: 'POST',
@@ -186,10 +160,11 @@ const RoomLobby = () => {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username: participantUsername }),
       });
       if (response.ok) {
-        toast.success(`Kicked ${username}`);
+        toast.success(`Kicked ${participantUsername}`);
+        setParticipants(participants.filter((p) => p.user__username !== participantUsername));
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to kick participant');
@@ -197,197 +172,362 @@ const RoomLobby = () => {
     } catch (err) {
       console.error('Error kicking participant:', err);
       toast.error('Failed to kick participant');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleStartBattle = async () => {
+    setIsLoading(true);
+    try {
+      await startGame(roomDetails.roomId, accessToken); // Use RoomService
+      toast.success('Session started!');
+      navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
+    } catch (err) {
+      console.error('Error starting session:', err);
+      toast.error('Failed to start session');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const initiateCountdown = () => {
+    if (participants.length < 1) {
+      toast.error('At least one participant required');
+      return;
+    }
+    setCountdown(5);
+  };
+
   if (!roomDetails) {
-    console.log('RoomLobby: Rendering Loading state');
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-pulse text-xl text-[#00FF40]">Loading...</div>
+        <div className="animate-pulse text-lg sm:text-xl text-[#00FF40]">Loading...</div>
       </div>
     );
   }
 
-  console.log('RoomLobby: Rendering with roomDetails:', roomDetails);
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-8">
-      {/* Header with room name */}
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-[#00FF40] inline-block border-b-2 border-[#00FF40] pb-2">
-          {roomDetails.roomName}
-        </h2>
+    <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
+      {/* Background Matrix Effect */}
+      <div className="absolute inset-0 pointer-events-none">
+        {Array.from({ length: 50 }).map((_, i) => (
+          <span
+            key={`matrix-${i}`} // Unique key for matrix effect
+            className="absolute text-xs text-[#00FF40] opacity-20"
+            style={{
+              left: `${Math.random() * 100}vw`,
+              top: `${Math.random() * 100}vh`,
+              animation: `pulse ${Math.random() * 4 + 1}s infinite ${Math.random() * 2}s`,
+            }}
+          >
+            {Math.random() > 0.5 ? '0' : '1'}
+          </span>
+        ))}
       </div>
 
-      {/* Error display */}
-      {error && (
-        <div className="bg-red-900/50 border border-red-700 text-red-400 p-4 rounded-lg mb-6 text-center">
-          {error}
-        </div>
-      )}
-
-      <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
-        {/* Left column - Room Details */}
-        <div className="bg-gray-900/70 rounded-xl border border-gray-800 overflow-hidden shadow-lg backdrop-blur-sm">
-          <div className="bg-gray-800/80 p-4 border-b border-gray-700">
-            <h3 className="text-xl font-semibold text-[#00FF40] flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
-              </svg>
+      {/* Header */}
+      <header className="bg-gray-900/90 border-b border-[#00FF40]/30 p-4 relative z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider flex items-center drop-shadow-[0_0_6px_#00FF40]">
+              <span className="mr-2">&lt;</span>
               {roomDetails.roomName}
-            </h3>
+              <span className="ml-2">&gt;</span>
+            </h1>
+            <div className="flex flex-wrap gap-2">
+              <span
+                className={`px-2 py-1 rounded text-xs ${
+                  roomDetails.difficulty === 'easy'
+                    ? 'bg-green-900/50 text-green-400'
+                    : roomDetails.difficulty === 'medium'
+                    ? 'bg-yellow-900/50 text-yellow-400'
+                    : 'bg-red-900/50 text-red-400'
+                }`}
+              >
+                {roomDetails.difficulty.toUpperCase()}
+              </span>
+              <span
+                className={`px-2 py-1 rounded text-xs ${
+                  roomDetails.isPrivate ? 'bg-purple-900/50 text-purple-400' : 'bg-blue-900/50 text-blue-400'
+                }`}
+              >
+                {roomDetails.isPrivate ? 'PRIVATE' : 'PUBLIC'}
+              </span>
+            </div>
           </div>
-          <div className="p-5">
-            <dl className="space-y-4">
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <dt className="text-gray-400 font-medium">Room ID</dt>
-                <dd className="text-white font-mono tracking-wide">{roomDetails.roomId}</dd>
-              </div>
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <dt className="text-gray-400 font-medium">Join Code</dt>
-                <dd className="text-white bg-gray-800 px-3 py-1 rounded font-mono tracking-wider text-[#00FF40]">
-                  {roomDetails.joinCode}
-                </dd>
-              </div>
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <dt className="text-gray-400 font-medium">Difficulty</dt>
-                <dd className="capitalize">
-                  <span className={`px-3 py-1 rounded ${
-                    roomDetails.difficulty === 'easy' ? 'bg-green-900/50 text-green-400' :
-                    roomDetails.difficulty === 'medium' ? 'bg-yellow-900/50 text-yellow-400' :
-                    'bg-red-900/50 text-red-400'
-                  }`}>
-                    {roomDetails.difficulty}
-                  </span>
-                </dd>
-              </div>
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <dt className="text-gray-400 font-medium">Time Limit</dt>
-                <dd className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                  </svg>
-                  {roomDetails.timeLimit} minutes
-                </dd>
-              </div>
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <dt className="text-gray-400 font-medium">Capacity</dt>
-                <dd>
-                  <div className="w-24 bg-gray-800 rounded-full h-2.5">
-                    <div 
-                      className="bg-[#00FF40] h-2.5 rounded-full" 
-                      style={{ width: `${(roomDetails.participantCount / roomDetails.capacity) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-right mt-1">
-                    {roomDetails.participantCount}/{roomDetails.capacity}
-                  </div>
-                </dd>
-              </div>
-              <div className="flex justify-between items-center">
-                <dt className="text-gray-400 font-medium">Visibility</dt>
-                <dd>
-                  <span className={`inline-flex items-center px-3 py-1 rounded ${
-                    roomDetails.isPrivate ? 'bg-purple-900/50 text-purple-400' : 'bg-blue-900/50 text-blue-400'
-                  }`}>
-                    {roomDetails.isPrivate ? (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                        </svg>
-                        Private
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                        </svg>
-                        Public
-                      </>
-                    )}
-                  </span>
-                </dd>
-              </div>
-            </dl>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-2 text-[#00FF40]" />
+              <span className="text-xs sm:text-sm text-gray-300">{currentTime}</span>
+            </div>
+            <div className="px-2 py-1 bg-gray-900/50 rounded border border-[#00FF40]/30 flex items-center gap-2">
+              <span className="w-2 h-2 bg-[#00FF40] rounded-full animate-pulse"></span>
+              <span className="text-xs text-[#00FF40]">{roomDetails.status.toUpperCase()}</span>
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Right column - Participants */}
-        <div className="bg-gray-900/70 rounded-xl border border-gray-800 overflow-hidden shadow-lg backdrop-blur-sm flex flex-col">
-          <div className="bg-gray-800/80 p-4 border-b border-gray-700">
-            <h3 className="text-xl font-semibold text-[#00FF40] flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-              </svg>
-              Participants
-            </h3>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto w-full py-4 px-4 flex flex-col lg:flex-row gap-4 relative z-10">
+        {/* Sidebar: Tabs */}
+        <div className="w-full lg:w-80 bg-gray-900/90 border border-[#00FF40]/30 rounded-lg flex flex-col">
+          {/* Tabs */}
+          <div className="flex border-b border-[#00FF40]/30">
+            {['details', 'chat', 'rules'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-medium text-center transition-all duration-300 ${
+                  activeTab === tab
+                    ? 'bg-[#00FF40]/10 text-[#00FF40] border-b-2 border-[#00FF40]'
+                    : 'text-gray-400 hover:text-[#00FF40] hover:bg-gray-800/50'
+                }`}
+              >
+                {tab === 'details' ? 'Battle Setup' : tab === 'chat' ? 'Comms' : 'Protocol'}
+              </button>
+            ))}
           </div>
-          <div className="p-5 flex-grow overflow-y-auto">
-            {participants.length > 0 ? (
-              <ul className="space-y-3">
-                {participants.map((participant, index) => (
-                  <li 
-                    key={index} 
-                    className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50 border border-gray-700"
+
+          {/* Tab Content */}
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+            {activeTab === 'details' && (
+              <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center text-xs sm:text-sm">
+                    <span className="text-gray-300">Access Code:</span>
+                    <span className="ml-2 text-[#00FF40] font-mono">{roomDetails.joinCode}</span>
+                  </div>
+                  <div className="flex items-center text-xs sm:text-sm">
+                    <Clock className="w-4 h-4 mr-2 text-[#00FF40]" />
+                    <span className="text-gray-300">Duration:</span>
+                    <span className="ml-2 text-white">{roomDetails.timeLimit} min</span>
+                  </div>
+                  <div className="flex items-center text-xs sm:text-sm">
+                    <Users className="w-4 h-4 mr-2 text-[#00FF40]" />
+                    <span className="text-gray-300">Capacity:</span>
+                    <span className="ml-2 text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'chat' && (
+              <div className="flex flex-col h-full">
+                <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 mb-3 sm:mb-4">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.isSystem ? 'justify-center' : 'justify-start'}`}>
+                      {msg.isSystem ? (
+                        <div className="bg-gray-800/50 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm text-gray-400">
+                          {msg.message}
+                        </div>
+                      ) : (
+                        <div className="w-full sm:max-w-[70%]">
+                          <div className="flex items-center mb-1">
+                            <span className="font-medium text-xs sm:text-sm text-[#00FF40]">{msg.user}</span>
+                            <span className="text-gray-500 text-xs ml-2">{msg.time}</span>
+                          </div>
+                          <div className="bg-gray-800 p-2 sm:p-3 rounded-lg text-xs sm:text-sm text-white border border-[#00FF40]/20">
+                            {msg.message}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Transmit message..."
+                    className="flex-1 bg-gray-800/50 border border-[#00FF40]/20 rounded-l-md p-2 sm:p-3 text-xs sm:text-sm placeholder-gray-500 focus:outline-none focus:border-[#00FF40] focus:ring-1 focus:ring-[#00FF40]"
+                    aria-label="Chat input"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    className="bg-[#00FF40] text-black px-2 sm:px-3 rounded-r-md hover:bg-[#22c55e] transition-all duration-300"
+                    aria-label="Send message"
                   >
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-[#00FF40] mr-3">
-                        {participant.user__username.charAt(0).toUpperCase()}
+                    <Send size={14} className="sm:w-4 sm:h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'rules' && (
+              <div className="space-y-4">
+                <h4 className="text-xs sm:text-sm font-medium text-[#00FF40] mb-2">Battle Protocol</h4>
+                <ul className="space-y-2 text-xs sm:text-sm text-gray-300">
+                  {rules.map((rule, index) => (
+                    <li key={`rule-${index}`} className="flex items-start">
+                      <span className="text-[#00FF40] mr-2">•</span>
+                      {rule}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Admin Controls */}
+          {roomDetails.isHost && (
+            <div className="p-4 sm:p-6 border-t border-[#00FF40]/30 bg-gray-900/50">
+              <h3 className="text-xs sm:text-sm font-medium text-[#00FF40] mb-3 flex items-center">
+                <Shield className="w-4 h-4 mr-2" />
+                Command Center
+              </h3>
+              <button
+                onClick={initiateCountdown}
+                disabled={participants.length < 1 || isLoading}
+                className={`w-full py-2 sm:py-3 rounded font-mono text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+                  participants.length < 1 || isLoading
+                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    : 'bg-[#00FF40] text-black hover:bg-[#22c55e] hover:shadow-[0_0_10px_#00FF40]'
+                }`}
+                aria-label="Deploy battle"
+              >
+                <Play size={16} />
+                Deploy Battle
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Participants Panel */}
+        <div className="flex-1 bg-gray-900/90 p-4 sm:p-6 rounded-lg border border-[#00FF40]/30">
+          <h2 className="text-lg sm:text-xl font-bold text-[#00FF40] mb-4 font-['Orbitron'] tracking-wider flex items-center">
+            <Users className="w-5 h-5 mr-2" />
+            Operatives ({roomDetails.participantCount}/{roomDetails.capacity})
+          </h2>
+          <div className="space-y-3">
+            {participants.length > 0 ? (
+              participants.map((participant, index) => (
+                <div
+                  key={`participant-${index}`} // Unique key for participants
+                  className="flex items-center justify-between bg-gray-800/50 p-3 rounded-lg border border-[#00FF40]/20 hover:border-[#00FF40]/50 transition-all duration-300"
+                >
+                  <div className="flex items-center">
+                    <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-[#00FF40]/20 flex items-center justify-center text-[#00FF40] font-bold text-base sm:text-lg">
+                      {participant.user__username.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="ml-3">
+                      <div className="flex items-center">
+                        <span className="font-medium text-xs sm:text-sm text-white">{participant.user__username}</span>
+                        {participant.role === 'host' && (
+                          <Shield size={14} className="ml-2 text-[#00FF40]" title="Commander" />
+                        )}
                       </div>
-                      <div>
-                        <span className="text-white">{participant.user__username}</span>
-                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
-                          participant.role === 'host' ? 'bg-green-900/50 text-green-400' : 'bg-gray-700 text-gray-400'
-                        }`}>
-                          {participant.role}
+                      <div className="flex items-center text-xs mt-1">
+                        <span
+                          className={`h-2 w-2 rounded-full mr-1 ${
+                            roomDetails.status === 'active' ? 'bg-[#00FF40]' : 'bg-yellow-500'
+                          }`}
+                        ></span>
+                        <span className={roomDetails.status === 'active' ? 'text-[#00FF40]' : 'text-yellow-400'}>
+                          {roomDetails.status}
                         </span>
                       </div>
                     </div>
-                    {roomDetails.isHost && participant.role !== 'host' && (
-                      <button
-                        onClick={() => handleKickParticipant(participant.user__username)}
-                        className="text-red-500 hover:text-red-400 bg-red-900/30 hover:bg-red-900/50 p-1 rounded transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                  {roomDetails.isHost && participant.role !== 'host' && (
+                    <button
+                      onClick={() => handleKickParticipant(participant.user__username)}
+                      disabled={isLoading}
+                      className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
+                      title="Eject operative"
+                      aria-label={`Eject ${participant.user__username}`}
+                    >
+                      <UserX size={16} />
+                    </button>
+                  )}
+                </div>
+              ))
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-gray-500 text-center p-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 opacity-50" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-10 sm:h-12 w-10 sm:w-12 mx-auto mb-4 opacity-50"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                      clipRule="evenodd"
+                    />
                   </svg>
-                  <p>No participants have joined yet</p>
+                  <p className="text-xs sm:text-sm">No participants have joined yet</p>
                 </div>
               </div>
             )}
           </div>
-          {/* Start Session Button */}
-          {roomDetails.isHost && (
-            <div className="p-5 border-t border-gray-700 bg-gray-800/50">
-              <CustomButton
-                variant="primary"
-                onClick={handleStartSession}
-                disabled={participants.length < 1}
-                className="w-full flex justify-center items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                </svg>
-                Start Session
-              </CustomButton>
-            </div>
-          )}
         </div>
-      </div>
+      </main>
+
+      {/* Countdown Overlay */}
+      {countdown !== null && (
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="text-7xl sm:text-9xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider animate-pulse">
+              {countdown > 0 ? countdown : 'ENGAGE!'}
+            </div>
+            {countdown > 0 && (
+              <div className="text-lg sm:text-2xl text-gray-300 mt-6 font-mono">Battle initializing...</div>
+            )}
+            {countdown === 0 && (
+              <div className="text-lg sm:text-2xl text-[#00FF40] mt-6 font-mono animate-fadeIn">Code or be coded!</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {isLoading && <BitCodeProgressLoading message="Deploying battle systems..." />}
+
+      {/* Footer */}
+      <footer className="bg-gray-900/90 border-t border-[#00FF40]/30 py-2 px-4 relative z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs text-gray-400">
+          <span className="text-[#00FF40] font-bold">BitWar Arena</span>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <span>
+              Room ID: <span className="text-[#00FF40]">{roomDetails.roomId}</span>
+            </span>
+            <span>
+              Initialized: <span className="text-[#00FF40]">Today, {currentTime}</span>
+            </span>
+          </div>
+        </div>
+      </footer>
+
+      <style jsx>{`
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 0.1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
 
-export default RoomLobby;
+export default BattleWaitingLobby;

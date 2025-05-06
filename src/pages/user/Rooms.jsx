@@ -10,6 +10,7 @@ import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
 import 'react-toastify/dist/ReactToastify.css';
+import api from '../../api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -192,12 +193,13 @@ const Rooms = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to join room');
       }
-
+      const role=response.role
       toast.success('Joined room successfully');
       navigate(`/user/room/${room.room_id}`, {
         state: {
           roomName: room.name,
-          isHost: false,
+          role:role,
+          
           isPrivate: room.visibility === 'private',
           joinCode: room.join_code,
           difficulty: room.difficulty,

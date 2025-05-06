@@ -38,6 +38,7 @@ const BattleWaitingLobby = () => {
   const [currentTime, setCurrentTime] = useState(
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   );
+  const [role,setRole]=useState("")
   const [roomDetails, setRoomDetails] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [countdown, setCountdown] = useState(null);
@@ -57,10 +58,11 @@ const BattleWaitingLobby = () => {
       setIsLoading(true);
       try {
         if (location.state) {
+         
           setRoomDetails({
             roomId,
             roomName: location.state.roomName,
-            isHost: location.state.isHost || username === location.state.owner__username,
+            
             isPrivate: location.state.isPrivate,
             joinCode: location.state.joinCode,
             difficulty: location.state.difficulty,
@@ -70,12 +72,11 @@ const BattleWaitingLobby = () => {
             status: location.state.status || 'active',
           });
         } else {
-          const room = await getRoom(roomId, accessToken); // Use RoomService
+          const room = await api.getRoom(roomId, accessToken); 
           if (room) {
             setRoomDetails({
               roomId,
               roomName: room.name,
-              isHost: room.owner__username === username,
               isPrivate: room.visibility === 'private',
               joinCode: room.join_code,
               difficulty: room.difficulty,
@@ -180,7 +181,7 @@ const BattleWaitingLobby = () => {
   const handleStartBattle = async () => {
     setIsLoading(true);
     try {
-      await startGame(roomDetails.roomId, accessToken); // Use RoomService
+      await startGame(roomDetails.roomId, accessToken); 
       toast.success('Session started!');
       navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
     } catch (err) {

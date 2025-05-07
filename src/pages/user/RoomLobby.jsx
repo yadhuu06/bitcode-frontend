@@ -3,17 +3,17 @@ import { Users, Clock, Send, Play, Shield, UserX } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-
+import { getRoomDetails } from '../../services/RoomService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
     <div className="text-center">
-      <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gradient-to-r from-[#00FF40] to-[#22c55e] rounded-full flex items-center justify-center animate-spin">
-        <span className="text-black font-mono text-sm sm:text-lg md:text-xl">LOADING</span>
+      <div className="w-16 h-16 bg-gradient-to-r from-[#00FF40] to-[#22c55e] rounded-full flex items-center justify-center animate-spin">
+        <span className="text-black font-mono text-sm">LOADING</span>
       </div>
-      <p className="mt-4 text-[#00FF40] font-mono text-sm sm:text-base md:text-lg">{message}</p>
+      <p className="mt-4 text-[#00FF40] font-mono text-sm">{message}</p>
     </div>
   </div>
 ));
@@ -25,25 +25,22 @@ const BattleWaitingLobby = () => {
   const accessToken = useSelector((state) => state.auth.accessToken);
   const username = useSelector((state) => state.auth.username);
   const [activeTab, setActiveTab] = useState('details');
-  const [chatMessage, setChatMessage] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      user: 'System',
-      message: 'Welcome to the battle arena!',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSystem: true,
-    },
-  ]);
   const [currentTime, setCurrentTime] = useState(
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   );
-  const [role,setRole]=useState("")
+  const [role, setRole] = useState(location.state?.role || '');
   const [roomDetails, setRoomDetails] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [countdown, setCountdown] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState([
+    { id: 1, user: 'System', message: 'Welcome to the battle lobby!', time: currentTime, isSystem: true },
+  ]);
+  const [chatMessage, setChatMessage] = useState('');
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const rules = [
     'Complete challenges within the allocated time.',
@@ -52,43 +49,42 @@ const BattleWaitingLobby = () => {
     'Maintain respect and fair play among participants.',
   ];
 
-  // Initialize room details
+  // Initialize room details and WebSocket
   useEffect(() => {
     const fetchRoomDetails = async () => {
       setIsLoading(true);
       try {
+        let roomData;
         if (location.state) {
-         
-          setRoomDetails({
+          roomData = {
             roomId,
             roomName: location.state.roomName,
-            
-            isPrivate: location.state.isPrivate,
+            isPrivate: location.state.visibility === 'private',
             joinCode: location.state.joinCode,
             difficulty: location.state.difficulty,
             timeLimit: location.state.timeLimit,
             capacity: location.state.capacity,
             participantCount: location.state.participantCount || 1,
             status: location.state.status || 'active',
-          });
+          };
+          setParticipants(location.state.participants || []);
+          setRole(location.state.role || '');
         } else {
-          const room = await api.getRoom(roomId, accessToken); 
-          if (room) {
-            setRoomDetails({
-              roomId,
-              roomName: room.name,
-              isPrivate: room.visibility === 'private',
-              joinCode: room.join_code,
-              difficulty: room.difficulty,
-              timeLimit: room.time_limit,
-              capacity: room.capacity,
-              participantCount: room.participant_count,
-              status: room.status,
-            });
-          } else {
-            throw new Error('Room not found');
-          }
+          const response = await getRoomDetails(roomId, accessToken);
+          roomData = {
+            roomId,
+            roomName: response.room.name,
+            isPrivate: response.room.visibility === 'private',
+            joinCode: response.room.join_code,
+            difficulty: response.room.difficulty,
+            timeLimit: response.room.time_limit,
+            capacity: response.room.capacity,
+            participantCount: response.room.participant_count,
+            status: response.room.status,
+          };
+          setParticipants(response.participants || []);
         }
+        setRoomDetails(roomData);
       } catch (err) {
         console.error('Error fetching room details:', err);
         toast.error('Failed to load room details');
@@ -98,12 +94,84 @@ const BattleWaitingLobby = () => {
       }
     };
 
-    if (accessToken && roomId) fetchRoomDetails();
-    else {
+    if (accessToken && roomId) {
+      fetchRoomDetails();
+    } else {
       toast.error('Invalid room data or session');
       navigate('/user/rooms');
     }
-  }, [location, navigate, roomId, accessToken, username]);
+  }, [location, navigate, roomId, accessToken]);
+
+  // WebSocket handling
+  useEffect(() => {
+    if (!roomId || !accessToken) return;
+
+    const connectWebSocket = () => {
+      const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/${roomId}/?token=${accessToken}`;
+      socketRef.current = new WebSocket(wsURL);
+
+      socketRef.current.onopen = () => {
+        console.log('WebSocket connected');
+        reconnectAttempts.current = 0;
+        socketRef.current.send(JSON.stringify({ type: 'request_participants' }));
+      };
+
+      socketRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message:', data);
+
+        if (data.type === 'participant_list' || data.type === 'participant_update') {
+          setParticipants(data.participants);
+          setRoomDetails((prev) => prev ? { ...prev, participantCount: data.participants.length } : prev);
+          if (!role) {
+            const userParticipant = data.participants.find(p => p.user__username === username);
+            if (userParticipant) setRole(userParticipant.role);
+          }
+        } else if (data.type === 'chat_message') {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: prev.length + 1,
+              user: data.sender,
+              message: data.message,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isSystem: false,
+            },
+          ]);
+        } else if (data.type === 'countdown') {
+          setCountdown(data.countdown);
+        } else if (data.type === 'error') {
+          toast.error(data.message);
+        }
+      };
+
+      socketRef.current.onclose = () => {
+        console.log('WebSocket disconnected');
+        if (reconnectAttempts.current < maxReconnectAttempts) {
+          setTimeout(() => {
+            console.log(`Reconnecting WebSocket, attempt ${reconnectAttempts.current + 1}`);
+            reconnectAttempts.current += 1;
+            connectWebSocket();
+          }, 2000);
+        } else {
+          toast.error('Lost connection to server');
+          navigate('/user/rooms');
+        }
+      };
+
+      socketRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, [roomId, accessToken, navigate, username, role]);
 
   // Update current time
   useEffect(() => {
@@ -128,68 +196,21 @@ const BattleWaitingLobby = () => {
 
   // Scroll to bottom of chat
   useEffect(() => {
-    if (activeTab === 'chat') scrollToBottom();
-  }, [messages, activeTab]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages]);
 
   const handleSendMessage = () => {
-    if (!chatMessage.trim()) return;
-    const newMessage = {
-      id: messages.length + 1,
-      user: username || 'You',
-      message: chatMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSystem: false,
-    };
-    setMessages([...messages, newMessage]);
+    toast.info('Chat functionality will be implemented soon!');
     setChatMessage('');
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleSendMessage();
+  const handleKickParticipant = () => {
+    toast.info('Kick functionality will be implemented soon!');
   };
 
-  const handleKickParticipant = async (participantUsername) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/rooms/${roomDetails.roomId}/kick/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: participantUsername }),
-      });
-      if (response.ok) {
-        toast.success(`Kicked ${participantUsername}`);
-        setParticipants(participants.filter((p) => p.user__username !== participantUsername));
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to kick participant');
-      }
-    } catch (err) {
-      console.error('Error kicking participant:', err);
-      toast.error('Failed to kick participant');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleStartBattle = async () => {
-    setIsLoading(true);
-    try {
-      await startGame(roomDetails.roomId, accessToken); 
-      toast.success('Session started!');
-      navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
-    } catch (err) {
-      console.error('Error starting session:', err);
-      toast.error('Failed to start session');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleStartBattle = () => {
+    toast.info('Battle start functionality will be implemented soon!');
+    navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
   };
 
   const initiateCountdown = () => {
@@ -203,7 +224,7 @@ const BattleWaitingLobby = () => {
   if (!roomDetails) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-pulse text-lg sm:text-xl text-[#00FF40]">Loading...</div>
+        <div className="animate-pulse text-lg text-[#00FF40]">Loading...</div>
       </div>
     );
   }
@@ -214,7 +235,7 @@ const BattleWaitingLobby = () => {
       <div className="absolute inset-0 pointer-events-none">
         {Array.from({ length: 50 }).map((_, i) => (
           <span
-            key={`matrix-${i}`} // Unique key for matrix effect
+            key={`matrix-${i}`}
             className="absolute text-xs text-[#00FF40] opacity-20"
             style={{
               left: `${Math.random() * 100}vw`,
@@ -231,11 +252,12 @@ const BattleWaitingLobby = () => {
       <header className="bg-gray-900/90 border-b border-[#00FF40]/30 p-4 relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider flex items-center drop-shadow-[0_0_6px_#00FF40]">
-              <span className="mr-2">&lt;</span>
-              {roomDetails.roomName}
-              <span className="ml-2">&gt;</span>
-            </h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider flex items-center drop-shadow-[0_0_6px_#00FF40]">
+  <span className="mr-2">&lt;</span>
+  {roomDetails.roomName}
+  <span className="ml-2">&gt;</span>
+</h1>
+
             <div className="flex flex-wrap gap-2">
               <span
                 className={`px-2 py-1 rounded text-xs ${
@@ -343,15 +365,16 @@ const BattleWaitingLobby = () => {
                     type="text"
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
                     placeholder="Transmit message..."
                     className="flex-1 bg-gray-800/50 border border-[#00FF40]/20 rounded-l-md p-2 sm:p-3 text-xs sm:text-sm placeholder-gray-500 focus:outline-none focus:border-[#00FF40] focus:ring-1 focus:ring-[#00FF40]"
                     aria-label="Chat input"
+                    disabled
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="bg-[#00FF40] text-black px-2 sm:px-3 rounded-r-md hover:bg-[#22c55e] transition-all duration-300"
+                    className="bg-[#00FF40] text-black px-2 sm:px-3 rounded-r-md hover:bg-[#22c55e] transition-all duration-300 opacity-50 cursor-not-allowed"
                     aria-label="Send message"
+                    disabled
                   >
                     <Send size={14} className="sm:w-4 sm:h-4" />
                   </button>
@@ -374,8 +397,8 @@ const BattleWaitingLobby = () => {
             )}
           </div>
 
-          {/* Admin Controls */}
-          {roomDetails.isHost && (
+          {/* Host Controls */}
+          {role === 'host' && (
             <div className="p-4 sm:p-6 border-t border-[#00FF40]/30 bg-gray-900/50">
               <h3 className="text-xs sm:text-sm font-medium text-[#00FF40] mb-3 flex items-center">
                 <Shield className="w-4 h-4 mr-2" />
@@ -408,7 +431,7 @@ const BattleWaitingLobby = () => {
             {participants.length > 0 ? (
               participants.map((participant, index) => (
                 <div
-                  key={`participant-${index}`} // Unique key for participants
+                  key={`participant-${participant.user__username}-${index}`}
                   className="flex items-center justify-between bg-gray-800/50 p-3 rounded-lg border border-[#00FF40]/20 hover:border-[#00FF40]/50 transition-all duration-300"
                 >
                   <div className="flex items-center">
@@ -425,20 +448,20 @@ const BattleWaitingLobby = () => {
                       <div className="flex items-center text-xs mt-1">
                         <span
                           className={`h-2 w-2 rounded-full mr-1 ${
-                            roomDetails.status === 'active' ? 'bg-[#00FF40]' : 'bg-yellow-500'
+                            participant.status === 'joined' ? 'bg-[#00FF40]' : 'bg-yellow-500'
                           }`}
                         ></span>
-                        <span className={roomDetails.status === 'active' ? 'text-[#00FF40]' : 'text-yellow-400'}>
-                          {roomDetails.status}
+                        <span className={participant.status === 'joined' ? 'text-[#00FF40]' : 'text-yellow-400'}>
+                          {participant.status}
                         </span>
                       </div>
                     </div>
                   </div>
-                  {roomDetails.isHost && participant.role !== 'host' && (
+                  {role === 'host' && participant.role !== 'host' && (
                     <button
                       onClick={() => handleKickParticipant(participant.user__username)}
                       disabled={isLoading}
-                      className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
+                      className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300 opacity-50 cursor-not-allowed"
                       title="Eject operative"
                       aria-label={`Eject ${participant.user__username}`}
                     >

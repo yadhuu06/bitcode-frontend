@@ -20,10 +20,9 @@ export const fetchRooms = async () => {
     });
 
     return response.data.rooms;
-  }
-   catch (error) {
+  } catch (error) {
     console.error('Error fetching rooms:', error);
-    throw new pilferError(error.response?.data?.error || error.message);
+    throw error.response?.data?.error || error.message;
   }
 };
 
@@ -47,5 +46,25 @@ export const createRoom = async (payload) => {
   } catch (error) {
     console.error('Error creating room:', error);
     throw error.response?.data || error;
+  }
+};
+
+export const getRoomDetails = async (roomId, accessToken) => {
+  try {
+    if (!accessToken) {
+      throw new Error('No access token available');
+    }
+
+    const response = await axios.get(`${API_BASE_URL}/rooms/${roomId}/`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching room details:', error);
+    throw error.response?.data?.error || error.message;
   }
 };

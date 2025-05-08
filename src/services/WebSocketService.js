@@ -1,47 +1,59 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const WS_URL = API_BASE_URL.replace('http', 'ws') + '/ws/rooms/';
 
 class WebSocketService {
   constructor() {
     this.socket = null;
     this.listeners = {};
     this.token = null;
+    this.roomId = null;
 
     // Reconnect settings
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 3000; // 3 seconds
+    this.reconnectDelay = 3000;
 
     // Heartbeat settings
-    this.heartbeatInterval = 10000; // 10 seconds
+    this.heartbeatInterval = 10000; 
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
   }
 
-  connect(token) {
+  connect(token, roomId = null) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
     this.token = token;
-    this.socket = new WebSocket(`${WS_URL}?token=${token}`);
+    this.roomId = roomId;
+    const baseWsUrl = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/`;
+    const wsUrl = roomId ? `${baseWsUrl}${roomId}/?token=${token}` : `${baseWsUrl}?token=${token}`;
+    this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
       console.log('✅ WebSocket connected');
       this.reconnectAttempts = 0;
       this._startHeartbeat();
-    };
-
-    this.socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type !== 'pong') {
-        Object.values(this.listeners).forEach((listener) => listener(data));
+      if (roomId) {
+        this.sendMessage({ type: 'request_participants' });
       }
     };
 
-    this.socket.onclose = () => {
-      console.warn('⚠️ WebSocket disconnected');
+    this.socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type !== 'pong') {
+          Object.values(this.listeners).forEach((listener) => listener(data));
+        }
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+      }
+    };
+
+    this.socket.onclose = (event) => {
+      console.warn('⚠️ WebSocket disconnected:', event.code, event.reason);
       this.socket = null;
       this._stopHeartbeat();
-      this._tryReconnect();
+      if (event.code !== 1000) {
+        this._tryReconnect();
+      }
     };
 
     this.socket.onerror = (error) => {
@@ -51,11 +63,15 @@ class WebSocketService {
 
   disconnect() {
     if (this.socket) {
-      this.socket.close();
+      this.socket.close(1000, 'Service disconnected');
       this.socket = null;
     }
     this._stopHeartbeat();
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
+  }
+
+  isConnected() {
+    return this.socket && this.socket.readyState === WebSocket.OPEN;
   }
 
   addListener(id, callback) {
@@ -67,7 +83,7 @@ class WebSocketService {
   }
 
   sendMessage(message) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    if (this.isConnected()) {
       this.socket.send(JSON.stringify(message));
     } else {
       console.warn('🕳️ Cannot send message, socket not open');
@@ -83,7 +99,7 @@ class WebSocketService {
     this.reconnectAttempts += 1;
     this.reconnectTimeoutId = setTimeout(() => {
       console.log(`🔁 Reconnecting... attempt ${this.reconnectAttempts}`);
-      this.connect(this.token);
+      this.connect(this.token, this.roomId);
     }, this.reconnectDelay);
   }
 

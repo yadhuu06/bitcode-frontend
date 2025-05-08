@@ -9,6 +9,7 @@ import { fetchRooms, createNewRoom, updateRooms } from '../../store/slices/roomS
 import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
+import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
 import api from '../../api';
 
@@ -51,10 +52,7 @@ const Rooms = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [passwordRoomId, setPasswordRoomId] = useState(null);
   const [passwords, setPasswords] = useState({});
-  const wsRef = useRef(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-  const reconnectInterval = 5000;
+  const wsListenerId = useRef('rooms');
 
   useEffect(() => {
     if (!accessToken) {
@@ -63,80 +61,30 @@ const Rooms = () => {
       return;
     }
 
-    const connectWebSocket = () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        console.log('WebSocket already connected');
-        return;
-      }
+    WebSocketService.connect(accessToken);
 
-      if (reconnectAttempts.current >= maxReconnectAttempts) {
-        setWsError('Max reconnection attempts reached');
-        toast.error('Unable to connect to server. Please try again later.');
-        return;
-      }
-
-      console.log('Initiating WebSocket connection', accessToken);
-      const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/?token=${accessToken}`;
-      wsRef.current = new WebSocket(wsURL);
-
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
-        setWsError(null);
-        reconnectAttempts.current = 0;
-      };
-
-      wsRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('WebSocket message:', data);
-          if (data.type === 'room_list' || data.type === 'room_update') {
-            dispatch(updateRooms(data.rooms));
-          } else if (data.type === 'error') {
-            console.error('Server error:', data.message);
-            setWsError(data.message);
-            toast.error(data.message);
-          } else {
-            console.warn('Unknown message type:', data.type);
-          }
-        } catch (err) {
-          console.error('Error parsing WebSocket message:', err);
-          setWsError('Invalid server message');
-          toast.error('Invalid server message');
-        }
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setWsError('WebSocket connection failed');
-        toast.error('WebSocket connection failed');
-      };
-
-      wsRef.current.onclose = (event) => {
-        console.warn('WebSocket disconnected:', event.code, event.reason);
-        setWsError(`WebSocket closed with code ${event.code}: ${event.reason || 'Unknown reason'}`);
-        if (event.code === 4001 || event.code === 4002) {
-          toast.error('Session expired. Please log in again.');
+    const handleMessage = (data) => {
+      if (data.type === 'room_list' || data.type === 'room_update') {
+        dispatch(updateRooms(data.rooms));
+      } else if (data.type === 'error') {
+        setWsError(data.message);
+        toast.error(data.message);
+        if (data.message.includes('401') || data.message.includes('4001') || data.message.includes('4002')) {
           dispatch(logoutSuccess());
           Cookies.remove('access_token');
           Cookies.remove('refresh_token');
           navigate('/login');
-        } else {
-          reconnectAttempts.current += 1;
-          setTimeout(() => {
-            console.log(`Reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
-            connectWebSocket();
-          }, reconnectInterval);
         }
-      };
+      } else {
+        console.warn('Unknown message type:', data.type);
+      }
     };
 
-    connectWebSocket();
+    WebSocketService.addListener(wsListenerId.current, handleMessage);
 
     return () => {
-      console.log('Cleaning up WebSocket');
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close(1000, 'Component unmounted');
-      }
+      WebSocketService.removeListener(wsListenerId.current);
+      WebSocketService.disconnect();
     };
   }, [accessToken, navigate, dispatch]);
 
@@ -193,13 +141,12 @@ const Rooms = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to join room');
       }
-      const role=response.role
+      const data = await response.json();
       toast.success('Joined room successfully');
       navigate(`/user/room/${room.room_id}`, {
         state: {
           roomName: room.name,
-          role:role,
-          
+          role: data.role,
           isPrivate: room.visibility === 'private',
           joinCode: room.join_code,
           difficulty: room.difficulty,
@@ -281,7 +228,7 @@ const Rooms = () => {
       </div>
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <div className="flex justify-between items-center mb-8 border-b border-green-500/30 pb-4">
-        <h1 className="text-4xl text-white flex items-center tracking-widest font-['Orbitron']">
+        <h1 className="text-4xl text-white flex items-center tracking-widest font-orbitron">
   <span className="text-[#22c55e] mr-2 font-bold">&lt;</span>
   <span className="text-[#22c55e] font-bold">BATTLE</span>
   <span className="text-[#22c55e] ml-2 font-bold">&gt;</span>
@@ -456,12 +403,12 @@ const Rooms = () => {
                       <Trophy size={18} className="mr-2 text-yellow-400" /> Leaderboard
                     </button>
                     <button
-  onClick={() => handleJoinRoom(room)}
-  className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-all duration-300 flex items-center text-sm"
-  aria-label={`Enter room ${room.name}`}
->
-  <Play size={18} className="mr-2" /> Battle
-</button>
+                      onClick={() => handleJoinRoom(room)}
+                      className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-all duration-300 flex items-center text-sm"
+                      aria-label={`Enter room ${room.name}`}
+                    >
+                      <Play size={18} className="mr-2" /> Battle
+                    </button>
                   </div>
                   <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
                   <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
@@ -472,10 +419,7 @@ const Rooms = () => {
           {filteredRooms.length === 0 && !loading && (
             <div className="col-span-full flex flex-col items-center justify-center py-16 border border-dashed border-gray-700 rounded-lg">
               <Search className="text-gray-500 mb-4" size={40} />
-              <p className="text-gray-400 text-center font-['Orbitron'] text-lg">
-  No <span className="text-[#00FF40] font-bold">&lt;BATTLE/&gt;</span> matches your search criteria.
-</p>
-
+              
               <button
                 onClick={() => {
                   setSearchTerm('');

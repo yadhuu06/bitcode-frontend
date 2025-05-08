@@ -107,15 +107,7 @@ const PasswordForm = ({ email, setStep }) => {
         </button>
       </div>
 
-      <div className="text-white text-xs space-y-1">
-        <p>Password must:</p>
-        <ul className="list-disc list-inside">
-          <li>Be at least 8 characters long</li>
-          <li>Contain at least one uppercase letter</li>
-          <li>Contain at least one number</li>
-          <li>Contain at least one special character (!@#$%^&*)</li>
-        </ul>
-      </div>
+
 
       <div className="flex space-x-4">
         <button

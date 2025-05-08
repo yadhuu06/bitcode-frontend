@@ -40,7 +40,8 @@ const BattleWaitingLobby = () => {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 10;
+  const baseReconnectDelay = 2000;
 
   const rules = [
     'Complete challenges within the allocated time.',
@@ -49,7 +50,7 @@ const BattleWaitingLobby = () => {
     'Maintain respect and fair play among participants.',
   ];
 
-  // Initialize room details and WebSocket
+  // Initialize room details
   useEffect(() => {
     const fetchRoomDetails = async () => {
       setIsLoading(true);
@@ -65,7 +66,7 @@ const BattleWaitingLobby = () => {
             timeLimit: location.state.timeLimit,
             capacity: location.state.capacity,
             participantCount: location.state.participantCount || 1,
-            status: location.state.status || 'active',
+            status: 'active',
           };
           setParticipants(location.state.participants || []);
           setRole(location.state.role || '');
@@ -107,6 +108,13 @@ const BattleWaitingLobby = () => {
     if (!roomId || !accessToken) return;
 
     const connectWebSocket = () => {
+      if (reconnectAttempts.current >= maxReconnectAttempts) {
+        console.log('Max reconnection attempts reached');
+        toast.error('Failed to connect to room. Please try again.');
+        navigate('/user/rooms');
+        return;
+      }
+
       const wsURL = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/${roomId}/?token=${accessToken}`;
       socketRef.current = new WebSocket(wsURL);
 
@@ -122,9 +130,9 @@ const BattleWaitingLobby = () => {
 
         if (data.type === 'participant_list' || data.type === 'participant_update') {
           setParticipants(data.participants);
-          setRoomDetails((prev) => prev ? { ...prev, participantCount: data.participants.length } : prev);
+          setRoomDetails((prev) => (prev ? { ...prev, participantCount: data.participants.length } : prev));
           if (!role) {
-            const userParticipant = data.participants.find(p => p.user__username === username);
+            const userParticipant = data.participants.find((p) => p.user__username === username);
             if (userParticipant) setRole(userParticipant.role);
           }
         } else if (data.type === 'chat_message') {
@@ -145,30 +153,27 @@ const BattleWaitingLobby = () => {
         }
       };
 
-      socketRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          setTimeout(() => {
-            console.log(`Reconnecting WebSocket, attempt ${reconnectAttempts.current + 1}`);
-            reconnectAttempts.current += 1;
-            connectWebSocket();
-          }, 2000);
-        } else {
-          toast.error('Lost connection to server');
-          navigate('/user/rooms');
-        }
-      };
-
       socketRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
+      };
+
+      socketRef.current.onclose = (event) => {
+        console.log('WebSocket disconnected:', event.code);
+        if (event.code !== 1000) { // Normal closure
+          reconnectAttempts.current += 1;
+          const delay = baseReconnectDelay * Math.pow(2, reconnectAttempts.current); // Exponential backoff
+          console.log(`Reconnecting WebSocket, attempt ${reconnectAttempts.current}, delay ${delay}ms`);
+          setTimeout(connectWebSocket, delay);
+        }
       };
     };
 
     connectWebSocket();
 
     return () => {
+      console.log('Cleaning up WebSocket');
       if (socketRef.current) {
-        socketRef.current.close();
+        socketRef.current.close(1000, 'Component unmounted');
       }
     };
   }, [roomId, accessToken, navigate, username, role]);
@@ -252,12 +257,11 @@ const BattleWaitingLobby = () => {
       <header className="bg-gray-900/90 border-b border-[#00FF40]/30 p-4 relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider flex items-center drop-shadow-[0_0_6px_#00FF40]">
-  <span className="mr-2">&lt;</span>
-  {roomDetails.roomName}
-  <span className="ml-2">&gt;</span>
-</h1>
-
+            <h1 className="text-xl sm:text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider flex items-center drop-shadow-[0_0_6px_#00FF40]">
+              <span className="mr-2">&lt;</span>
+              {roomDetails.roomName}
+              <span className="ml-2">&gt;</span>
+            </h1>
             <div className="flex flex-wrap gap-2">
               <span
                 className={`px-2 py-1 rounded text-xs ${

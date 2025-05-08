@@ -156,6 +156,7 @@ export const resendOtp = async (email) => {
 };
 
 export const completeRegistration = async (email, password, confirmPassword) => {
+  console.log(email,password,confirmPassword)
   if (!email || !password || !confirmPassword) {
     throw new Error('All fields are required');
   }
@@ -172,14 +173,15 @@ export const completeRegistration = async (email, password, confirmPassword) => 
   try {
     const response = await api.post('/api/auth/register/complete/', {
       email: email.trim(),
+      username:email,
       password: password.trim(),
-      confirmPassword: confirmPassword.trim(),
+      confirm_password: confirmPassword.trim(),
     });
     return {
       refresh: response.data.refresh,
       access: response.data.access,
       role: response.data.role,
-      redirect_url: response.data.redirect_url,
+      redirect_url: 'user/dashboard',
     };
   } catch (error) {
     console.error('Error completing registration:', error.message);

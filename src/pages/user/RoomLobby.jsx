@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Users, Clock, Play, Shield, UserX, Code } from 'lucide-react';
+import { Users, Clock, Play, Shield, UserX, Code, CheckCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -10,13 +10,84 @@ import ChatPanel from './ChatPannel';
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
     <div className="text-center">
-      <div className="w-20 h-20 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center animate-spin border-2 border-white/20">
-        <Code className="text-white" size={24} />
+      <div className="w-20 h-20 bg-[#00FF40] rounded-full flex items-center justify-center animate-spin border-2 border-white/20">
+        <Code className="text-black" size={24} />
       </div>
-      <p className="mt-4 text-cyan-400 font-mono text-lg">{message}</p>
+      <p className="mt-4 text-[#00FF40] font-mono text-lg">{message}</p>
     </div>
   </div>
 ));
+
+const MatrixBackground = () => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    const chars = '01';
+    const fontSize = 14;
+    const numChars = Math.floor(Math.random() * 21) + 60; // 60–80 chars
+    const particles = [];
+
+    for (let i = 0; i < numChars; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        char: chars.charAt(Math.floor(Math.random() * chars.length)),
+        opacity: 0,
+        phase: 'fadeIn',
+        speed: Math.random() * 0.02 + 0.01,
+      });
+    }
+
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${fontSize}px monospace`;
+
+      particles.forEach((p) => {
+        ctx.fillStyle = `rgba(0, 255, 64, ${p.opacity})`;
+        ctx.fillText(p.char, p.x, p.y);
+
+        if (p.phase === 'fadeIn') {
+          p.opacity += p.speed;
+          if (p.opacity >= 0.8) p.phase = 'fadeOut';
+        } else {
+          p.opacity -= p.speed;
+          if (p.opacity <= 0) {
+            p.x = Math.random() * canvas.width;
+            p.y = Math.random() * canvas.height;
+            p.char = chars.charAt(Math.floor(Math.random() * chars.length));
+            p.opacity = 0;
+            p.phase = 'fadeIn';
+            p.speed = Math.random() * 0.02 + 0.01;
+          }
+        }
+      });
+    };
+
+    const interval = setInterval(draw, 50);
+    const handleResize = () => {
+      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+      particles.forEach((p) => {
+        p.x = Math.min(p.x, canvas.width);
+        p.y = Math.min(p.y, canvas.height);
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed top-0 left-0 z-0 opacity-30" />;
+};
 
 const BattleWaitingLobby = () => {
   const { roomId } = useParams();
@@ -33,6 +104,7 @@ const BattleWaitingLobby = () => {
   const [participants, setParticipants] = useState([]);
   const [countdown, setCountdown] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [readyStatus, setReadyStatus] = useState({});
   const wsListenerId = useRef(`lobby-${roomId}`);
 
   const rules = [
@@ -42,7 +114,6 @@ const BattleWaitingLobby = () => {
     'Maintain respect and fair play.',
   ];
 
-  // Fetch room details
   useEffect(() => {
     const fetchRoomDetails = async () => {
       setIsLoading(true);
@@ -95,7 +166,6 @@ const BattleWaitingLobby = () => {
     }
   }, [location, navigate, roomId, accessToken]);
 
-  // WebSocket handling
   useEffect(() => {
     if (!roomId || !accessToken) return;
 
@@ -111,6 +181,8 @@ const BattleWaitingLobby = () => {
         }
       } else if (data.type === 'countdown') {
         setCountdown(data.countdown);
+      } else if (data.type === 'ready_status') {
+        setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
       } else if (data.type === 'error') {
         toast.error(data.message);
         if (data.message.includes('401') || data.message.includes('4001') || data.message.includes('4002')) {
@@ -123,11 +195,9 @@ const BattleWaitingLobby = () => {
 
     return () => {
       WebSocketService.removeListener(wsListenerId.current);
-      
     };
   }, [roomId, accessToken, navigate, username, role]);
 
-  // Update current time
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -135,7 +205,6 @@ const BattleWaitingLobby = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Handle countdown
   useEffect(() => {
     if (countdown === null) return;
     if (countdown > 0) {
@@ -148,12 +217,23 @@ const BattleWaitingLobby = () => {
     }, 1000);
   }, [countdown]);
 
-  const handleKickParticipant = () => {
-    toast.info('Kick functionality coming soon!');
+  const handleReadyToggle = () => {
+    const newReadyState = !readyStatus[username];
+    WebSocketService.sendMessage({ type: 'ready_toggle', ready: newReadyState });
+    setReadyStatus((prev) => ({ ...prev, [username]: newReadyState }));
+  };
+
+  const handleKickParticipant = (targetUsername) => {
+    WebSocketService.sendMessage({ type: 'kick_participant', username: targetUsername });
   };
 
   const handleStartBattle = () => {
-    toast.info('Battle start functionality coming soon!');
+    const allReady = participants.every((p) => readyStatus[p.user__username] || p.role === 'host');
+    if (!allReady) {
+      toast.error('All participants must be ready');
+      return;
+    }
+    WebSocketService.sendMessage({ type: 'start_battle' });
     navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
   };
 
@@ -162,262 +242,261 @@ const BattleWaitingLobby = () => {
       toast.error('At least one participant required');
       return;
     }
+    const allReady = participants.every((p) => readyStatus[p.user__username] || p.role === 'host');
+    if (!allReady) {
+      toast.error('All participants must be ready');
+      return;
+    }
     WebSocketService.sendMessage({ type: 'start_countdown', countdown: 5 });
   };
 
   if (!roomDetails) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <BitCodeProgressLoading message="Initializing..." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-mono flex flex-col relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 animate-pulse"></div>
-        {Array.from({ length: 30 }).map((_, i) => (
-          <span
-            key={`matrix-${i}`}
-            className="absolute text-xs text-cyan-400 opacity-30"
-            style={{
-              left: `${Math.random() * 100}vw`,
-              top: `${Math.random() * 100}vh`,
-              animation: `float ${Math.random() * 5 + 3}s infinite ${Math.random()}s`,
-            }}
-          >
-            {Math.random() > 0.5 ? '0' : '1'}
-          </span>
-        ))}
-      </div>
-
-      {/* Header */}
-      <header className="bg-gray-800/80 border-b border-cyan-500/30 p-4 relative z-10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-cyan-400 font-['Orbitron'] tracking-wider">
-              {roomDetails.roomName}
-            </h1>
-            <div className="flex gap-2">
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  roomDetails.difficulty === 'easy'
-                    ? 'bg-green-500/20 text-green-400'
-                    : roomDetails.difficulty === 'medium'
-                    ? 'bg-yellow-500/20 text-yellow-400'
-                    : 'bg-red-500/20 text-red-400'
-                }`}
-              >
-                {roomDetails.difficulty.toUpperCase()}
-              </span>
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  roomDetails.isPrivate ? 'bg-purple-500/20 text-purple-400' : 'bg-cyan-500/20 text-cyan-400'
-                }`}
-              >
-                {roomDetails.isPrivate ? 'PRIVATE' : 'PUBLIC'}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center text-sm">
-              <Clock className="w-4 h-4 mr-2 text-cyan-400" />
-              <span className="text-gray-300">{currentTime}</span>
-            </div>
-            <div className="px-2 py-1 bg-gray-700/50 rounded border border-cyan-500/30 flex items-center gap-2">
-              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
-              <span className="text-xs text-cyan-400">{roomDetails.status.toUpperCase()}</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto w-full py-6 px-4 flex flex-col lg:flex-row gap-6 relative z-10">
-        {/* Sidebar: Tabs */}
-        <div className="w-full lg:w-96 bg-gray-800/80 border border-cyan-500/20 rounded-xl flex flex-col shadow-lg shadow-cyan-500/10">
-          <div className="flex border-b border-cyan-500/30">
-            {['details', 'chat', 'rules'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-3 text-sm font-medium text-center transition-all duration-300 ${
-                  activeTab === tab
-                    ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400'
-                    : 'text-gray-400 hover:text-cyan-400 hover:bg-gray-700/50'
-                }`}
-              >
-                {tab === 'details' ? 'Details' : tab === 'chat' ? 'Chat' : 'Rules'}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 p-6 overflow-y-auto">
-            {activeTab === 'details' && (
-              <div className="space-y-4 text-sm">
-                <div className="flex items-center">
-                  <span className="text-gray-400 w-24">Access Code:</span>
-                  <span className="text-cyan-400 font-mono">{roomDetails.joinCode}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-cyan-400" />
-                  <span className="text-gray-400 w-24">Duration:</span>
-                  <span className="text-white">{roomDetails.timeLimit} min</span>
-                </div>
-                <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-2 text-cyan-400" />
-                  <span className="text-gray-400 w-24">Capacity:</span>
-                  <span className="text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
-                </div>
-              </div>
-            )}
-            {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
-            {activeTab === 'rules' && (
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium text-cyan-400">Battle Rules</h4>
-                <ul className="space-y-2 text-sm text-gray-300 list-disc pl-4">
-                  {rules.map((rule, index) => (
-                    <li key={`rule-${index}`}>{rule}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-          {role === 'host' && (
-            <div className="p-6 border-t border-cyan-500/30 bg-gray-800/50">
-              <h3 className="text-sm font-medium text-cyan-400 mb-3 flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
-                Host Controls
-              </h3>
-              <button
-                onClick={initiateCountdown}
-                disabled={participants.length < 1 || isLoading}
-                className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
-                  participants.length < 1 || isLoading
-                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                    : 'bg-cyan-500 text-black hover:bg-cyan-400 hover:shadow-[0_0_12px_cyan]'
-                }`}
-                aria-label="Start battle"
-              >
-                <Play size={16} />
-                Start Battle
-              </button>
-            </div>
-          )}
-        </div>
-        {/* Participants Panel */}
-        <div className="flex-1 bg-gray-800/80 p-6 rounded-xl border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
-          <h2 className="text-xl font-bold text-cyan-400 mb-4 font-['Orbitron'] tracking-wider flex items-center">
-            <Users className="w-5 h-5 mr-2" />
-            Participants ({roomDetails.participantCount}/{roomDetails.capacity})
-          </h2>
-          <div className="space-y-3">
-            {participants.length > 0 ? (
-              participants.map((participant, index) => (
-                <div
-                  key={`participant-${participant.user__username}-${index}`}
-                  className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg border border-cyan-500/20 hover:border-cyan-400 transition-all duration-300"
+    <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
+      <MatrixBackground />
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="bg-gray-900/80 border-b border-[#00FF40]/30 p-4 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider">
+                {roomDetails.roomName}
+              </h1>
+              <div className="flex gap-2">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    roomDetails.difficulty === 'easy'
+                      ? 'bg-green-500/20 text-green-400'
+                      : roomDetails.difficulty === 'medium'
+                      ? 'bg-yellow-500/20 text-yellow-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}
                 >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-lg">
-                      {participant.user__username.charAt(0).toUpperCase()}
+                  {roomDetails.difficulty.toUpperCase()}
+                </span>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    roomDetails.isPrivate ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#00FF40]/20 text-[#00FF40]'
+                  }`}
+                >
+                  {roomDetails.isPrivate ? 'PRIVATE' : 'PUBLIC'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center text-sm">
+                <Clock className="w-4 h-4 mr-2 text-[#00FF40]" />
+                <span className="text-gray-300">{currentTime}</span>
+              </div>
+              <div className="px-2 py-1 bg-gray-700/50 rounded border border-[#00FF40]/30 flex items-center gap-2">
+                <span className="w-2 h-2 bg-[#00FF40] rounded-full animate-pulse"></span>
+                <span className="text-xs text-[#00FF40]">{roomDetails.status.toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 max-w-7xl mx-auto w-full py-6 px-4 flex flex-col lg:flex-row gap-6">
+          {/* Participants Panel */}
+          <div className="lg:w-2/3 bg-gray-900/80 p-6 rounded-xl border border-[#00FF40]/20 shadow-lg shadow-[#00FF40]/10">
+            <h2 className="text-xl font-bold text-[#00FF40] mb-4 font-['Orbitron'] tracking-wider flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Participants ({roomDetails.participantCount}/{roomDetails.capacity})
+            </h2>
+            <div className="space-y-3">
+              {participants.length > 0 ? (
+                participants.map((participant, index) => (
+                  <div
+                    key={`participant-${participant.user__username}-${index}`}
+                    className="flex items-center justify-between bg-gray-800/50 p-3 rounded-lg border border-[#00FF40]/20 hover:border-[#22c55e] transition-all duration-300"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-[#00FF40]/20 flex items-center justify-center text-[#00FF40] font-bold text-lg">
+                        {participant.user__username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="ml-3">
+                        <div className="flex items-center">
+                          <span className="font-medium text-sm text-white">{participant.user__username}</span>
+                          {participant.role === 'host' && (
+                            <Shield size={14} className="ml-2 text-[#00FF40]" title="Host" />
+                          )}
+                        </div>
+                        <div className="flex items-center text-xs mt-1">
+                          <span
+                            className={`h-2 w-2 rounded-full mr-1 ${
+                              participant.status === 'joined' ? 'bg-[#00FF40]' : 'bg-yellow-400'
+                            }`}
+                          ></span>
+                          <span className={participant.status === 'joined' ? 'text-[#00FF40]' : 'text-yellow-400'}>
+                            {participant.status.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="ml-3">
-                      <div className="flex items-center">
-                        <span className="font-medium text-sm text-white">{participant.user__username}</span>
-                        {participant.role === 'host' && (
-                          <Shield size={14} className="ml-2 text-cyan-400" title="Host" />
-                        )}
-                      </div>
-                      <div className="flex items-center text-xs mt-1">
-                        <span
-                          className={`h-2 w-2 rounded-full mr-1 ${
-                            participant.status === 'joined' ? 'bg-cyan-400' : 'bg-yellow-400'
-                          }`}
-                        ></span>
-                        <span className={participant.status === 'joined' ? 'text-cyan-400' : 'text-yellow-400'}>
-                          {participant.status.toUpperCase()}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      {readyStatus[participant.user__username] && (
+                        <CheckCircle size={16} className="text-[#00FF40] animate-pulse" title="Ready" />
+                      )}
+                      {role === 'host' && participant.role !== 'host' && (
+                        <button
+                          onClick={() => handleKickParticipant(participant.user__username)}
+                          disabled={isLoading}
+                          className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
+                          title="Kick participant"
+                          aria-label={`Kick ${participant.user__username}`}
+                        >
+                          <UserX size={16} />
+                        </button>
+                      )}
+                      {role !== 'host' && participant.user__username === username && (
+                        <button
+                          onClick={handleReadyToggle}
+                          className={`p-2 rounded-full ${
+                            readyStatus[username]
+                              ? 'bg-[#00FF40]/20 text-[#00FF40]'
+                              : 'bg-gray-700/50 text-gray-400'
+                          } hover:bg-[#22c55e]/30 transition-all duration-300`}
+                          title={readyStatus[username] ? 'Unready' : 'Ready'}
+                          aria-label={readyStatus[username] ? 'Unready' : 'Ready'}
+                        >
+                          <CheckCircle size={16} className="animate-pulse" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                  {role === 'host' && participant.role !== 'host' && (
-                    <button
-                      onClick={() => handleKickParticipant(participant.user__username)}
-                      disabled={isLoading}
-                      className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
-                      title="Kick participant"
-                      aria-label={`Kick ${participant.user__username}`}
-                    >
-                      <UserX size={16} />
-                    </button>
-                  )}
+                ))
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-gray-400 text-center p-8">
+                    <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">No participants yet</p>
+                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-gray-400 text-center p-8">
-                  <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">No participants yet</p>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar: Tabs & Host Controls */}
+          <div className="lg:w-1/3 bg-gray-900/80 border border-[#00FF40]/20 rounded-xl flex flex-col shadow-lg shadow-[#00FF40]/10">
+            <div className="flex border-b border-[#00FF40]/30">
+              {['details', 'chat', 'rules'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-3 text-sm font-medium text-center transition-all duration-300 ${
+                    activeTab === tab
+                      ? 'bg-[#00FF40]/10 text-[#00FF40] border-b-2 border-[#00FF40]'
+                      : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/50'
+                  }`}
+                >
+                  {tab === 'details' ? 'Details' : tab === 'chat' ? 'Chat' : 'Rules'}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 p-6 overflow-y-auto">
+              {activeTab === 'details' && (
+                <div className="space-y-4 text-sm">
+                  <div className="flex items-center">
+                    <span className="text-gray-400 w-24">Access Code:</span>
+                    <span className="text-[#00FF40] font-mono">{roomDetails.joinCode}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-[#00FF40]" />
+                    <span className="text-gray-400 w-24">Duration:</span>
+                    <span className="text-white">{roomDetails.timeLimit} min</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-2 text-[#00FF40]" />
+                    <span className="text-gray-400 w-24">Capacity:</span>
+                    <span className="text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
+                  </div>
+                </div>
+              )}
+              {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
+              {activeTab === 'rules' && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-[#00FF40]">Battle Rules</h4>
+                  <ul className="space-y-2 text-sm text-gray-300 list-disc pl-4">
+                    {rules.map((rule, index) => (
+                      <li key={`rule-${index}`}>{rule}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            {role === 'host' && (
+              <div className="p-6 border-t border-[#00FF40]/30 bg-gray-900/50">
+                <h3 className="text-sm font-medium text-[#00FF40] mb-3 flex items-center">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Host Dashboard
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={initiateCountdown}
+                    disabled={participants.length < 1 || isLoading}
+                    className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+                      participants.length < 1 || isLoading
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-[#00FF40] text-black hover:bg-[#22c55e] hover:shadow-[0_0_12px_#00FF40]'
+                    }`}
+                    aria-label="Start battle"
+                  >
+                    <Play size={16} />
+                    Start Battle
+                  </button>
+                  <button
+                    onClick={() => toast.info('Invite functionality coming soon!')}
+                    className="w-full py-3 rounded-lg font-mono text-sm font-semibold bg-gray-800 text-[#00FF40] border border-[#00FF40]/30 hover:bg-[#00FF40]/10 transition-all duration-300"
+                    aria-label="Invite participants"
+                  >
+                    Invite Participants
+                  </button>
                 </div>
               </div>
             )}
           </div>
-        </div>
-      </main>
-      {/* Countdown Overlay */}
-      {countdown !== null && (
-        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
-          <div className="text-center">
-            <div className="text-8xl font-bold text-cyan-400 font-['Orbitron'] tracking-wider animate-pulse">
-              {countdown > 0 ? countdown : 'START!'}
-            </div>
-            <div className="text-xl text-gray-300 mt-4 font-mono">
-              {countdown > 0 ? 'Preparing battle...' : 'Engage now!'}
+        </main>
+
+        {/* Countdown Overlay */}
+        {countdown !== null && (
+          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
+            <div className="text-center">
+              <div className="text-8xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider animate-pulse">
+                {countdown > 0 ? countdown : 'START!'}
+              </div>
+              <div className="text-xl text-gray-300 mt-4 font-mono">
+                {countdown > 0 ? 'Preparing battle...' : 'Engage now!'}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Loading Overlay */}
-      {isLoading && <BitCodeProgressLoading message="Initializing systems..." />}
-      
-      {/* Footer */}
-      <footer className="bg-gray-800/80 border-t border-cyan-500/30 py-3 px-4 relative z-10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs text-gray-400">
-          <span className="text-cyan-400 font-bold">Battle Arena</span>
-          <div className="flex gap-4">
-            <span>
-              Room ID: <span className="text-cyan-400">{roomDetails.roomId}</span>
-            </span>
-            <span>
-              Time: <span className="text-cyan-400">{currentTime}</span>
-            </span>
+        {/* Loading Overlay */}
+        {isLoading && <BitCodeProgressLoading message="Initializing systems..." />}
+
+        {/* Footer */}
+        <footer className="bg-gray-900/80 border-t border-[#00FF40]/30 py-3 px-4 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-400">
+            <span className="text-[#00FF40] font-bold">Battle Arena</span>
+            <div className="flex gap-4">
+              <span>
+                Room ID: <span className="text-[#00FF40]">{roomDetails.roomId}</span>
+              </span>
+              <span>
+                Time: <span className="text-[#00FF40]">{currentTime}</span>
+              </span>
+            </div>
           </div>
-        </div>
-      </footer>
-
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-            opacity: 0.3;
-          }
-          50% {
-            transform: translateY(-10px);
-            opacity: 0.6;
-          }
-        }
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 0.2;
-          }
-          50% {
-            opacity: 0.4;
-          }
-        }
-      `}</style>
+        </footer>
+      </div>
     </div>
   );
 };

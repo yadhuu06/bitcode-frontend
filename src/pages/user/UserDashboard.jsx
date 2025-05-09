@@ -1,236 +1,218 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const Problems = () => {
-  // Sample problem data
-  const [problems] = useState([
-    {
-      id: 1,
-      title: 'Binary Search Implementation',
-      description: 'Implement a binary search algorithm to efficiently find elements in a sorted array.',
-      difficulty: 'Easy',
-      tags: ['algorithms', 'search', 'array'],
-      successRate: '65%',
-      status: 'Solved',
-    },
-    {
-      id: 2,
-      title: 'Matrix Path Finder',
-      description: 'Find the shortest path through a matrix of 1s and 0s, where 0s are walls and 1s are valid paths.',
-      difficulty: 'Medium',
-      tags: ['algorithms', 'graph', 'bfs'],
-      successRate: '47%',
-      status: 'Attempted',
-    },
-    {
-      id: 3,
-      title: 'Dynamic Programming - Coin Change',
-      description: 'Find the minimum number of coins required to make a given amount of change.',
-      difficulty: 'Medium',
-      tags: ['dynamic programming', 'array'],
-      successRate: '38%',
-      status: 'Unsolved',
-    },
-    {
-      id: 4,
-      title: 'Balanced Binary Tree',
-      description: 'Determine if a given binary tree is height-balanced.',
-      difficulty: 'Easy',
-      tags: ['tree', 'dfs', 'recursion'],
-      successRate: '58%',
-      status: 'Solved',
-    },
-    {
-      id: 5,
-      title: 'LRU Cache Implementation',
-      description: 'Design and implement a data structure for Least Recently Used (LRU) cache.',
-      difficulty: 'Hard',
-      tags: ['design', 'hash table', 'linked list'],
-      successRate: '29%',
-      status: 'Unsolved',
-    },
-  ]);
+const MatrixBackground = () => {
+  useEffect(() => {
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
 
-  // State for filters
-  const [difficultyFilter, setDifficultyFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+    const chars = '01';
+    const fontSize = 14;
+    const numChars = Math.floor(Math.random() * 21) + 60; // 60–80 chars
+    const particles = [];
 
-  const filteredProblems = problems.filter((problem) => {
-    const matchesDifficulty = !difficultyFilter || problem.difficulty === difficultyFilter;
-    const matchesStatus = !statusFilter || problem.status === statusFilter;
-    const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesDifficulty && matchesStatus && matchesSearch;
-  });
+    // Initialize particles
+    for (let i = 0; i < numChars; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        char: chars.charAt(Math.floor(Math.random() * chars.length)),
+        opacity: 0,
+        phase: 'fadeIn', // fadeIn or fadeOut
+        speed: Math.random() * 0.02 + 0.01, // Fade speed
+      });
+    }
 
-  return (
-    <div className="min-h-screen bg-black text-white font-mono pt-24 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500 scrollbar-track-gray-800">
-      {/* Main Content */}
-      <div className="max-w-screen-2xl mx-auto ml-75 mr-75 px-0 py-8">
-        {/* Header */}
-        <h1 className="text-2xl text-green-500 mb-8">Problems</h1>
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Subtle background fade
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${fontSize}px monospace`;
 
-        {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-          <input
-            type="text"
-            placeholder="Search problems by name, description, or tags..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-2/3 p-3 bg-gray-800/60 border border-transparent rounded text-white placeholder-white focus:border-green-500 focus:outline-none transition-all duration-300"
-          />
-          <select
-            value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value)}
-            className="w-full md:w-1/4 p-3 bg-gray-800/60 border border-transparent rounded text-white focus:border-green-500 focus:outline-none transition-all duration-300"
-          >
-            <option value="">Filter by Difficulty</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-          </select>
-        </div>
+      particles.forEach((p) => {
+        ctx.fillStyle = `rgba(0, 255, 64, ${p.opacity})`; // Neon green with opacity
+        ctx.fillText(p.char, p.x, p.y);
 
-        {/* Filters and Problem List */}
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="w-full lg:w-1/5 bg-gray-800/60 p-5 rounded-lg border-2 border-green-500 shadow-[0_0_8px_#00ff00]">
-            <h2 className="text-lg text-green-500 mb-5">DIFFICULTY</h2>
-            <div className="space-y-3">
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="Easy"
-                  checked={difficultyFilter === 'Easy'}
-                  onChange={() => setDifficultyFilter('Easy')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-green-500">Easy</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="Medium"
-                  checked={difficultyFilter === 'Medium'}
-                  onChange={() => setDifficultyFilter('Medium')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-yellow-500">Medium</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="difficulty"
-                  value="Hard"
-                  checked={difficultyFilter === 'Hard'}
-                  onChange={() => setDifficultyFilter('Hard')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-red-500">Hard</span>
-              </label>
-            </div>
-            <h2 className="text-lg text-green-500 mt-6 mb-5">STATUS</h2>
-            <div className="space-y-3">
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="status"
-                  value="Solved"
-                  checked={statusFilter === 'Solved'}
-                  onChange={() => setStatusFilter('Solved')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-green-500">Solved</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="status"
-                  value="Attempted"
-                  checked={statusFilter === 'Attempted'}
-                  onChange={() => setStatusFilter('Attempted')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-yellow-500">Attempted</span>
-              </label>
-              <label className="flex items-center space-x-2 hover:text-shadow-[0_0_4px_#00ff00] transition-all duration-300">
-                <input
-                  type="radio"
-                  name="status"
-                  value="Unsolved"
-                  checked={statusFilter === 'Unsolved'}
-                  onChange={() => setStatusFilter('Unsolved')}
-                  className="text-green-500 focus:ring-green-500"
-                />
-                <span className="text-gray-400">Unsolved</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Problem List */}
-          <div className="w-full lg:w-4/5">
-            {filteredProblems.map((problem) => (
-              <div
-                key={problem.id}
-                className="bg-gray-900/80 p-5 mb-6 rounded-lg border-2 border-green-500 hover:border-transparent hover:shadow-[0_0_8px_#00ff00] transition-all duration-300 flex justify-between items-start"
-              >
-                <div>
-                  <h3 className="text-lg font-bold text-white">{problem.title}</h3>
-                  <p className="text-gray-400 text-sm">{problem.description}</p>
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    {problem.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 rounded-full bg-transparent border border-white text-white text-xs shadow-[0_0_2px_#ffffff]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`px-2 py-1 rounded ${
-                      problem.difficulty === 'Easy' ? 'bg-green-500 text-black' :
-                      problem.difficulty === 'Medium' ? 'bg-yellow-500 text-black' :
-                      'bg-red-500 text-white'
-                    }`}
-                  >
-                    {problem.difficulty}
-                  </span>
-                  <p className="text-gray-400 text-sm mt-3">Success Rate: {problem.successRate}</p>
-                </div>
-              </div>
-            ))}
-            {filteredProblems.length === 0 && (
-              <p className="text-gray-400 text-center">No problems found.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Inline CSS for custom styles */}
-      <style jsx>{`
-        @keyframes glow {
-          0% { text-shadow: 0 0 4px #00ff00; }
-          50% { text-shadow: 0 0 8px #00ff00; }
-          100% { text-shadow: 0 0 4px #00ff00; }
+        if (p.phase === 'fadeIn') {
+          p.opacity += p.speed;
+          if (p.opacity >= 0.8) p.phase = 'fadeOut';
+        } else {
+          p.opacity -= p.speed;
+          if (p.opacity <= 0) {
+            // Respawn at new position
+            p.x = Math.random() * canvas.width;
+            p.y = Math.random() * canvas.height;
+            p.char = chars.charAt(Math.floor(Math.random() * chars.length));
+            p.opacity = 0;
+            p.phase = 'fadeIn';
+            p.speed = Math.random() * 0.02 + 0.01;
+          }
         }
-        .glowing-text {
-          animation: glow 1.5s ease-in-out infinite;
-        }
-        .ml-75 {
-          margin-left: 75px;
-        }
-        .mr-75 {
-          margin-right: 75px;
-        }
-      `}</style>
-    </div>
-  );
+      });
+    };
+
+    const interval = setInterval(draw, 50); // 20 FPS for smooth fading
+    const handleResize = () => {
+      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+      // Adjust particle positions on resize
+      particles.forEach((p) => {
+        p.x = Math.min(p.x, canvas.width);
+        p.y = Math.min(p.y, canvas.height);
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return <canvas id="matrix" className="fixed top-0 left-0 z-0 opacity-30" />;
 };
 
-export default Problems;
+export default function BitCodeHomepage() {
+  const [activeTab, setActiveTab] = useState('timeBasedRooms');
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  useEffect(() => {
+    axios
+      .get('/api/leaderboard')
+      .then((response) => {
+        setLeaderboard(response.data.slice(0, 5));
+      })
+      .catch((error) => {
+        console.error('Error fetching leaderboard:', error);
+      });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
+      <MatrixBackground />
+      <div className="max-w-6xl mx-auto px-4 mt-8 z-10 relative">
+        {/* Hero Section */}
+        <section className="flex flex-col items-center justify-center py-16">
+          <h1 className="text-5xl font-bold mb-4">
+            <span className="text-white">Bit</span>
+            <span className="text-[#00FF40]">Code</span>
+          </h1>
+          <p className="text-xl mb-10 text-center max-w-2xl">
+            Real-time coding battles. Prove your skills. Climb the ranks.
+          </p>
+          <div className="flex gap-4">
+            <button className="bg-[#00FF40] text-black font-bold py-3 px-8 rounded uppercase tracking-wide hover:bg-[#22c55e] transition-colors">
+              Start Coding
+            </button>
+            <button className="border-2 border-[#00FF40] text-[#00FF40] font-bold py-3 px-8 rounded uppercase tracking-wide hover:bg-[#00FF40]/10 transition-colors">
+              Join Tournament
+            </button>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {[
+            {
+              title: 'Real-Time Battles',
+              desc: 'Challenge coders in live competitions. Solve algorithms and debug faster.',
+            },
+            {
+              title: 'Skill-Based Matching',
+              desc: 'Paired with similar-skilled opponents for fair, challenging battles.',
+            },
+            {
+              title: 'Learn & Improve',
+              desc: 'Analyze performance, learn from mistakes, and track progress.',
+            },
+          ].map((feature, index) => (
+            <div
+              key={index}
+              className="bg-gray-900 p-6 rounded-lg border-l-4 border-[#00FF40] hover:-translate-y-1 transition-transform"
+            >
+              <h3 className="text-[#00FF40] text-xl font-bold mb-3">{feature.title}</h3>
+              <p className="text-gray-300">{feature.desc}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* Room Types Section */}
+        <section className="bg-gray-900 rounded-lg p-6 mb-16">
+          <h2 className="text-[#00FF40] text-2xl font-bold mb-6 text-center">Battle Rooms</h2>
+          <div className="flex mb-6 border-b border-gray-700">
+            {['timeBasedRooms', 'playerBasedRooms', 'rankBasedRooms'].map((tab) => (
+              <button
+                key={tab}
+                className={`py-2 px-4 font-medium ${
+                  activeTab === tab ? 'text-[#00FF40] border-b-2 border-[#00FF40]' : 'text-gray-400'
+                }`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'timeBasedRooms' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { title: 'Quick Challenge', duration: '15 minutes', active: 42, difficulty: 'Easy-Medium' },
+                { title: 'Standard Battle', duration: '30 minutes', active: 78, difficulty: 'Medium' },
+                { title: 'Extended Challenge', duration: '60 minutes', active: 36, difficulty: 'Medium-Hard' },
+              ].map((room, index) => (
+                <div key={index} className="bg-black bg-opacity-40 p-4 rounded-lg border border-[#00FF40]/20">
+                  <h3 className="text-[#00FF40] font-bold mb-2">{room.title}</h3>
+                  <div className="flex justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-gray-400">Duration: {room.duration}</p>
+                      <p className="text-sm text-gray-400">Currently Active: {room.active}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-400">Difficulty: {room.difficulty}</p>
+                    </div>
+                  </div>
+                  <button className="w-full bg-[#00FF40] text-black py-2 px-4 rounded font-bold hover:bg-[#22c55e] transition-colors">
+                    Join Now
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Add similar blocks for playerBasedRooms and rankBasedRooms as needed */}
+        </section>
+
+        {/* Leaderboard */}
+        <section className="bg-gray-900 rounded-lg p-6 mb-16">
+          <h2 className="text-[#00FF40] text-2xl font-bold mb-6 text-center">Top Ranked Coders</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="py-3 px-4 text-[#00FF40]">Rank</th>
+                  <th className="py-3 px-4 text-[#00FF40]">Username</th>
+                  <th className="py-3 px-4 text-[#00FF40]">Wins</th>
+                  <th className="py-3 px-4 text-[#00FF40]">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((coder, index) => (
+                  <tr key={index} className="border-b border-gray-800">
+                    <td className="py-3 px-4 font-bold">{index + 1}</td>
+                    <td className="py-3 px-4 text-[#00FF40]">{coder.username}</td>
+                    <td className="py-3 px-4">{coder.wins}</td>
+                    <td className="py-3 px-4">{coder.rating}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <footer className="text-center py-6 opacity-70 text-sm border-t border-gray-800">
+        <p>© 2025 Bit Code - The Ultimate Real-Time Coding Battle Platform</p>
+      </footer>
+    </div>
+  );
+}

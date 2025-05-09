@@ -56,7 +56,7 @@ export const logout = async () => {
       throw new Error('No refresh token available for logout');
     }
 
-    const response = await api.post('/api/auth/logout/', { refresh_token: refreshToken });
+    const response = await post('{}/api/auth/logout/', { refresh_token: refreshToken });
     return response.data;
   } catch (error) {
     console.error('Error during logout:', error.message);

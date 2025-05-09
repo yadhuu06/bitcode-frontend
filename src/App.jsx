@@ -12,7 +12,7 @@ import { setupInterceptors } from './api';
 import AuthPage from './components/auth/AuthPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Battles from './pages/admin/Battles';
-import UserDashboard from './pages/user/UserDashboard';
+import Dashboard from './pages/user/UserDashboard';
 import Users from './pages/admin/Users';
 import PrivateRoute from './routes/PrivateRoute';
 import AdminRoute from './routes/AdminRoute';
@@ -97,7 +97,7 @@ const AppWrapper = () => {
             element={
               <UserLayout>
                 <Routes>
-                  <Route path="dashboard" element={<UserDashboard />} />
+                  <Route path="dashboard" element={<Dashboard />} />
                   <Route path="profile" element={<Profile />} />
                   <Route path="compiler" element={<Compiler />} />
                   <Route path="rooms" element={<Rooms />} />

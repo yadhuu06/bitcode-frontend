@@ -88,6 +88,7 @@ const AppWrapper = () => {
       <LoadingIndicator />
       <Routes>
         <Route path="/" element={<AuthPage />} />
+        <Route path="/login" element={<AuthPage />} />
         <Route path="/auth-callback" element={<AuthCallback />} />
         <Route path="/admin_login" element={<BitWarAdminLogin />} />
 

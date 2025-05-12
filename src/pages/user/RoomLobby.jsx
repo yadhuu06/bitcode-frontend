@@ -29,7 +29,7 @@ const MatrixBackground = () => {
 
     const chars = '01';
     const fontSize = 14;
-    const numChars = Math.floor(Math.random() * 21) + 60; // 60–80 chars
+    const numChars = Math.floor(Math.random() * 21) + 60; 
     const particles = [];
 
     for (let i = 0; i < numChars; i++) {
@@ -119,6 +119,7 @@ const BattleWaitingLobby = () => {
       setIsLoading(true);
       try {
         let roomData;
+
         if (location.state) {
           roomData = {
             roomId,
@@ -223,18 +224,11 @@ const BattleWaitingLobby = () => {
     setReadyStatus((prev) => ({ ...prev, [username]: newReadyState }));
   };
 
-  const handleKickParticipant = (targetUsername) => {
-    WebSocketService.sendMessage({ type: 'kick_participant', username: targetUsername });
-  };
+  const handleKickParticipant = () => {"will be coming soooon"}
+    
 
   const handleStartBattle = () => {
-    const allReady = participants.every((p) => readyStatus[p.user__username] || p.role === 'host');
-    if (!allReady) {
-      toast.error('All participants must be ready');
-      return;
-    }
-    WebSocketService.sendMessage({ type: 'start_battle' });
-    navigate('/user/room/session', { state: { roomId: roomDetails.roomId } });
+    "coming soon"
   };
 
   const initiateCountdown = () => {
@@ -257,6 +251,19 @@ const BattleWaitingLobby = () => {
       </div>
     );
   }
+  const getDifficultyStyles = (difficulty) => {
+  switch (difficulty.toLowerCase()) {
+    case 'hard':
+      return 'text-red-500 bg-red-500/10';
+    case 'medium':
+      return 'text-yellow-500 bg-yellow-500/10';
+    case 'easy':
+      return 'text-green-500 bg-green-500/10';
+    default:
+      return 'text-gray-400 bg-gray-800';
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
@@ -385,84 +392,118 @@ const BattleWaitingLobby = () => {
           </div>
 
           {/* Sidebar: Tabs & Host Controls */}
-          <div className="lg:w-1/3 bg-gray-900/80 border border-[#00FF40]/20 rounded-xl flex flex-col shadow-lg shadow-[#00FF40]/10">
-            <div className="flex border-b border-[#00FF40]/30">
-              {['details', 'chat', 'rules'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3 text-sm font-medium text-center transition-all duration-300 ${
-                    activeTab === tab
-                      ? 'bg-[#00FF40]/10 text-[#00FF40] border-b-2 border-[#00FF40]'
-                      : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/50'
-                  }`}
-                >
-                  {tab === 'details' ? 'Details' : tab === 'chat' ? 'Chat' : 'Rules'}
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 p-6 overflow-y-auto">
-              {activeTab === 'details' && (
-                <div className="space-y-4 text-sm">
-                  <div className="flex items-center">
-                    <span className="text-gray-400 w-24">Access Code:</span>
-                    <span className="text-[#00FF40] font-mono">{roomDetails.joinCode}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-[#00FF40]" />
-                    <span className="text-gray-400 w-24">Duration:</span>
-                    <span className="text-white">{roomDetails.timeLimit} min</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-2 text-[#00FF40]" />
-                    <span className="text-gray-400 w-24">Capacity:</span>
-                    <span className="text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
-                  </div>
-                </div>
-              )}
-              {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
-              {activeTab === 'rules' && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium text-[#00FF40]">Battle Rules</h4>
-                  <ul className="space-y-2 text-sm text-gray-300 list-disc pl-4">
-                    {rules.map((rule, index) => (
-                      <li key={`rule-${index}`}>{rule}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            {role === 'host' && (
-              <div className="p-6 border-t border-[#00FF40]/30 bg-gray-900/50">
-                <h3 className="text-sm font-medium text-[#00FF40] mb-3 flex items-center">
-                  <Shield className="w-4 h-4 mr-2" />
-                  Host Dashboard
-                </h3>
-                <div className="space-y-3">
-                  <button
-                    onClick={initiateCountdown}
-                    disabled={participants.length < 1 || isLoading}
-                    className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
-                      participants.length < 1 || isLoading
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'bg-[#00FF40] text-black hover:bg-[#22c55e] hover:shadow-[0_0_12px_#00FF40]'
-                    }`}
-                    aria-label="Start battle"
-                  >
-                    <Play size={16} />
-                    Start Battle
-                  </button>
-                  <button
-                    onClick={() => toast.info('Invite functionality coming soon!')}
-                    className="w-full py-3 rounded-lg font-mono text-sm font-semibold bg-gray-800 text-[#00FF40] border border-[#00FF40]/30 hover:bg-[#00FF40]/10 transition-all duration-300"
-                    aria-label="Invite participants"
-                  >
-                    Invite Participants
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
+  {/* Tab Navigation */}
+  <div className="flex border-b border-[#00FF40]/30 bg-gray-950/50 rounded-t-2xl">
+    {['details', 'chat', 'rules'].map((tab) => (
+      <button
+        key={tab}
+        onClick={() => setActiveTab(tab)}
+        className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${
+          activeTab === tab
+            ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
+            : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
+        }`}
+      >
+        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+      </button>
+    ))}
+  </div>
+
+  {/* Tab Content */}
+  <div className="flex-1 p-6 overflow-y-auto text-sm scrollbar-thin scrollbar-thumb-[#00FF40]/50 scrollbar-track-gray-900">
+    {activeTab === 'details' && (
+      <div className="space-y-5">
+        <div className="flex items-center gap-4">
+          <span className="text-gray-400 min-w-[100px] font-medium">Room Name:</span>
+          <span className="text-white font-semibold">{roomDetails.roomName}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-gray-400 min-w-[100px] font-medium">Access Code:</span>
+          <span className="text-[#00FF40] font-mono bg-gray-800/50 px-2 py-1 rounded">{roomDetails.joinCode}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Clock className="w-5 h-5 text-[#00FF40]" />
+          <span className="text-gray-400 min-w-[100px] font-medium">Duration:</span>
+          <span className="text-white">{roomDetails.timeLimit} min</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Users className="w-5 h-5 text-[#00FF40]" />
+          <span className="text-gray-400 min-w-[100px] font-medium">Capacity:</span>
+          <span className="text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-gray-400 min-w-[100px] font-medium">Privacy:</span>
+          <span className="text-white capitalize">{roomDetails.isPrivate ? 'Private' : 'Public'}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-gray-400 min-w-[100px] font-medium">Difficulty:</span>
+          <span className={`capitalize px-2 py-1 rounded ${getDifficultyStyles(roomDetails.difficulty)}`}>
+            {roomDetails.difficulty}
+          </span>
+        </div>
+      </div>
+    )}
+
+    {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
+
+    {activeTab === 'rules' && (
+      <div className="space-y-4">
+        <h4 className="text-sm font-medium text-[#00FF40] flex items-center gap-2">
+          <Shield className="w-5 h-5" />
+          Battle Rules
+        </h4>
+        <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
+          <li>Complete the battle within {roomDetails.timeLimit} minutes.</li>
+          <li>
+            Questions set to{' '}
+            <span className={`font-semibold ${getDifficultyStyles(roomDetails.difficulty)}`}>
+              {roomDetails.difficulty}
+            </span>{' '}
+            difficulty.
+          </li>
+          <li>No external help or tab switching allowed.</li>
+          <li>Timer won’t pause — manage time wisely.</li>
+          <li>role={role}</li>
+
+          <li>Ensure stable internet connection.</li>
+        </ul>
+      </div>
+    )}
+  </div>
+
+  {/* Host Controls */}
+  {role === 'host' | role==""&&(
+    <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
+      <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
+        <Shield className="w-5 h-5" />
+        Host Dashboard
+      </h3>
+      <div className="space-y-3">
+        <button
+          onClick={initiateCountdown}
+          disabled={participants.length < 1 || isLoading}
+          className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+            participants.length < 1 || isLoading
+              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              : 'bg-[#00FF40] text-black hover:bg-[#22c55e] hover:shadow-[0_0_12px_#00FF40]'
+          }`}
+          aria-label="Start battle"
+        >
+          <Play size={16} />
+          Start Battle
+        </button>
+        <button
+          onClick={() => toast.info('Invite functionality coming soon!')}
+          className="w-full py-3 rounded-lg font-mono text-sm font-semibold bg-gray-800 text-[#00FF40] border border-[#00FF40]/30 hover:bg-[#00FF40]/10 hover:shadow-[0_0_8px_#00FF40]/20 transition-all duration-300"
+          aria-label="Invite participants"
+        >
+          Invite Participants
+        </button>
+      </div>
+    </div>
+  )}
+</div>
         </main>
 
         {/* Countdown Overlay */}

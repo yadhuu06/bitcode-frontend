@@ -32,7 +32,7 @@ const UserNavbar = () => {
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error.message);
-      dispatch(logoutSuccess()); // Clear session even if API fails
+      dispatch(logoutSuccess()); 
       toast.error('Logout failed, but session cleared', {
         position: 'top-right',
         autoClose: 3000,

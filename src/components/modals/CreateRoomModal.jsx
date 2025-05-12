@@ -95,6 +95,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         duration: `${formData.time_limit} min`,
         isPrivate: formData.visibility === 'private',
         joinCode: response.join_code,
+        role:"host"
       });
 
       toast.success('Room created successfully!');

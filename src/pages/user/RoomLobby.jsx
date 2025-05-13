@@ -6,6 +6,8 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
 import ChatPanel from './ChatPannel';
+import { Swords } from 'lucide-react'; 
+
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -29,7 +31,7 @@ const MatrixBackground = () => {
 
     const chars = '01';
     const fontSize = 14;
-    const numChars = Math.floor(Math.random() * 21) + 60; 
+    const numChars = Math.floor(Math.random() * 21) + 0; 
     const particles = [];
 
     for (let i = 0; i < numChars; i++) {
@@ -480,26 +482,24 @@ const BattleWaitingLobby = () => {
         Host Dashboard
       </h3>
       <div className="space-y-3">
-        <button
-          onClick={initiateCountdown}
-          disabled={participants.length < 1 || isLoading}
-          className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
-            participants.length < 1 || isLoading
-              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              : 'bg-[#00FF40] text-black hover:bg-[#22c55e] hover:shadow-[0_0_12px_#00FF40]'
-          }`}
-          aria-label="Start battle"
-        >
-          <Play size={16} />
-          Start Battle
-        </button>
-        <button
-          onClick={() => toast.info('Invite functionality coming soon!')}
-          className="w-full py-3 rounded-lg font-mono text-sm font-semibold bg-gray-800 text-[#00FF40] border border-[#00FF40]/30 hover:bg-[#00FF40]/10 hover:shadow-[0_0_8px_#00FF40]/20 transition-all duration-300"
-          aria-label="Invite participants"
-        >
-          Invite Participants
-        </button>
+      
+
+<button
+  onClick={initiateCountdown}
+  disabled={participants.length < 1 || isLoading}
+  className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
+    ${
+      participants.length < 1 || isLoading
+        ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+        : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
+    }`}
+  aria-label="Start battle"
+>
+  <Swords size={16} />
+  Start Battle
+</button>
+
+        
       </div>
     </div>
   )}

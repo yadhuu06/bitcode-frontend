@@ -117,32 +117,27 @@ const Rooms = () => {
 
   const handleJoinRoom = async (room) => {
     dispatch(setLoading({ isLoading: true, message: 'Joining room...', style: 'battle', progress: 0 }));
+  
     try {
       let password = null;
+  
       if (room.visibility === 'private') {
         password = passwords[room.room_id];
+  
         if (!password) {
-          setPasswordRoomId(room.room_id);
+          setPasswordRoomId(room.room_id); // Trigger UI to ask for password
           dispatch(resetLoading());
           return;
         }
       }
+  
 
-      const response = await fetch(`${API_BASE_URL}/rooms/${room.room_id}/join/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(password ? { password } : {}),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to join room');
-      }
-      const data = await response.json();
+      const response = await api.post(`/rooms/${room.room_id}/join/`, password ? { password } : {});
+  
       toast.success('Joined room successfully');
+  
+      const data = response.data;
+  
       navigate(`/user/room/${room.room_id}`, {
         state: {
           roomName: room.name,
@@ -154,19 +149,25 @@ const Rooms = () => {
           capacity: room.capacity,
         },
       });
+  
     } catch (err) {
       console.error('Error joining room:', err);
-      toast.error(err.message || 'Failed to join room');
-      if (err.message.includes('401')) {
+  
+      // Handle unauthorized error
+      if (err.response?.status === 401) {
         dispatch(logoutSuccess());
         Cookies.remove('access_token');
         Cookies.remove('refresh_token');
         navigate('/login');
       }
+  
+      toast.error(err.response?.data?.error || err.message || 'Failed to join room');
+  
     } finally {
       dispatch(resetLoading());
     }
   };
+  
 
   const handlePasswordSubmit = (roomId) => {
     const room = rooms.find((r) => r.room_id === roomId);

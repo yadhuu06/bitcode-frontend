@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -18,18 +19,39 @@ const ChatPanel = ({ roomId, username }) => {
 
   useEffect(() => {
     const listenerId = `chat-${roomId}`;
+    console.log(`Registering WebSocket listener: ${listenerId}`);
     const handleMessage = (data) => {
+      console.log(`Received message: ${JSON.stringify(data)}`);
       if (data.type === 'chat_message') {
+        console.log("data",data.message)
+        console.log(messages)
         setMessages((prev) => [
           ...prev,
           {
             id: prev.length + 1,
             user: data.sender,
             message: data.message,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            time: new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
             isSystem: false,
           },
         ]);
+      } else if (data.type === 'room_closed') {
+        setMessages([
+          {
+            id: 1,
+            user: 'System',
+            message: 'Room closed. Chat cleared.',
+            time: new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            isSystem: true,
+          },
+        ]);
+        toast.info('Room has been closed');
       } else if (data.type === 'error') {
         toast.error(data.message);
       }
@@ -37,27 +59,38 @@ const ChatPanel = ({ roomId, username }) => {
 
     WebSocketService.addListener(listenerId, handleMessage);
     return () => {
+      console.log(`Removing WebSocket listener: ${listenerId}`);
       WebSocketService.removeListener(listenerId);
     };
   }, [roomId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const handleSendMessage = () => {
     if (!chatMessage.trim()) return;
-    WebSocketService.sendMessage({
+
+    const payload = {
       type: 'chat_message',
       message: chatMessage,
-      sender: username,
-    });
+    };
+
+    WebSocketService.sendMessage(payload);
     setChatMessage('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
   };
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.isSystem ? 'justify-center' : 'justify-start'}`}>
             {msg.isSystem ? (
@@ -77,11 +110,13 @@ const ChatPanel = ({ roomId, username }) => {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
       <div className="flex">
         <input
           type="text"
           value={chatMessage}
           onChange={(e) => setChatMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Transmit message..."
           className="flex-1 bg-gray-800/50 border border-[#00FF40]/20 rounded-l-md p-3 text-sm placeholder-gray-500 focus:outline-none focus:border-[#00FF40] focus:ring-1 focus:ring-[#00FF40]"
           aria-label="Chat input"
@@ -89,9 +124,9 @@ const ChatPanel = ({ roomId, username }) => {
         <button
           onClick={handleSendMessage}
           disabled={!chatMessage.trim()}
-          className={`px-3 rounded-r-md transition-all duration-300 ${
+          className={`px-3 rounded-r-md transition-colors ${
             chatMessage.trim()
-              ? 'bg-[#00FF40] text-black hover:bg-[#22c55e]'
+              ? 'bg-[#00FF40] text-black hover:bg-[#00e636]'
               : 'bg-gray-800 text-gray-500 cursor-not-allowed'
           }`}
           aria-label="Send message"

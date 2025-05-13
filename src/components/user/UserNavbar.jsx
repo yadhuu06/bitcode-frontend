@@ -51,14 +51,17 @@ const UserNavbar = () => {
 
   return (
     
-    <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left-0 w-full z-50 shadow-md text-white font-mono flex items-center">
-      <div className="container mx-auto flex justify-between items-center h-full px-4">
-        <div className="text-2xl font-bold flex items-center h-full">
-          <NavLink to="/user/dashboard" className={navLinkClass}>
-            <span className="text-green-500">{'</>'}</span>
-            <span className="text-white">BitCode</span>
-          </NavLink>
-        </div>
+    <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left- w-full z-50 shadow-md text-white font-mono flex items-center">
+      <div className="container mx-auto flex justify-between items-center h-full px-6">
+      <div className="text-[60px] font-bold flex items-center h-full">
+  <NavLink to="/user/dashboard" className={navLinkClass}>
+    <span className="text-green-500">{'<'}</span>
+    <span className="text-white">BitCode</span>
+    <span className="text-green-500">{'/>'}</span>
+  </NavLink>
+</div>
+
+
 
         <ul className="hidden md:flex space-x-8 items-center h-full">
           <li className="h-full flex items-center">

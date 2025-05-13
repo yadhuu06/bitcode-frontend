@@ -5,20 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const fetchRooms = async () => {
   try {
-    const state = store.getState();
-    const accessToken = state.auth.accessToken;
-
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
-
-    const response = await api.get(`${API_BASE_URL}/rooms/`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
+    const response = await api.get('/rooms/');
     return response.data.rooms;
   } catch (error) {
     console.error('Error fetching rooms:', error);
@@ -28,40 +15,16 @@ export const fetchRooms = async () => {
 
 export const createRoom = async (payload) => {
   try {
-    const state = store.getState();
-    const accessToken = state.auth.accessToken;
-
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
-
-    const response = await api.post(`${API_BASE_URL}/rooms/create/`, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
+    const response = await api.post('/rooms/create/', payload);
     return response.data;
   } catch (error) {
     console.error('Error creating room:', error);
     throw error.response?.data || error;
   }
 };
-
-export const getRoomDetails = async (roomId, accessToken) => {
+export const getRoomDetails = async (roomId) => {
   try {
-    if (!accessToken) {
-      throw new Error('No access token available');
-    }
-
-    const response = await axios.get(`${API_BASE_URL}/rooms/${roomId}/`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
+    const response = await api.get(`/rooms/${roomId}/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching room details:', error);

@@ -1,5 +1,5 @@
-// src/services/UserService.js
-import store from '../store'; // Adjust path as needed
+
+import store from '../store';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -52,26 +52,3 @@ export const updateUserProfile = async (profileData) => {
   }
 };
 
-export const fetchUserSubmissions = async () => {
-  try {
-    const state = store.getState();
-    const accessToken = state.auth.accessToken;
-
-    const response = await fetch(`${API_BASE_URL}/api/users/submissions/`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch user submissions');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching user submissions:', error);
-    throw error;
-  }
-};

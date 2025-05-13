@@ -75,7 +75,7 @@ export const refreshToken = async (refreshToken) => {
     });
     return {
       access: response.data.access,
-      refresh: response.data.refresh || refreshToken, // Fallback if refresh token not rotated
+      refresh: response.data.refresh || refreshToken, 
     };
   } catch (error) {
     console.error('Error refreshing token:', error.message);

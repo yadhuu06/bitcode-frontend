@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Users, Clock, Play, Shield, UserX, Code, CheckCircle ,Swords} from 'lucide-react';
+import { Users, Clock, Play, Shield, UserX, Code, ClipboardCopy, CheckCircle, Swords } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -7,8 +8,6 @@ import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
 import ChatPanel from './ChatPannel';
-
-
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -32,7 +31,7 @@ const MatrixBackground = () => {
 
     const chars = '01';
     const fontSize = 14;
-    const numChars = Math.floor(Math.random() * 21) + 0; 
+    const numChars = Math.floor(Math.random() * 21);
     const particles = [];
 
     for (let i = 0; i < numChars; i++) {
@@ -108,6 +107,7 @@ const BattleWaitingLobby = () => {
   const [countdown, setCountdown] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [readyStatus, setReadyStatus] = useState({});
+  const [copied, setCopied] = useState(false);
   const wsListenerId = useRef(`lobby-${roomId}`);
 
   const rules = [
@@ -128,7 +128,7 @@ const BattleWaitingLobby = () => {
             roomId,
             roomName: location.state.roomName,
             isPrivate: location.state.isPrivate,
-            joinCode: location.state.joinCode,
+            join_code: location.state.joinCode, // Use join_code
             difficulty: location.state.difficulty,
             timeLimit: location.state.timeLimit,
             capacity: location.state.capacity,
@@ -143,7 +143,7 @@ const BattleWaitingLobby = () => {
             roomId,
             roomName: response.room.name,
             isPrivate: response.room.visibility === 'private',
-            joinCode: response.room.join_code,
+            join_code: response.room.join_code,
             difficulty: response.room.difficulty,
             timeLimit: response.room.time_limit,
             capacity: response.room.capacity,
@@ -189,7 +189,7 @@ const BattleWaitingLobby = () => {
         setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
       } else if (data.type === 'error') {
         toast.error(data.message);
-        if (data.message.includes('401') || data.message.includes('4001') || data.message.includes('4002')) {
+        if (data.message.includes('401') || data.message.includes('4001') || data.message.includes('4002') || data.code === 4005) {
           navigate('/login');
         }
       }
@@ -229,13 +229,24 @@ const BattleWaitingLobby = () => {
 
   const handleKickParticipant = (targetUsername) => {
     if (role !== 'host') {
-        toast.error('Only the host can kick participants');
-        return;
+      toast.error('Only the host can kick participants');
+      return;
     }
     WebSocketService.sendMessage({ type: 'kick_participant', username: targetUsername });
     toast.info(`Requested to kick ${targetUsername}`);
-};
-    
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(roomDetails.join_code);
+      setCopied(true);
+      toast.success('Join code copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy join code:', err);
+      toast.error('Failed to copy join code');
+    }
+  };
 
   const handleStartBattle = () => {
     "coming soon"
@@ -261,19 +272,19 @@ const BattleWaitingLobby = () => {
       </div>
     );
   }
-  const getDifficultyStyles = (difficulty) => {
-  switch (difficulty.toLowerCase()) {
-    case 'hard':
-      return 'text-red-500 bg-red-500/10';
-    case 'medium':
-      return 'text-yellow-500 bg-yellow-500/10';
-    case 'easy':
-      return 'text-green-500 bg-green-500/10';
-    default:
-      return 'text-gray-400 bg-gray-800';
-  }
-};
 
+  const getDifficultyStyles = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'hard':
+        return 'text-red-500 bg-red-500/10';
+      case 'medium':
+        return 'text-yellow-500 bg-yellow-500/10';
+      case 'easy':
+        return 'text-green-500 bg-green-500/10';
+      default:
+        return 'text-gray-400 bg-gray-800';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
@@ -296,7 +307,7 @@ const BattleWaitingLobby = () => {
                       : 'bg-red-500/20 text-red-400'
                   }`}
                 >
-                  {roomDetails.difficulty.toUpperCase()}
+                  {roomDetails.difficulty?.toUpperCase()}
                 </span>
                 <span
                   className={`px-2 py-1 rounded text-xs font-medium ${
@@ -314,7 +325,7 @@ const BattleWaitingLobby = () => {
               </div>
               <div className="px-2 py-1 bg-gray-700/50 rounded border border-[#00FF40]/30 flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#00FF40] rounded-full animate-pulse"></span>
-                <span className="text-xs text-[#00FF40]">{roomDetails.status.toUpperCase()}</span>
+                <span className="text-xs text-[#00FF40]">{roomDetails.status?.toUpperCase()}</span>
               </div>
             </div>
           </div>
@@ -362,17 +373,17 @@ const BattleWaitingLobby = () => {
                       {readyStatus[participant.user__username] && (
                         <CheckCircle size={16} className="text-[#00FF40] animate-pulse" title="Ready" />
                       )}
-                    {role === 'host' && participant.role !== 'host' && participant.status === 'joined' && (
+                      {role === 'host' && participant.role !== 'host' && participant.status === 'joined' && (
                         <button
-                            onClick={() => handleKickParticipant(participant.user__username)}
-                            disabled={isLoading}
-                            className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
-                            title="Kick participant"
-                            aria-label={`Kick ${participant.user__username}`}
+                          onClick={() => handleKickParticipant(participant.user__username)}
+                          disabled={isLoading}
+                          className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
+                          title="Kick participant"
+                          aria-label={`Kick ${participant.user__username}`}
                         >
-                            <UserX size={16} />
+                          <UserX size={16} />
                         </button>
-                    )}
+                      )}
                       {role !== 'host' && participant.user__username === username && (
                         <button
                           onClick={handleReadyToggle}
@@ -403,115 +414,125 @@ const BattleWaitingLobby = () => {
 
           {/* Sidebar: Tabs & Host Controls */}
           <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
-  {/* Tab Navigation */}
-  <div className="flex border-b border-[#00FF40]/30 bg-gray-950/50 rounded-t-2xl">
-    {['details', 'chat', 'rules'].map((tab) => (
-      <button
-        key={tab}
-        onClick={() => setActiveTab(tab)}
-        className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${
-          activeTab === tab
-            ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
-            : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
-        }`}
-      >
-        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-      </button>
-    ))}
-  </div>
+            {/* Tab Navigation */}
+            <div className="flex border-b border-[#00FF40]/30 bg-gray-950/50 rounded-t-2xl">
+              {['details', 'chat', 'rules'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${
+                    activeTab === tab
+                      ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
+                      : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
+                  }`}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
 
-  {/* Tab Content */}
-  <div className="flex-1 p-6 overflow-y-auto text-sm scrollbar-thin scrollbar-thumb-[#00FF40]/50 scrollbar-track-gray-900">
-    {activeTab === 'details' && (
-      <div className="space-y-5">
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 min-w-[100px] font-medium">Room Name:</span>
-          <span className="text-white font-semibold">{roomDetails.roomName}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 min-w-[100px] font-medium">Access Code:</span>
-          <span className="text-[#00FF40] font-mono bg-gray-800/50 px-2 py-1 rounded">{roomDetails.joinCode}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Clock className="w-5 h-5 text-[#00FF40]" />
-          <span className="text-gray-400 min-w-[100px] font-medium">Duration:</span>
-          <span className="text-white">{roomDetails.timeLimit} min</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Users className="w-5 h-5 text-[#00FF40]" />
-          <span className="text-gray-400 min-w-[100px] font-medium">Capacity:</span>
-          <span className="text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 min-w-[100px] font-medium">Privacy:</span>
-          <span className="text-white capitalize">{roomDetails.isPrivate ? 'Private' : 'Public'}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 min-w-[100px] font-medium">Difficulty:</span>
-          <span className={`capitalize px-2 py-1 rounded ${getDifficultyStyles(roomDetails.difficulty)}`}>
-            {roomDetails.difficulty}
-          </span>
-        </div>
-      </div>
-    )}
+            {/* Tab Content */}
+            <div className="flex-1 p-6 overflow-y-auto text-sm scrollbar-thin scrollbar-thumb-[#00FF40]/50 scrollbar-track-gray-900">
+              {activeTab === 'details' && (
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <span className="text-gray-400 min-w-[100px] font-medium">Room Name:</span>
+                    <span className="text-white font-semibold">{roomDetails.roomName}</span>
+                  </div>
+                  {role === 'host' && (
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-400 min-w-[100px] font-medium">Access Code:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#00FF40] font-mono bg-gray-800/50 px-2 py-1 rounded">
+                          {roomDetails.join_code}
+                        </span>
+                        <button
+                          onClick={handleCopy}
+                          className="p-1.5 rounded-full bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-[#00FF40] transition-all duration-300"
+                          title="Copy join code"
+                          aria-label="Copy join code to clipboard"
+                        >
+                          <ClipboardCopy size={16} />
+                        </button>
+                        {copied && <span className="text-xs text-[#00FF40] ml-2 animate-fade-in">Copied!</span>}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4">
+                    <Clock className="w-5 h-5 text-[#00FF40]" />
+                    <span className="text-gray-400 min-w-[100px] font-medium">Duration:</span>
+                    <span className="text-white">{roomDetails.timeLimit} min</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Users className="w-5 h-5 text-[#00FF40]" />
+                    <span className="text-gray-400 min-w-[100px] font-medium">Capacity:</span>
+                    <span className="text-white">{roomDetails.participantCount}/{roomDetails.capacity}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-gray-400 min-w-[100px] font-medium">Privacy:</span>
+                    <span className="text-white capitalize">{roomDetails.isPrivate ? 'Private' : 'Public'}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-gray-400 min-w-[100px] font-medium">Difficulty:</span>
+                    <span className={`capitalize px-2 py-1 rounded ${getDifficultyStyles(roomDetails.difficulty)}`}>
+                      {roomDetails.difficulty}
+                    </span>
+                  </div>
+                </div>
+              )}
 
-    {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
+              {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
 
-    {activeTab === 'rules' && (
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium text-[#00FF40] flex items-center gap-2">
-          <Shield className="w-5 h-5" />
-          Battle Rules
-        </h4>
-        <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
-          <li>Complete the battle within {roomDetails.timeLimit} minutes.</li>
-          <li>
-            Questions set to{' '}
-            <span className={`font-semibold ${getDifficultyStyles(roomDetails.difficulty)}`}>
-              {roomDetails.difficulty}
-            </span>{' '}
-            difficulty.
-          </li>
-          <li>No external help or tab switching allowed.</li>
-          <li>Timer won’t pause — manage time wisely.</li>
-          <li>role={role}</li>
+              {activeTab === 'rules' && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-[#00FF40] flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Battle Rules
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
+                    <li>Complete the battle within {roomDetails.timeLimit} minutes.</li>
+                    <li>
+                      Questions set to{' '}
+                      <span className={`font-semibold ${getDifficultyStyles(roomDetails.difficulty)}`}>
+                        {roomDetails.difficulty}
+                      </span>{' '}
+                      difficulty.
+                    </li>
+                    <li>No external help or tab switching allowed.</li>
+                    <li>Timer won’t pause — manage time wisely.</li>
+                    <li>Role: {role}</li>
+                    <li>Ensure stable internet connection.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
 
-          <li>Ensure stable internet connection.</li>
-        </ul>
-      </div>
-    )}
-  </div>
-
-  {/* Host Controls */}
-  {role === 'host' | role==""&&(
-    <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
-      <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
-        <Shield className="w-5 h-5" />
-        Host Dashboard
-      </h3>
-      <div className="space-y-3">
-      
-
-<button
-  onClick={initiateCountdown}
-  disabled={participants.length < 1 || isLoading}
-  className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
-    ${
-      participants.length < 1 || isLoading
-        ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-        : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
-    }`}
-  aria-label="Start battle"
->
-  <Swords size={16} />
-  Start Battle
-</button>
-
-        
-      </div>
-    </div>
-  )}
-</div>
+            {/* Host Controls */}
+            {(role === 'host' || role === '') && (
+              <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
+                <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Host Dashboard
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={initiateCountdown}
+                    disabled={participants.length < 1 || isLoading}
+                    className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
+                      ${
+                        participants.length < 1 || isLoading
+                          ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
+                      }`}
+                    aria-label="Start battle"
+                  >
+                    <Swords size={16} />
+                    Start Battle
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </main>
 
         {/* Countdown Overlay */}

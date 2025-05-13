@@ -189,7 +189,9 @@ const Rooms = () => {
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch =
       room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.owner__username.toLowerCase().includes(searchTerm.toLowerCase());
+      room.owner__username.toLowerCase().includes(searchTerm.toLowerCase())||
+      room.join_code.includes(searchTerm);
+      
 
     if (activeFilter === 'all') return matchesSearch;
     if (activeFilter === 'active') return matchesSearch && room.status === 'active';

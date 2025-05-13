@@ -48,7 +48,6 @@ const UserNavbar = () => {
     `text-lg font-semibold transition-colors duration-200 ${
       isActive ? 'text-green-500' : 'text-white hover:text-green-500'
     }`;
-
   return (
     
     <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left- w-full z-50 shadow-md text-white font-mono flex items-center">

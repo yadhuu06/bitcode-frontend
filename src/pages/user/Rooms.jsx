@@ -11,6 +11,7 @@ import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
 import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
+import { Swords } from 'lucide-react'; 
 import api from '../../api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -125,7 +126,7 @@ const Rooms = () => {
         password = passwords[room.room_id];
   
         if (!password) {
-          setPasswordRoomId(room.room_id); // Trigger UI to ask for password
+          setPasswordRoomId(room.room_id); 
           dispatch(resetLoading());
           return;
         }
@@ -403,13 +404,15 @@ const Rooms = () => {
                     >
                       <Trophy size={18} className="mr-2 text-yellow-400" /> Leaderboard
                     </button>
-                    <button
-                      onClick={() => handleJoinRoom(room)}
-                      className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-all duration-300 flex items-center text-sm"
-                      aria-label={`Enter room ${room.name}`}
-                    >
-                      <Play size={18} className="mr-2" /> Battle
-                    </button>
+
+     
+<button
+  onClick={() => handleJoinRoom(room)}
+  className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-colors duration-300 flex items-center text-sm"
+  aria-label={`Enter room ${room.name}`}
+>
+  <Swords size={18} className="mr-2" /> Battle
+</button>
                   </div>
                   <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
                   <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>

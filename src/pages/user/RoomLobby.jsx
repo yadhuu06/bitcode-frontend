@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Users, Clock, Play, Shield, UserX, Code, CheckCircle } from 'lucide-react';
+import { Users, Clock, Play, Shield, UserX, Code, CheckCircle ,Swords} from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
+import 'react-toastify/dist/ReactToastify.css';
 import ChatPanel from './ChatPannel';
-import { Swords } from 'lucide-react'; 
+
 
 
 const BitCodeProgressLoading = memo(({ message }) => (
@@ -226,7 +227,14 @@ const BattleWaitingLobby = () => {
     setReadyStatus((prev) => ({ ...prev, [username]: newReadyState }));
   };
 
-  const handleKickParticipant = () => {"will be coming soooon"}
+  const handleKickParticipant = (targetUsername) => {
+    if (role !== 'host') {
+        toast.error('Only the host can kick participants');
+        return;
+    }
+    WebSocketService.sendMessage({ type: 'kick_participant', username: targetUsername });
+    toast.info(`Requested to kick ${targetUsername}`);
+};
     
 
   const handleStartBattle = () => {
@@ -354,17 +362,17 @@ const BattleWaitingLobby = () => {
                       {readyStatus[participant.user__username] && (
                         <CheckCircle size={16} className="text-[#00FF40] animate-pulse" title="Ready" />
                       )}
-                      {role === 'host' && participant.role !== 'host' && (
+                    {role === 'host' && participant.role !== 'host' && participant.status === 'joined' && (
                         <button
-                          onClick={() => handleKickParticipant(participant.user__username)}
-                          disabled={isLoading}
-                          className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
-                          title="Kick participant"
-                          aria-label={`Kick ${participant.user__username}`}
+                            onClick={() => handleKickParticipant(participant.user__username)}
+                            disabled={isLoading}
+                            className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
+                            title="Kick participant"
+                            aria-label={`Kick ${participant.user__username}`}
                         >
-                          <UserX size={16} />
+                            <UserX size={16} />
                         </button>
-                      )}
+                    )}
                       {role !== 'host' && participant.user__username === username && (
                         <button
                           onClick={handleReadyToggle}

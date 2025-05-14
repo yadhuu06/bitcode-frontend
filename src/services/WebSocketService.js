@@ -18,7 +18,7 @@ class WebSocketService {
     this.reconnectTimeoutId = null;
   }
 
-  connect(token, roomId = null) {
+  connect(token, roomId = null) { 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
     this.token = token;

@@ -5,13 +5,13 @@ import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
-import { fetchRooms, createNewRoom, updateRooms } from '../../store/slices/roomSlice';
+import { fetchRooms, addRoom, updateRooms } from '../../store/slices/roomSlice';
 import CreateRoomModal from '../../components/modals/CreateRoomModal';
 import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
 import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
-import { Swords } from 'lucide-react'; 
+import { Swords } from 'lucide-react';
 import api from '../../api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -95,22 +95,28 @@ const Rooms = () => {
     }
   }, [error]);
 
-  const handleRoomCreated = async (newRoom) => {
-    dispatch(setLoading({ isLoading: true, message: 'Creating room...', style: 'compile', progress: 0 }));
+  const handleRoomCreated = (newRoom) => {
+    dispatch(setLoading({ isLoading: true, message: 'Updating room list...', style: 'compile', progress: 0 }));
     try {
-      await dispatch(createNewRoom(newRoom)).unwrap();
+      dispatch(addRoom({
+        room_id: newRoom.id,
+        name: newRoom.name,
+        owner__username: newRoom.host,
+        topic: newRoom.topic || 'Array',
+        difficulty: newRoom.difficulty,
+        time_limit: newRoom.is_ranked ? 0 : parseInt(newRoom.duration) || 30,
+        capacity: newRoom.maxParticipants,
+        participant_count: newRoom.participants,
+        visibility: newRoom.isPrivate ? 'private' : 'public',
+        status: newRoom.status,
+        join_code: newRoom.joinCode,
+        is_ranked: newRoom.is_ranked,
+      }));
       toast.success('Room created successfully');
       setShowModal(false);
     } catch (err) {
-      console.error('Failed to create room:', err);
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to create room';
-      toast.error(errorMessage);
-      if (err.response?.status === 401) {
-        dispatch(logoutSuccess());
-        Cookies.remove('access_token');
-        Cookies.remove('refresh_token');
-        navigate('/login');
-      }
+      console.error('Failed to update room list:', err);
+      toast.error('Failed to update room list');
     } finally {
       dispatch(resetLoading());
     }
@@ -118,27 +124,26 @@ const Rooms = () => {
 
   const handleJoinRoom = async (room) => {
     dispatch(setLoading({ isLoading: true, message: 'Joining room...', style: 'battle', progress: 0 }));
-  
+
     try {
       let password = null;
-  
+
       if (room.visibility === 'private') {
         password = passwords[room.room_id];
-  
+
         if (!password) {
-          setPasswordRoomId(room.room_id); 
+          setPasswordRoomId(room.room_id);
           dispatch(resetLoading());
           return;
         }
       }
-  
 
       const response = await api.post(`/rooms/${room.room_id}/join/`, password ? { password } : {});
-  
+
       toast.success('Joined room successfully');
-  
+
       const data = response.data;
-  
+
       navigate(`/user/room/${room.room_id}`, {
         state: {
           roomName: room.name,
@@ -148,27 +153,24 @@ const Rooms = () => {
           difficulty: room.difficulty,
           timeLimit: room.time_limit,
           capacity: room.capacity,
+          is_ranked:room.is_ranked
         },
       });
-  
     } catch (err) {
       console.error('Error joining room:', err);
-  
-      // Handle unauthorized error
+
       if (err.response?.status === 401) {
         dispatch(logoutSuccess());
         Cookies.remove('access_token');
         Cookies.remove('refresh_token');
         navigate('/login');
       }
-  
+
       toast.error(err.response?.data?.error || err.message || 'Failed to join room');
-  
     } finally {
       dispatch(resetLoading());
     }
   };
-  
 
   const handlePasswordSubmit = (roomId) => {
     const room = rooms.find((r) => r.room_id === roomId);
@@ -189,14 +191,15 @@ const Rooms = () => {
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch =
       room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.owner__username.toLowerCase().includes(searchTerm.toLowerCase())||
+      room.owner__username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       room.join_code.includes(searchTerm);
-      
 
     if (activeFilter === 'all') return matchesSearch;
     if (activeFilter === 'active') return matchesSearch && room.status === 'active';
     if (activeFilter === 'public') return matchesSearch && room.visibility === 'public';
     if (activeFilter === 'private') return matchesSearch && room.visibility === 'private';
+    if (activeFilter === 'ranked') return matchesSearch && room.is_ranked;
+    if (activeFilter === 'casual') return matchesSearch && !room.is_ranked;
 
     return matchesSearch;
   });
@@ -232,10 +235,10 @@ const Rooms = () => {
       </div>
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <div className="flex justify-between items-center mb-8 border-b border-green-500/30 pb-4">
-        <h1 className="text-4xl text-white flex items-center tracking-widest font-orbitron">
-  <span className="text-[#22c55e] mr-2 font-bold">&lt;</span>
-  <span className="text-[#22c55e] font-bold">BATTLE</span>
-  <span className="text-[#22c55e] ml-2 font-bold">&gt;</span>
+        <h1 className="text-4xl md:text-5xl text-white font-orbitron tracking-widest font-bold flex items-center justify-center space-x-2">
+  <span className="text-[#22c55e]">&lt;</span>
+  <span className="text-[#22c55e]">BATTLE</span>
+  <span className="text-[#22c55e]">&gt;</span>
 </h1>
 
           <CustomButton variant="create" onClick={() => setShowModal(true)}>
@@ -254,23 +257,43 @@ const Rooms = () => {
               aria-label="Search rooms"
             />
           </div>
-          <div className="flex space-x-2">
-            {['all', 'active', 'public', 'private'].map((filter) => (
+          <div className="flex flex-wrap gap-2">
+            {['all', 'active', 'public', 'private', 'ranked', 'casual'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
                 className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
                   activeFilter === filter
                     ? `bg-gradient-to-r from-${
-                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
+                        filter === 'all' ? 'green' :
+                        filter === 'active' ? 'yellow' :
+                        filter === 'public' ? 'blue' :
+                        filter === 'private' ? 'purple' :
+                        filter === 'ranked' ? 'red' : 'cyan'
                       }-500 to-${
-                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
-                      }-400 text-${filter === 'all' || filter === 'active' ? 'red' : 'white'} font-medium`
+                        filter === 'all' ? 'green' :
+                        filter === 'active' ? 'yellow' :
+                        filter === 'public' ? 'blue' :
+                        filter === 'private' ? 'purple' :
+                        filter === 'ranked' ? 'red' : 'cyan'
+                      }-400 text-${
+                        filter === 'all' || filter === 'active' ? 'black' : 'white'
+                      } font-medium`
                     : `bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-${
-                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
+                        filter === 'all' ? 'green' :
+                        filter === 'active' ? 'yellow' :
+                        filter === 'public' ? 'blue' :
+                        filter === 'private' ? 'purple' :
+                        filter === 'ranked' ? 'red' : 'cyan'
                       }-600 hover:to-${
-                        filter === 'all' ? 'green' : filter === 'active' ? 'yellow' : filter === 'public' ? 'blue' : 'purple'
-                      }-500 hover:text-${filter === 'all' || filter === 'active' ? 'black' : 'white'}`
+                        filter === 'all' ? 'green' :
+                        filter === 'active' ? 'yellow' :
+                        filter === 'public' ? 'blue' :
+                        filter === 'private' ? 'purple' :
+                        filter === 'ranked' ? 'red' : 'cyan'
+                      }-500 hover:text-${
+                        filter === 'all' || filter === 'active' ? 'black' : 'white'
+                      }`
                 }`}
               >
                 {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -361,13 +384,15 @@ const Rooms = () => {
                     <div className="flex items-center text-sm">
                       <Users className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
-                        <span className="text-white">{room.participant_count}</span>/{room.capacity} participants
+                        <span className="text-white">{room.participant_count}</span>/{room.is_ranked} participants
                       </p>
                     </div>
                     <div className="flex items-center text-sm">
                       <Clock className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
-                        <span className="text-white">{room.time_limit}</span> minutes
+                        <span className="text-white">
+                          {room.is_ranked ? 'Ranked' : `${room.time_limit} minutes`}
+                        </span>
                       </p>
                     </div>
                     <div className="flex items-center text-sm">
@@ -398,6 +423,15 @@ const Rooms = () => {
                     >
                       {room.visibility.toUpperCase()}
                     </span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        room.is_ranked
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                          : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                      }`}
+                    >
+                      {room.is_ranked ? 'RANKED' : 'CASUAL'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <button
@@ -406,15 +440,13 @@ const Rooms = () => {
                     >
                       <Trophy size={18} className="mr-2 text-yellow-400" /> Leaderboard
                     </button>
-
-     
-<button
-  onClick={() => handleJoinRoom(room)}
-  className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-colors duration-300 flex items-center text-sm"
-  aria-label={`Enter room ${room.name}`}
->
-  <Swords size={18} className="mr-2" /> Battle
-</button>
+                    <button
+                      onClick={() => handleJoinRoom(room)}
+                      className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-colors duration-300 flex items-center text-sm"
+                      aria-label={`Enter room ${room.name}`}
+                    >
+                      <Swords size={18} className="mr-2" /> Battle
+                    </button>
                   </div>
                   <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
                   <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
@@ -425,7 +457,7 @@ const Rooms = () => {
           {filteredRooms.length === 0 && !loading && (
             <div className="col-span-full flex flex-col items-center justify-center py-16 border border-dashed border-gray-700 rounded-lg">
               <Search className="text-gray-500 mb-4" size={40} />
-              
+              <p className="text-gray-400 mb-4">No rooms found with the current filters.</p>
               <button
                 onClick={() => {
                   setSearchTerm('');

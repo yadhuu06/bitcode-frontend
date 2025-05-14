@@ -28,6 +28,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
     capacity: 2,
     visibility: 'public',
     password: '',
+    is_ranked: false,
   });
 
   const handleChange = (name, value) => {
@@ -50,8 +51,12 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.time_limit || !formData.topic || !formData.difficulty) {
+    if (!formData.name || !formData.topic || !formData.difficulty) {
       toast.error('Please fill in all required fields');
+      return false;
+    }
+    if (!formData.is_ranked && !formData.time_limit) {
+      toast.error('Time limit is required for non-ranked rooms');
       return false;
     }
     if (formData.visibility === 'private' && !formData.password) {
@@ -76,14 +81,15 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         name: formData.name,
         topic: formData.topic,
         difficulty: formData.difficulty,
-        time_limit: parseInt(formData.time_limit),
+        time_limit: formData.is_ranked ? 0 : parseInt(formData.time_limit),
         capacity: parseInt(formData.capacity),
         visibility: formData.visibility,
+        is_ranked: formData.is_ranked,
         ...(formData.visibility === 'private' && { password: formData.password }),
       };
 
       const response = await createRoom(payload);
-      console.log(response)
+
       onRoomCreated({
         id: response.room_id,
         name: formData.name,
@@ -92,15 +98,16 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         maxParticipants: parseInt(formData.capacity),
         difficulty: formData.difficulty,
         status: 'active',
-        duration: `${formData.time_limit} min`,
+        duration: formData.is_ranked ? 'Ranked' : `${formData.time_limit} min`,
         isPrivate: formData.visibility === 'private',
         joinCode: response.join_code,
-        role:"host"
+        role: 'host',
+        is_ranked: formData.is_ranked,
       });
 
       toast.success('Room created successfully!');
       onClose();
-      navigate(`/user/room/${response.room_id}`,{
+      navigate(`/user/room/${response.room_id}`, {
         state: {
           roomId: response.room_id,
           roomName: formData.name,
@@ -108,12 +115,11 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
           isPrivate: formData.visibility === 'private',
           joinCode: response.join_code,
           difficulty: formData.difficulty,
-          timeLimit: formData.time_limit,
+          timeLimit: formData.is_ranked ? 0 : formData.time_limit,
           capacity: formData.capacity,
+          isRanked: formData.is_ranked,
         },
-
-      })
-      
+      });
     } catch (error) {
       console.error('Error creating room:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
@@ -162,11 +168,11 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   const getDifficultyColor = (level) => {
     switch (level) {
       case 'easy':
-        return 'bg-[##22c55e]/-20 border-[#00FF40] shadow-[0_0_5px_#00FF40]';
+        return 'bg-[#22c55e]/20 border-[#00FF40] shadow-[0_0_5px_#00FF40]';
       case 'medium':
-        return 'bg-orange-500/0 border-orange-500 shadow-[0_0_5px_#F97316]';
+        return 'bg-orange-500/20 border-orange-500 shadow-[0_0_5px_#F97316]';
       case 'hard':
-        return 'bg-red-500/0 border-red-500 shadow-[0_0_5px_#EF4444]';
+        return 'bg-red-500/20 border-red-500 shadow-[0_0_5px_#EF4444]';
       default:
         return 'border-gray-700';
     }
@@ -202,25 +208,48 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                   required
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-[#22c55e] tracking-wider">
-                Choose Topic
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {TOPIC_OPTIONS.map((topic) => (
-                  <div
-                    key={topic.value}
-                    onClick={() => handleChange('topic', topic.value)}
-                    className={`cursor-pointer p-3 rounded-lg border transition-all duration-300 ${
-                      formData.topic === topic.value
-                        ? 'border-[#22c55e] bg-[#22c55e]/-10 shadow-[0_0_5px_#22c55e]'
-                        : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <p className="text-center text-white">{topic.label}</p>
-                  </div>
-                ))}
+              <div>
+                <label className="block text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
+                  Game Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: false, label: 'Casual' },
+                    { value: true, label: 'Ranked' },
+                  ].map((mode) => (
+                    <div
+                      key={mode.value}
+                      onClick={() => handleChange('is_ranked', mode.value)}
+                      className={`cursor-pointer p-3 rounded-lg border transition-all duration-300 ${
+                        formData.is_ranked === mode.value
+                          ? 'border-[#22c55e] bg-[#22c55e]/20 shadow-[0_0_5px_#22c55e]'
+                          : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
+                      }`}
+                    >
+                      <p className="text-center text-white">{mode.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[#22c55e] tracking-wider">
+                  Choose Topic
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {TOPIC_OPTIONS.map((topic) => (
+                    <div
+                      key={topic.value}
+                      onClick={() => handleChange('topic', topic.value)}
+                      className={`cursor-pointer p-3 rounded-lg border transition-all duration-300 ${
+                        formData.topic === topic.value
+                          ? 'border-[#22c55e] bg-[#22c55e]/20 shadow-[0_0_5px_#22c55e]'
+                          : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
+                      }`}
+                    >
+                      <p className="text-center text-white">{topic.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -252,46 +281,48 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="flex items-center text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
-                  <Clock className="w-4 h-4 mr-1" /> Time Limit (minutes)
-                </label>
-                <div className="relative">
-                  <input
-                    type="range"
-                    min="0"
-                    max={TIME_LIMIT_OPTIONS.length - 1}
-                    step="1"
-                    value={TIME_LIMIT_OPTIONS.indexOf(formData.time_limit)}
-                    onChange={(e) => handleChange('time_limit', TIME_LIMIT_OPTIONS[parseInt(e.target.value)])}
-                    className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer range-lg accent-[#00FF40]"
-                  />
-                  <div className="absolute -top-6 left-0 w-full flex justify-between text-xs text-gray-400">
-                    {TIME_LIMIT_OPTIONS.map((time) => (
-                      <span key={time} className="w-1/3 text-center">
-                        {time}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mt-6">
-                    {TIME_LIMIT_OPTIONS.map((time) => (
-                      <div
-                        key={time}
-                        onClick={() => handleChange('time_limit', time)}
-                        className={`cursor-pointer p-2 rounded-lg border transition-all duration-300 text-center ${
-                          formData.time_limit === time
-                            ? 'border-[#22c55e] bg-[#00FF40]/3 shadow-[0_0_5px_#00FF40]'
-                            : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
-                        }`}
-                      >
-                        {time} min
-                      </div>
-                    ))}
+              {!formData.is_ranked && (
+                <div>
+                  <label className="flex items-center text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
+                    <Clock className="w-4 h-4 mr-1" /> Time Limit (minutes)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min="0"
+                      max={TIME_LIMIT_OPTIONS.length - 1}
+                      step="1"
+                      value={TIME_LIMIT_OPTIONS.indexOf(formData.time_limit)}
+                      onChange={(e) => handleChange('time_limit', TIME_LIMIT_OPTIONS[parseInt(e.target.value)])}
+                      className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer range-lg accent-[#00FF40]"
+                    />
+                    <div className="absolute -top-6 left-0 w-full flex justify-between text-xs text-gray-400">
+                      {TIME_LIMIT_OPTIONS.map((time) => (
+                        <span key={time} className="w-1/3 text-center">
+                          {time}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-6">
+                      {TIME_LIMIT_OPTIONS.map((time) => (
+                        <div
+                          key={time}
+                          onClick={() => handleChange('time_limit', time)}
+                          className={`cursor-pointer p-2 rounded-lg border transition-all duration-300 text-center ${
+                            formData.time_limit === time
+                              ? 'border-[#22c55e] bg-[#00FF40]/20 shadow-[0_0_5px_#00FF40]'
+                              : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
+                          }`}
+                        >
+                          {time} min
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               <div>
-                <label className="flex items-center text-sm font-medium text-[#00FF40] mb-2 tracking-wider">
+                <label className="flex items-center text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
                   <Users className="w-4 h-4 mr-1" /> Capacity
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -301,7 +332,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                       onClick={() => handleChange('capacity', cap)}
                       className={`cursor-pointer p-2 rounded-lg border transition-all duration-300 text-center ${
                         formData.capacity === cap
-                          ? 'border-[#22c55e] bg-[#22c55e]/-20 shadow-[0_0_5px_#00FF40]'
+                          ? 'border-[#22c55e] bg-[#22c55e]/20 shadow-[0_0_5px_#00FF40]'
                           : 'border-gray-700 hover:border-[#00FF40] hover:bg-gray-800/50'
                       }`}
                     >
@@ -332,8 +363,8 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                 <div
                   className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-300 cursor-pointer ${
                     formData.visibility === 'public'
-                      ? 'border-[#22c55e] bg-[#22c55e]/-20 shadow-[0_0_5px_#00FF40]'
-                      : 'border-gray-700 bg-gray-800/50 hover:border-[##22c55e] hover:bg-gray-800'
+                      ? 'border-[#22c55e] bg-[#22c55e]/20 shadow-[0_0_5px_#00FF40]'
+                      : 'border-gray-700 bg-gray-800/50 hover:border-[#22c55e] hover:bg-gray-800'
                   }`}
                   onClick={() =>
                     handleChange('visibility', formData.visibility === 'public' ? 'private' : 'public')
@@ -349,7 +380,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                         : 'Password required to join'}
                     </p>
                   </div>
-                  <div className="text-[##22c55e]">
+                  <div className="text-[#22c55e]">
                     {formData.visibility === 'public' ? (
                       <Unlock className="w-5 h-5" />
                     ) : (
@@ -360,7 +391,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
               </div>
               {formData.visibility === 'private' && (
                 <div className="relative">
-                  <label className="block text-sm font-medium text-[##22c55e] mb-2 tracking-wider">
+                  <label className="block text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
                     <Lock className="w-4 h-4 inline mr-1" /> Room Password
                   </label>
                   <input
@@ -380,14 +411,20 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                 <div className="grid grid-cols-2 gap-y-2 text-sm">
                   <div className="text-gray-400">Name:</div>
                   <div className="text-white">{formData.name}</div>
+                  <div className="text-gray-400">Mode:</div>
+                  <div className="text-white">{formData.is_ranked ? 'Ranked' : 'Casual'}</div>
                   <div className="text-gray-400">Topic:</div>
                   <div className="text-white">{formData.topic}</div>
                   <div className="text-gray-400">Difficulty:</div>
                   <div className={`capitalize ${getDifficultyTextColor(formData.difficulty)}`}>
                     {formData.difficulty}
                   </div>
-                  <div className="text-gray-400">Time Limit:</div>
-                  <div className="text-white">{formData.time_limit} minutes</div>
+                  {!formData.is_ranked && (
+                    <>
+                      <div className="text-gray-400">Time Limit:</div>
+                      <div className="text-white">{formData.time_limit} minutes</div>
+                    </>
+                  )}
                   <div className="text-gray-400">Capacity:</div>
                   <div className="text-white">
                     {formData.capacity === 2 ? '1 vs 1' : `${formData.capacity} players`}
@@ -414,7 +451,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
       >
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#00FF40]/0 via-[#00FF40] to-[#00FF40]/0" />
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xxl font-bold text-[white] flex items-center md:text-2xl">
+          <h2 className="text-xl font-bold text-white flex items-center md:text-2xl">
             <Command className="w-5 h-5 mr-2" />
             Create Battle Room
           </h2>

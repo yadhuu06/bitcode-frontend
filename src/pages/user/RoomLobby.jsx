@@ -128,7 +128,7 @@ const BattleWaitingLobby = () => {
             roomId,
             roomName: location.state.roomName,
             isPrivate: location.state.isPrivate,
-            join_code: location.state.joinCode, // Use join_code
+            join_code: location.state.joinCode, 
             difficulty: location.state.difficulty,
             timeLimit: location.state.timeLimit,
             capacity: location.state.capacity,

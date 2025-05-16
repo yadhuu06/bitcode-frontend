@@ -250,7 +250,7 @@ const Rooms = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400" size={20} />
             <input
               type="text"
-              placeholder="Search rooms by name or host..."
+              placeholder="Search rooms by name, host, or join code.."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full p-3 pl-10 bg-gray-900/90 border border-gray-800 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-500/50 transition-all duration-300 backdrop-blur-sm"
@@ -258,48 +258,23 @@ const Rooms = () => {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {['all', 'active', 'public', 'private', 'ranked', 'casual'].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-3 py-2 rounded-md text-sm transition-all duration-300 ${
-                  activeFilter === filter
-                    ? `bg-gradient-to-r from-${
-                        filter === 'all' ? 'green' :
-                        filter === 'active' ? 'yellow' :
-                        filter === 'public' ? 'blue' :
-                        filter === 'private' ? 'purple' :
-                        filter === 'ranked' ? 'red' : 'cyan'
-                      }-500 to-${
-                        filter === 'all' ? 'green' :
-                        filter === 'active' ? 'yellow' :
-                        filter === 'public' ? 'blue' :
-                        filter === 'private' ? 'purple' :
-                        filter === 'ranked' ? 'red' : 'cyan'
-                      }-400 text-${
-                        filter === 'all' || filter === 'active' ? 'black' : 'white'
-                      } font-medium`
-                    : `bg-gray-800 text-gray-300 hover:bg-gradient-to-r hover:from-${
-                        filter === 'all' ? 'green' :
-                        filter === 'active' ? 'yellow' :
-                        filter === 'public' ? 'blue' :
-                        filter === 'private' ? 'purple' :
-                        filter === 'ranked' ? 'red' : 'cyan'
-                      }-600 hover:to-${
-                        filter === 'all' ? 'green' :
-                        filter === 'active' ? 'yellow' :
-                        filter === 'public' ? 'blue' :
-                        filter === 'private' ? 'purple' :
-                        filter === 'ranked' ? 'red' : 'cyan'
-                      }-500 hover:text-${
-                        filter === 'all' || filter === 'active' ? 'black' : 'white'
-                      }`
-                }`}
-              >
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
-              </button>
-            ))}
-          </div>
+  {['all', 'active', 'public', 'private', 'ranked', 'casual'].map((filter) => (
+    <button
+      key={filter}
+      onClick={() => setActiveFilter(filter)}
+      className={`px-4 py-2 rounded-md text-sm transition-all duration-300 border
+        ${
+          activeFilter === filter
+            ? 'bg-transparent text-white border-[#00ff73]'
+            : 'bg-gray-900/90 text-white border-gray-700 hover:bg-gray-800/90 hover:border-gray-600 hover:text-[#00ff73]'
+        }`}
+    >
+      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+    </button>
+  ))}
+</div>
+
+
         </div>
         {loading && (
           <div className="flex justify-center items-center py-12">
@@ -384,7 +359,7 @@ const Rooms = () => {
                     <div className="flex items-center text-sm">
                       <Users className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
-                        <span className="text-white">{room.participant_count}</span>/{room.is_ranked} participants
+                        <span className="text-white">{room.participant_count}</span>/{room.capacity} participants
                       </p>
                     </div>
                     <div className="flex items-center text-sm">

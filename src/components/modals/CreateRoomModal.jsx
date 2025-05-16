@@ -105,7 +105,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         is_ranked: formData.is_ranked,
       });
 
-      toast.success('Room created successfully!');
+     
       onClose();
       navigate(`/user/room/${response.room_id}`, {
         state: {

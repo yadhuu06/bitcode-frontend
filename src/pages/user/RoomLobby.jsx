@@ -180,8 +180,8 @@ const BattleWaitingLobby = () => {
         setParticipants(data.participants || []);
         setRoomDetails((prev) => (prev ? { ...prev, participantCount: data.participants.length } : prev));
         if (!role) {
-          const userParticipant = data.participants.find((p) => p.user__username === username);
-          if (userParticipant) setRole(userParticipant.role);
+          toast.error("not autherised")
+          navigate('/user/rooms')
         }
       } else if (data.type === 'countdown') {
         setCountdown(data.countdown);

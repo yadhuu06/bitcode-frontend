@@ -11,7 +11,7 @@ import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
 import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
-import { Swords } from 'lucide-react';
+import { Swords ,X} from 'lucide-react';
 import api from '../../api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -124,26 +124,26 @@ const Rooms = () => {
 
   const handleJoinRoom = async (room) => {
     dispatch(setLoading({ isLoading: true, message: 'Joining room...', style: 'battle', progress: 0 }));
-
+  
     try {
       let password = null;
-
+  
       if (room.visibility === 'private') {
         password = passwords[room.room_id];
-
+  
         if (!password) {
-          setPasswordRoomId(room.room_id);
+          setPasswordRoomId(room.room_id); 
           dispatch(resetLoading());
           return;
         }
       }
-
+  
       const response = await api.post(`/rooms/${room.room_id}/join/`, password ? { password } : {});
-
+  
       toast.success('Joined room successfully');
-
+  
       const data = response.data;
-
+  
       navigate(`/user/room/${room.room_id}`, {
         state: {
           roomName: room.name,
@@ -153,25 +153,30 @@ const Rooms = () => {
           difficulty: room.difficulty,
           timeLimit: room.time_limit,
           capacity: room.capacity,
-          is_ranked:room.is_ranked
+          is_ranked: room.is_ranked,
         },
       });
     } catch (err) {
       console.error('Error joining room:', err);
-
+  
       if (err.response?.status === 401) {
         dispatch(logoutSuccess());
         Cookies.remove('access_token');
         Cookies.remove('refresh_token');
         navigate('/login');
       }
-
-      toast.error(err.response?.data?.error || err.message || 'Failed to join room');
+  
+      toast.error(
+        err.response?.data?.error ||
+        err.response?.data?.message || 
+        err.message || 
+        'Failed to join room'
+      );
     } finally {
       dispatch(resetLoading());
     }
   };
-
+  
   const handlePasswordSubmit = (roomId) => {
     const room = rooms.find((r) => r.room_id === roomId);
     if (room) {
@@ -299,37 +304,43 @@ const Rooms = () => {
               key={room.room_id}
               className="bg-gray-900/85 backdrop-blur-md p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all duration-300 group relative overflow-hidden transform hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
             >
-              {room.visibility === 'private' && passwordRoomId === room.room_id ? (
-                <div className="flex flex-col h-full justify-center p-4 bg-gradient-to-b from-gray-900/95 to-gray-800/90 rounded-lg relative animate-fadeIn">
-                  <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_8px_rgba(34,197,94,0.5)]">
-                    {room.name}
-                  </h3>
-                  <input
-                    type="password"
-                    value={passwords[room.room_id] || ''}
-                    onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
-                    placeholder="Enter room password"
-                    className="w-full p-3 bg-gray-900/90 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-500/50 focus:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 mb-6 animate-pulse-border"
-                    aria-label="Room password"
-                  />
-                  <div className="flex justify-between gap-3">
-                    <button
-                      onClick={() => handleCancel(room.room_id)}
-                      className="flex-1 px-3 py-2 bg-gradient-to-r from-gray-800 to-red-900/50 text-gray-300 rounded-md hover:from-gray-700 hover:to-red-800 hover:shadow-[0_0_8px_rgba(239,68,68,0.3)] transition-all duration-300 text-sm font-medium"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => handlePasswordSubmit(room.room_id)}
-                      className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-green-400 text-black font-medium rounded-md hover:from-green-600 hover:to-green-500 hover:shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 text-sm"
-                    >
-                      Join Battle
-                    </button>
-                  </div>
-                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/50"></div>
-                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/50"></div>
-                </div>
-              ) : (
+{room.visibility === 'private' && passwordRoomId === room.room_id ? (
+  <div className="flex flex-col h-full justify-center p-6 bg-gray-900/95 backdrop-blur-sm rounded-lg relative animate-fadeIn">
+    <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_6px_rgba(34,197,94,0.4)]">
+      {room.name}
+    </h3>
+    <input
+      type="password"
+      value={passwords[room.room_id] || ''}
+      onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
+      placeholder="Enter room password"
+      className="w-full h-12 p-4 bg-gray-950/90 border border-green-500/30 rounded-md text-white placeholder-gray-500 font-['Orbitron'] text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/50 transition-all duration-200 mb-6"
+      aria-label="Room password"
+    />
+
+
+<div className="flex justify-between gap-4">
+  <button
+    onClick={() => handleCancel(room.room_id)}
+    className="w-1/2 h-10 px-3 py-1 border border-red-500 text-red-500 font-['Orbitron'] text-sm rounded-md hover:bg-red-500 hover:text-white transition-all duration-150 flex items-center justify-center"
+  >
+    <X size={16} className="mr-2" />
+    Cancel
+  </button>
+
+  <button
+    onClick={() => handlePasswordSubmit(room.room_id)}
+    className="w-1/2 h-10 px-3 py-1 border border-[#00ff40] text-[#00ff40] font-['Orbitron'] text-sm rounded-md hover:bg-[#00ff40] hover:text-black transition-all duration-150 flex items-center justify-center"
+  >
+    <Swords size={16} className="mr-2" />
+    Battle
+  </button>
+</div>
+
+    <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/30"></div>
+    <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/30"></div>
+  </div>
+)  : (
                 <>
                   {room.visibility === 'private' && (
                     <div className="absolute top-3 right-3 bg-gray-500/20 p-1 rounded-md">

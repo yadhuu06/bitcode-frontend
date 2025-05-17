@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-
+import { useNavigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
 const MatrixBackground = () => {
   useEffect(() => {
     const canvas = document.getElementById('matrix');
@@ -76,17 +76,8 @@ const MatrixBackground = () => {
 export default function BitCodeHomepage() {
   const [activeTab, setActiveTab] = useState('timeBasedRooms');
   const [leaderboard, setLeaderboard] = useState([]);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    axios
-      .get('/api/leaderboard')
-      .then((response) => {
-        setLeaderboard(response.data.slice(0, 5));
-      })
-      .catch((error) => {
-        console.error('Error fetching leaderboard:', error);
-      });
-  }, []);
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
@@ -102,11 +93,12 @@ export default function BitCodeHomepage() {
             Real-time coding battles. Prove your skills. Climb the ranks.
           </p>
           <div className="flex gap-4">
-            <button className="bg-[#00FF40] text-black font-bold py-3 px-8 rounded uppercase tracking-wide hover:bg-[#22c55e] transition-colors">
-              Start Coding
-            </button>
-            <button className="border-2 border-[#00FF40] text-[#00FF40] font-bold py-3 px-8 rounded uppercase tracking-wide hover:bg-[#00FF40]/10 transition-colors">
-              Join Tournament
+           
+            <button className="border-2 border-[#00FF40] text-[#00FF40] font-bold py-3 px-8 rounded uppercase tracking-wide hover:bg-[#00FF40]/10 transition-colors"
+            onClick={()=>navigate('/user/rooms')
+
+            }>
+              Join Battle
             </button>
           </div>
         </section>

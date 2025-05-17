@@ -4,8 +4,8 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   isLoading: false,
   message: 'Loading...',
-  progress: null, // null or a number between 0 and 100
-  style: 'default', // 'default', 'battle', 'compile', 'terminal'
+  progress: null, 
+  style: 'default'
 };
 
 const loadingSlice = createSlice({

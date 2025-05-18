@@ -23,7 +23,7 @@ const ChatPanel = ({ roomId, username }) => {
     const handleMessage = (data) => {
       console.log(`Received message: ${JSON.stringify(data)}`);
       if (data.type === 'chat_message') {
-        console.log("data",data.message)
+        console.log("data", data.message)
         console.log(messages)
         setMessages((prev) => [
           ...prev,
@@ -124,11 +124,10 @@ const ChatPanel = ({ roomId, username }) => {
         <button
           onClick={handleSendMessage}
           disabled={!chatMessage.trim()}
-          className={`px-3 rounded-r-md transition-colors ${
-            chatMessage.trim()
+          className={`px-3 rounded-r-md transition-colors ${chatMessage.trim()
               ? 'bg-[#00FF40] text-black hover:bg-[#00e636]'
               : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-          }`}
+            }`}
           aria-label="Send message"
         >
           <Send size={16} />

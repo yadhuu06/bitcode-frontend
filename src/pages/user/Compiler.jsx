@@ -4,14 +4,14 @@ import { Play, Box, Cpu, Activity, DownloadCloud, Copy, Check, Save, Trash, Refr
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import CustomButton from '../../components/ui/CustomButton';
-import LoadingOverlay from '../../components/ui/LoadingAnimation';
+
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const Compiler = () => {
   const dispatch = useDispatch();
   const loadingState = useSelector((state) => state.loading);
-  const [code, setCode] = useState('// Write your code here\nconsole.log("Hello, quantum world!");');
+  const [code, setCode] = useState('// Write your code here\console.log("Hello, quantum world!");');
   const [language, setLanguage] = useState('javascript');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -28,41 +28,38 @@ const Compiler = () => {
   const languageOptions = [
     { value: 'javascript', label: 'JavaScript', icon: '🟨' },
     { value: 'python', label: 'Python', icon: '🐍' },
-    { value: 'cpp', label: 'C++', icon: '⚙️' },
-    { value: 'rust', label: 'Rust', icon: '🦀' },
     { value: 'go', label: 'Go', icon: '🔵' },
-    { value: 'java', label: 'Java', icon: '☕' }
+
   ];
 
-  // Handle code execution
   const handleRunCode = async () => {
     // Save current code to history
     setCodeHistory(prev => [...prev.slice(-9), code]);
-    
+
     // Set loading states
-    setIsRunning(true);
+   
     setOutput('');
     setExecutionStats({
       memory: '...',
       cpu: '...',
       status: 'Executing'
     });
-    
-    dispatch(setLoading({ 
-      isLoading: true, 
-      message: `Executing ${language} code in quantum environment...`, 
-      style: 'terminal' 
+
+    dispatch(setLoading({
+      isLoading: true,
+      message: `Executing ${language} code in quantum environment...`,
+      style: 'terminal'
     }));
 
     try {
       // Simulated execution with timeout
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Generate appropriate output based on language
       let simulatedOutput = '';
       let memory = (Math.random() * 5 + 1).toFixed(1) + ' MB';
       let cpu = (Math.random() * 0.2).toFixed(2) + ' ms';
-      
+
       if (language === 'javascript') {
         simulatedOutput = '> Hello, quantum world!\n> Process completed successfully.';
       } else if (language === 'python') {
@@ -76,9 +73,9 @@ const Compiler = () => {
       } else if (language === 'java') {
         simulatedOutput = 'Hello, quantum world!\nCompiled and executed successfully.';
       }
-      
+
       simulatedOutput += `\n\n${getRandomQuantumQuote()}`;
-      
+
       setOutput(simulatedOutput);
       setExecutionStats({
         memory,
@@ -121,7 +118,7 @@ const Compiler = () => {
   const handleSaveCode = async () => {
     setSaveStatus('saving');
     dispatch(setLoading({ isLoading: true, message: 'Saving to quantum storage...', style: 'terminal' }));
-    
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -153,14 +150,14 @@ const Compiler = () => {
         e.preventDefault();
         handleRunCode();
       }
-      
+
       // Save with Ctrl+S or Cmd+S
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         handleSaveCode();
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [code, language]);
@@ -168,17 +165,17 @@ const Compiler = () => {
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden font-mono pt-16">
       {/* Loading overlay */}
-      <LoadingOverlay 
-        isLoading={loadingState.isLoading} 
-        message={loadingState.message} 
-        style={loadingState.style} 
-      />
-      
+      {/* <LoadingOverlay
+        isLoading={loadingState.isLoading}
+        message={loadingState.message}
+        style={loadingState.style}
+      /> */}
+
       {/* Cyber Perspective Grid Background */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="perspective-grid"></div>
       </div>
-      
+
       {/* Content Container */}
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
@@ -194,7 +191,7 @@ const Compiler = () => {
             Next-generation code execution in a quantum-enhanced environment
           </p>
         </header>
-        
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Code Editor Section */}
@@ -209,8 +206,8 @@ const Compiler = () => {
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                   </div>
-                  
-                  <select 
+
+                  <select
                     className="bg-gray-800 text-green-400 rounded-md px-3 py-1.5 text-sm border border-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
@@ -221,30 +218,30 @@ const Compiler = () => {
                       </option>
                     ))}
                   </select>
-                  
+
                   <div className="hidden md:block text-xs text-gray-500 bg-gray-800/70 px-2 py-1 rounded-md">
                     {theme === 'dark' ? '● Dark' : '○ Light'}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
-                  <button 
+                  <button
                     className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                     onClick={handleClearCode}
                     title="Clear code"
                   >
                     <Trash size={16} />
                   </button>
-                  
-                  <button 
+
+                  <button
                     className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                     onClick={handleCopyCode}
                     title="Copy code"
                   >
                     {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                   </button>
-                  
-                  <button 
+
+                  <button
                     className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                     onClick={handleSaveCode}
                     title="Save code"
@@ -259,7 +256,7 @@ const Compiler = () => {
                   </button>
                 </div>
               </div>
-              
+
               {/* Code Editor */}
               <div className="relative">
                 <div className="absolute left-0 top-0 h-full w-10 bg-gray-800/50 flex flex-col items-center pt-2 text-xs text-gray-500">
@@ -267,7 +264,7 @@ const Compiler = () => {
                     <div key={i} className="leading-6">{i + 1}</div>
                   ))}
                 </div>
-                <textarea 
+                <textarea
                   className="w-full h-[60vh] bg-gray-900/90 text-gray-200 font-mono text-sm p-2 pl-10 border-0 focus:outline-none focus:ring-0 resize-none leading-6"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
@@ -275,7 +272,7 @@ const Compiler = () => {
                   placeholder="Write your code here..."
                 />
               </div>
-              
+
               {/* Editor Footer */}
               <div className="border-t border-gray-800/80 p-3 flex justify-between items-center text-xs">
                 <div className="text-gray-500">
@@ -286,10 +283,10 @@ const Compiler = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Action Button */}
             <div className="mt-4 flex justify-end">
-              <CustomButton 
+              <CustomButton
                 variant="create"
                 onClick={handleRunCode}
                 isLoading={isRunning}
@@ -302,7 +299,7 @@ const Compiler = () => {
               </CustomButton>
             </div>
           </div>
-          
+
           {/* Output Section */}
           <div className="lg:col-span-2 relative">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-500/10 to-blue-500/10 blur-md -m-0.5"></div>
@@ -311,19 +308,18 @@ const Compiler = () => {
               <div className="p-3 border-b border-gray-800/80 flex justify-between items-center">
                 <div className="flex items-center">
                   <h2 className="text-sm font-medium text-green-400 mr-2">Console Output</h2>
-                  <div className={`h-2 w-2 rounded-full ${
-                    isRunning ? 'bg-yellow-500 animate-pulse' : 
-                    executionStats.status === 'Completed' ? 'bg-green-500' : 
-                    executionStats.status === 'Error' ? 'bg-red-500' : 
-                    'bg-gray-500'
-                  }`}></div>
+                  <div className={`h-2 w-2 rounded-full ${isRunning ? 'bg-yellow-500 animate-pulse' :
+                      executionStats.status === 'Completed' ? 'bg-green-500' :
+                        executionStats.status === 'Error' ? 'bg-red-500' :
+                          'bg-gray-500'
+                    }`}></div>
                 </div>
-                
+
                 <div className="text-xs text-gray-500">
                   {executionStats.status}
                 </div>
               </div>
-              
+
               {/* Output Content */}
               <div className="p-4">
                 <div className="w-full h-[37vh] bg-black/70 text-green-400 font-mono text-sm p-4 rounded-md border border-gray-800/50 overflow-auto">
@@ -342,7 +338,7 @@ const Compiler = () => {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Statistics Panel */}
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <div className="bg-black/30 border border-gray-800/50 rounded-md p-3 flex items-center">
@@ -363,26 +359,25 @@ const Compiler = () => {
                     <Activity size={14} className="text-green-500 mr-2" />
                     <div>
                       <div className="text-xs text-gray-500">Status</div>
-                      <div className={`font-medium ${
-                        executionStats.status === 'Completed' ? 'text-green-400' : 
-                        executionStats.status === 'Error' ? 'text-red-400' : 
-                        executionStats.status === 'Executing' ? 'text-yellow-400' : 
-                        'text-gray-400'
-                      }`}>
+                      <div className={`font-medium ${executionStats.status === 'Completed' ? 'text-green-400' :
+                          executionStats.status === 'Error' ? 'text-red-400' :
+                            executionStats.status === 'Executing' ? 'text-yellow-400' :
+                              'text-gray-400'
+                        }`}>
                         {executionStats.status}
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* History Panel */}
                 {codeHistory.length > 0 && (
                   <div className="mt-4">
                     <h3 className="text-xs text-gray-500 mb-2">Recent Executions</h3>
                     <div className="text-xs bg-black/30 border border-gray-800/50 rounded-md p-2 max-h-24 overflow-y-auto">
                       {codeHistory.map((historyItem, idx) => (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="p-1 hover:bg-gray-800/30 rounded cursor-pointer flex items-center"
                           onClick={() => setCode(historyItem)}
                         >
@@ -397,7 +392,7 @@ const Compiler = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
           <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-4 border border-gray-800 relative overflow-hidden group">
@@ -405,80 +400,29 @@ const Compiler = () => {
             <h3 className="text-green-400 font-medium mb-2">Quantum Acceleration</h3>
             <p className="text-gray-400 text-sm">Harness the power of quantum computing for blazing fast code execution and enhanced capabilities.</p>
           </div>
-          
+
           <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-4 border border-gray-800 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-full"></div>
             <h3 className="text-blue-400 font-medium mb-2">Multi-language Support</h3>
             <p className="text-gray-400 text-sm">Execute code in JavaScript, Python, C++, Rust, Go, and Java with real-time compilation.</p>
           </div>
-          
+
           <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-4 border border-gray-800 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-full"></div>
             <h3 className="text-purple-400 font-medium mb-2">Secure Environment</h3>
             <p className="text-gray-400 text-sm">All code executes in an isolated quantum sandbox with advanced cryptographic security.</p>
           </div>
         </div>
-        
+
         {/* Footer */}
         <footer className="mt-8 text-center text-gray-600 text-xs border-t border-gray-800/50 pt-4">
           <p>QUANTUM COMPILER v3.0 • Neural Environment • 2025 Edition</p>
           <p className="mt-1">Keyboard shortcuts: Ctrl+Enter to run • Ctrl+S to save</p>
         </footer>
       </div>
-      
-      {/* CSS for the perspective grid background */}
-      <style jsx>{`
-        .perspective-grid {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: #000;
-          overflow: hidden;
-          transform-style: preserve-3d;
-        }
-        
-        .perspective-grid:before {
-          content: '';
-          position: absolute;
-          top: -100%;
-          left: -100%;
-          width: 300%;
-          height: 300%;
-          background-image: 
-            linear-gradient(rgba(0, 255, 128, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 128, 0.05) 1px, transparent 1px);
-          background-size: 50px 50px;
-          transform: perspective(500px) rotateX(60deg);
-          animation: gridFlowForward 30s linear infinite;
-        }
-        
-        .perspective-grid:after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(circle at center, transparent 0%, #000 90%);
-        }
-        
-        @keyframes gridFlowForward {
-          0% {
-            transform: perspective(500px) rotateX(60deg) translateY(0);
-          }
-          100% {
-            transform: perspective(500px) rotateX(60deg) translateY(50px);
-          }
-        }
 
-        /* Syntax highlighting animation */
-        @keyframes highlight {
-          0% { background-color: rgba(76, 175, 80, 0.2); }
-          100% { background-color: transparent; }
-        }
-      `}</style>
+      {/* CSS for the perspective grid background */}
+
     </div>
   );
 };

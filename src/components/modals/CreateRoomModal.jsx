@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import CustomButton from '../ui/CustomButton';
 import { createRoom } from '../../services/RoomService';
 import { useSelector } from 'react-redux';
+import api from '../../api';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -68,71 +69,74 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
 
   const handleCreateRoom = async () => {
     if (!accessToken) {
-      toast.error('Please log in to create a room');
-      navigate('/login');
-      return;
+        toast.error('Please log in to create a room');
+        navigate('/login');
+        return;
     }
 
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      const payload = {
-        name: formData.name,
-        topic: formData.topic,
-        difficulty: formData.difficulty,
-        time_limit: formData.is_ranked ? 0 : parseInt(formData.time_limit),
-        capacity: parseInt(formData.capacity),
-        visibility: formData.visibility,
-        is_ranked: formData.is_ranked,
-        ...(formData.visibility === 'private' && { password: formData.password }),
-      };
+        const payload = {
+            name: formData.name,
+            topic: formData.topic,
+            difficulty: formData.difficulty,
+            time_limit: formData.is_ranked ? 0 : parseInt(formData.time_limit),
+            capacity: parseInt(formData.capacity),
+            visibility: formData.visibility,
+            is_ranked: formData.is_ranked,
+            ...(formData.visibility === 'private' && { password: formData.password }),
+        };
 
-      const response = await createRoom(payload);
+        const response = await createRoom(payload);
 
-      onRoomCreated({
-        id: response.room_id,
-        name: formData.name,
-        host: response.owner || 'current_user',
-        participants: 1,
-        maxParticipants: parseInt(formData.capacity),
-        difficulty: formData.difficulty,
-        status: 'active',
-        duration: formData.is_ranked ? 'Ranked' : `${formData.time_limit} min`,
-        isPrivate: formData.visibility === 'private',
-        joinCode: response.join_code,
-        role: 'host',
-        is_ranked: formData.is_ranked,
-      });
+        // Call join_room API
+        await api.post(`/rooms/${response.room_id}/join/`, formData.visibility === 'private' ? { password: formData.password } : {});
 
-     
-      onClose();
-      navigate(`/user/room/${response.room_id}`, {
-        state: {
-          roomId: response.room_id,
-          roomName: formData.name,
-          isHost: true,
-          isPrivate: formData.visibility === 'private',
-          joinCode: response.join_code,
-          difficulty: formData.difficulty,
-          timeLimit: formData.is_ranked ? 0 : formData.time_limit,
-          capacity: formData.capacity,
-          isRanked: formData.is_ranked,
-        },
-      });
+        onRoomCreated({
+            id: response.room_id,
+            name: formData.name,
+            host: response.owner || 'current_user',
+            participants: 1,
+            maxParticipants: parseInt(formData.capacity),
+            difficulty: formData.difficulty,
+            status: 'active',
+            duration: formData.is_ranked ? 'Ranked' : `${formData.time_limit} min`,
+            isPrivate: formData.visibility === 'private',
+            joinCode: response.join_code,
+            role: 'host',
+            is_ranked: formData.is_ranked,
+        });
+
+        navigate(`/user/room/${response.room_id}`, {
+            state: {
+                roomId: response.room_id,
+                roomName: formData.name,
+                isHost: true,
+                isPrivate: formData.visibility === 'private',
+                joinCode: response.join_code,
+                difficulty: formData.difficulty,
+                timeLimit: formData.is_ranked ? 0 : formData.time_limit,
+                capacity: formData.capacity,
+                isRanked: formData.is_ranked,
+            },
+        });
+
+        onClose();
     } catch (error) {
-      console.error('Error creating room:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
-      toast.error(errorMessage);
+        console.error('Error creating room:', error);
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
+        toast.error(errorMessage);
 
-      if (error.response?.status === 401) {
-        toast.error('Session expired. Please log in again.');
-        navigate('/login');
-      }
+        if (error.response?.status === 401) {
+            toast.error('Session expired. Please log in again.');
+            navigate('/login');
+        }
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   useEffect(() => {
     const handleEsc = (e) => {

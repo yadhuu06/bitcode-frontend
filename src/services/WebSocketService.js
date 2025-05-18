@@ -1,3 +1,4 @@
+// src/services/WebSocketService.js
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 class WebSocketService {
@@ -13,12 +14,12 @@ class WebSocketService {
     this.reconnectDelay = 3000;
 
     // Heartbeat settings
-    this.heartbeatInterval = 10000; 
+    this.heartbeatInterval = 10000;
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
   }
 
-  connect(token, roomId = null) { 
+  connect(token, roomId = null) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
     this.token = token;
@@ -51,7 +52,8 @@ class WebSocketService {
       console.warn('⚠️ WebSocket disconnected:', event.code, event.reason);
       this.socket = null;
       this._stopHeartbeat();
-      if (event.code !== 1000) {
+      // Retry for private room authorization failure (4005) or if attempts remain
+      if (event.code !== 1000 && (event.code === 4005 || this.reconnectAttempts < this.maxReconnectAttempts)) {
         this._tryReconnect();
       }
     };

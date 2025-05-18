@@ -1,4 +1,4 @@
-
+// src/components/BattleWaitingLobby.js
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { Users, Clock, Play, Shield, UserX, Code, ClipboardCopy, CheckCircle, Swords } from 'lucide-react';
 import { useSelector } from 'react-redux';
@@ -128,7 +128,7 @@ const BattleWaitingLobby = () => {
             roomId,
             roomName: location.state.roomName,
             isPrivate: location.state.isPrivate,
-            join_code: location.state.joinCode, 
+            join_code: location.state.joinCode,
             difficulty: location.state.difficulty,
             timeLimit: location.state.timeLimit,
             capacity: location.state.capacity,
@@ -179,9 +179,10 @@ const BattleWaitingLobby = () => {
       if (data.type === 'participant_list' || data.type === 'participant_update') {
         setParticipants(data.participants || []);
         setRoomDetails((prev) => (prev ? { ...prev, participantCount: data.participants.length } : prev));
-        if (!role) {
-          toast.error("not autherised")
-          navigate('/user/rooms')
+        // Update role based on participant's data
+        const currentUser = data.participants.find((p) => p.user__username === username);
+        if (currentUser && currentUser.role) {
+          setRole(currentUser.role);
         }
       } else if (data.type === 'countdown') {
         setCountdown(data.countdown);
@@ -200,7 +201,7 @@ const BattleWaitingLobby = () => {
     return () => {
       WebSocketService.removeListener(wsListenerId.current);
     };
-  }, [roomId, accessToken, navigate, username, role]);
+  }, [roomId, accessToken, navigate, username]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -299,20 +300,18 @@ const BattleWaitingLobby = () => {
               </h1>
               <div className="flex gap-2">
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    roomDetails.difficulty === 'easy'
+                  className={`px-2 py-1 rounded text-xs font-medium ${roomDetails.difficulty === 'easy'
                       ? 'bg-green-500/20 text-green-400'
                       : roomDetails.difficulty === 'medium'
-                      ? 'bg-yellow-500/20 text-yellow-400'
-                      : 'bg-red-500/20 text-red-400'
-                  }`}
+                        ? 'bg-yellow-500/20 text-yellow-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}
                 >
                   {roomDetails.difficulty?.toUpperCase()}
                 </span>
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    roomDetails.isPrivate ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#00FF40]/20 text-[#00FF40]'
-                  }`}
+                  className={`px-2 py-1 rounded text-xs font-medium ${roomDetails.isPrivate ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#00FF40]/20 text-[#00FF40]'
+                    }`}
                 >
                   {roomDetails.isPrivate ? 'PRIVATE' : 'PUBLIC'}
                 </span>
@@ -359,9 +358,8 @@ const BattleWaitingLobby = () => {
                         </div>
                         <div className="flex items-center text-xs mt-1">
                           <span
-                            className={`h-2 w-2 rounded-full mr-1 ${
-                              participant.status === 'joined' ? 'bg-[#00FF40]' : 'bg-yellow-400'
-                            }`}
+                            className={`h-2 w-2 rounded-full mr-1 ${participant.status === 'joined' ? 'bg-[#00FF40]' : 'bg-yellow-400'
+                              }`}
                           ></span>
                           <span className={participant.status === 'joined' ? 'text-[#00FF40]' : 'text-yellow-400'}>
                             {participant.status.toUpperCase()}
@@ -387,11 +385,10 @@ const BattleWaitingLobby = () => {
                       {role !== 'host' && participant.user__username === username && (
                         <button
                           onClick={handleReadyToggle}
-                          className={`p-2 rounded-full ${
-                            readyStatus[username]
+                          className={`p-2 rounded-full ${readyStatus[username]
                               ? 'bg-[#00FF40]/20 text-[#00FF40]'
                               : 'bg-gray-700/50 text-gray-400'
-                          } hover:bg-[#22c55e]/30 transition-all duration-300`}
+                            } hover:bg-[#22c55e]/30 transition-all duration-300`}
                           title={readyStatus[username] ? 'Unready' : 'Ready'}
                           aria-label={readyStatus[username] ? 'Unready' : 'Ready'}
                         >
@@ -420,11 +417,10 @@ const BattleWaitingLobby = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${
-                    activeTab === tab
+                  className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${activeTab === tab
                       ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
                       : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
-                  }`}
+                    }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
@@ -519,10 +515,9 @@ const BattleWaitingLobby = () => {
                     onClick={initiateCountdown}
                     disabled={participants.length < 1 || isLoading}
                     className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
-                      ${
-                        participants.length < 1 || isLoading
-                          ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
+                      ${participants.length < 1 || isLoading
+                        ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
                       }`}
                     aria-label="Start battle"
                   >

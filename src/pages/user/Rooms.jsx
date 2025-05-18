@@ -11,7 +11,7 @@ import CustomButton from '../../components/ui/CustomButton';
 import Cookies from 'js-cookie';
 import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
-import { Swords ,X} from 'lucide-react';
+import { Swords, X } from 'lucide-react';
 import api from '../../api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -124,26 +124,27 @@ const Rooms = () => {
 
   const handleJoinRoom = async (room) => {
     dispatch(setLoading({ isLoading: true, message: 'Joining room...', style: 'battle', progress: 0 }));
-  
+
     try {
       let password = null;
-  
+
       if (room.visibility === 'private') {
         password = passwords[room.room_id];
-  
+
         if (!password) {
-          setPasswordRoomId(room.room_id); 
+          setPasswordRoomId(room.room_id);
           dispatch(resetLoading());
           return;
         }
       }
-  
+
       const response = await api.post(`/rooms/${room.room_id}/join/`, password ? { password } : {});
-  
+
       toast.success('Joined room successfully');
-  
+
       const data = response.data;
-  
+      WebSocketService.disconnect();
+
       navigate(`/user/room/${room.room_id}`, {
         state: {
           roomName: room.name,
@@ -158,25 +159,25 @@ const Rooms = () => {
       });
     } catch (err) {
       console.error('Error joining room:', err);
-  
+
       if (err.response?.status === 401) {
         dispatch(logoutSuccess());
         Cookies.remove('access_token');
         Cookies.remove('refresh_token');
         navigate('/login');
       }
-  
+
       toast.error(
         err.response?.data?.error ||
-        err.response?.data?.message || 
-        err.message || 
+        err.response?.data?.message ||
+        err.message ||
         'Failed to join room'
       );
     } finally {
       dispatch(resetLoading());
     }
   };
-  
+
   const handlePasswordSubmit = (roomId) => {
     const room = rooms.find((r) => r.room_id === roomId);
     if (room) {
@@ -240,11 +241,11 @@ const Rooms = () => {
       </div>
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <div className="flex justify-between items-center mb-8 border-b border-green-500/30 pb-4">
-        <h1 className="text-4xl md:text-5xl text-white font-orbitron tracking-widest font-bold flex items-center justify-center space-x-2">
-  <span className="text-[#22c55e]">&lt;</span>
-  <span className="text-[#22c55e]">BATTLE</span>
-  <span className="text-[#22c55e]">&gt;</span>
-</h1>
+          <h1 className="text-4xl md:text-5xl text-white font-orbitron tracking-widest font-bold flex items-center justify-center space-x-2">
+            <span className="text-[#22c55e]">&lt;</span>
+            <span className="text-[#22c55e]">BATTLE</span>
+            <span className="text-[#22c55e]">&gt;</span>
+          </h1>
 
           <CustomButton variant="create" onClick={() => setShowModal(true)}>
             Create Room
@@ -263,21 +264,20 @@ const Rooms = () => {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-  {['all', 'active', 'public', 'private', 'ranked', 'casual'].map((filter) => (
-    <button
-      key={filter}
-      onClick={() => setActiveFilter(filter)}
-      className={`px-4 py-2 rounded-md text-sm transition-all duration-300 border
-        ${
-          activeFilter === filter
-            ? 'bg-transparent text-white border-[#00ff73]'
-            : 'bg-gray-900/90 text-white border-gray-700 hover:bg-gray-800/90 hover:border-gray-600 hover:text-[#00ff73]'
-        }`}
-    >
-      {filter.charAt(0).toUpperCase() + filter.slice(1)}
-    </button>
-  ))}
-</div>
+            {['all', 'active', 'public', 'private', 'ranked', 'casual'].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-4 py-2 rounded-md text-sm transition-all duration-300 border
+        ${activeFilter === filter
+                    ? 'bg-transparent text-white border-[#00ff73]'
+                    : 'bg-gray-900/90 text-white border-gray-700 hover:bg-gray-800/90 hover:border-gray-600 hover:text-[#00ff73]'
+                  }`}
+              >
+                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
+          </div>
 
 
         </div>
@@ -304,43 +304,43 @@ const Rooms = () => {
               key={room.room_id}
               className="bg-gray-900/85 backdrop-blur-md p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all duration-300 group relative overflow-hidden transform hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
             >
-{room.visibility === 'private' && passwordRoomId === room.room_id ? (
-  <div className="flex flex-col h-full justify-center p-6 bg-gray-900/95 backdrop-blur-sm rounded-lg relative animate-fadeIn">
-    <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_6px_rgba(34,197,94,0.4)]">
-      {room.name}
-    </h3>
-    <input
-      type="password"
-      value={passwords[room.room_id] || ''}
-      onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
-      placeholder="Enter room password"
-      className="w-full h-12 p-4 bg-gray-950/90 border border-green-500/30 rounded-md text-white placeholder-gray-500 font-['Orbitron'] text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/50 transition-all duration-200 mb-6"
-      aria-label="Room password"
-    />
+              {room.visibility === 'private' && passwordRoomId === room.room_id ? (
+                <div className="flex flex-col h-full justify-center p-6 bg-gray-900/95 backdrop-blur-sm rounded-lg relative animate-fadeIn">
+                  <h3 className="text-2xl font-bold text-white mb-6 text-center font-['Orbitron'] tracking-wider text-shadow-[0_0_6px_rgba(34,197,94,0.4)]">
+                    {room.name}
+                  </h3>
+                  <input
+                    type="password"
+                    value={passwords[room.room_id] || ''}
+                    onChange={(e) => handlePasswordChange(room.room_id, e.target.value)}
+                    placeholder="Enter room password"
+                    className="w-full h-12 p-4 bg-gray-950/90 border border-green-500/30 rounded-md text-white placeholder-gray-500 font-['Orbitron'] text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/50 transition-all duration-200 mb-6"
+                    aria-label="Room password"
+                  />
 
 
-<div className="flex justify-between gap-4">
-  <button
-    onClick={() => handleCancel(room.room_id)}
-    className="w-1/2 h-10 px-3 py-1 border border-red-500 text-red-500 font-['Orbitron'] text-sm rounded-md hover:bg-red-500 hover:text-white transition-all duration-150 flex items-center justify-center"
-  >
-    <X size={16} className="mr-2" />
-    Cancel
-  </button>
+                  <div className="flex justify-between gap-4">
+                    <button
+                      onClick={() => handleCancel(room.room_id)}
+                      className="w-1/2 h-10 px-3 py-1 border border-red-500 text-red-500 font-['Orbitron'] text-sm rounded-md hover:bg-red-500 hover:text-white transition-all duration-150 flex items-center justify-center"
+                    >
+                      <X size={16} className="mr-2" />
+                      Cancel
+                    </button>
 
-  <button
-    onClick={() => handlePasswordSubmit(room.room_id)}
-    className="w-1/2 h-10 px-3 py-1 border border-[#00ff40] text-[#00ff40] font-['Orbitron'] text-sm rounded-md hover:bg-[#00ff40] hover:text-black transition-all duration-150 flex items-center justify-center"
-  >
-    <Swords size={16} className="mr-2" />
-    Battle
-  </button>
-</div>
+                    <button
+                      onClick={() => handlePasswordSubmit(room.room_id)}
+                      className="w-1/2 h-10 px-3 py-1 border border-[#00ff40] text-[#00ff40] font-['Orbitron'] text-sm rounded-md hover:bg-[#00ff40] hover:text-black transition-all duration-150 flex items-center justify-center"
+                    >
+                      <Swords size={16} className="mr-2" />
+                      Battle
+                    </button>
+                  </div>
 
-    <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/30"></div>
-    <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/30"></div>
-  </div>
-)  : (
+                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-green-400/30"></div>
+                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-green-400/30"></div>
+                </div>
+              ) : (
                 <>
                   {room.visibility === 'private' && (
                     <div className="absolute top-3 right-3 bg-gray-500/20 p-1 rounded-md">
@@ -390,31 +390,28 @@ const Rooms = () => {
                   </div>
                   <div className="flex items-center gap-2 mb-5">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        room.difficulty === 'easy'
+                      className={`px-2 py-1 rounded text-xs font-medium ${room.difficulty === 'easy'
                           ? 'bg-green-500/20 text-green-400 border border-green-500/50'
                           : room.difficulty === 'medium'
-                          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50'
-                          : 'bg-red-500/20 text-red-400 border border-red-500/50'
-                      }`}
+                            ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50'
+                            : 'bg-red-500/20 text-red-400 border border-red-500/50'
+                        }`}
                     >
                       {room.difficulty.toUpperCase()}
                     </span>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        room.visibility === 'public'
+                      className={`px-2 py-1 rounded text-xs font-medium ${room.visibility === 'public'
                           ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
                           : 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                      }`}
+                        }`}
                     >
                       {room.visibility.toUpperCase()}
                     </span>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        room.is_ranked
+                      className={`px-2 py-1 rounded text-xs font-medium ${room.is_ranked
                           ? 'bg-red-500/20 text-red-400 border border-red-500/50'
                           : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
-                      }`}
+                        }`}
                     >
                       {room.is_ranked ? 'RANKED' : 'CASUAL'}
                     </span>

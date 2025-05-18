@@ -7,8 +7,6 @@ import { logout } from '../../services/AuthService';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
@@ -58,8 +56,7 @@ const Profile = () => {
         setUsername(response.data.username || '');
       } catch (error) {
         console.error('Error fetching user data:', error);
-        const errorMessage = error.response?.data?.error || error.message || 'Failed to load profile data';
-        toast.error(errorMessage);
+        toast.error(error.response?.data?.error || error.message || 'Failed to load profile data');
       } finally {
         dispatch(resetLoading());
       }
@@ -177,8 +174,7 @@ const Profile = () => {
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to update profile';
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.error || error.message || 'Failed to update profile');
     } finally {
       dispatch(resetLoading());
     }
@@ -235,18 +231,6 @@ const Profile = () => {
           {element.value}
         </span>
       ))}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <BitCodeProgressLoading

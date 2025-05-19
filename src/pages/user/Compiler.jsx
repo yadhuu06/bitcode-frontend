@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Code, Check, Play, Save, X, Copy, Trash, Maximize, Minimize } from 'lucide-react';
+import { Check, Play, Save, Copy, Trash, Maximize, Minimize } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
-import CustomButton from '../../components/ui/CustomButton';
-import axios from 'axios';
+import CodeEditor from '../../components/ui/CodeEditor';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -20,7 +19,6 @@ const Compiler = () => {
   const [showCheck, setShowCheck] = useState(false);
   const [isEditorFull, setIsEditorFull] = useState(false);
   const [isOutputFull, setIsOutputFull] = useState(false);
-  const textareaRef = useRef(null);
 
   const languages = [
     {
@@ -115,8 +113,6 @@ const Compiler = () => {
     setIsEditorFull(false);
   };
 
-  const lineNumbers = code.split('\n').map((_, i) => i + 1).join('\n');
-
   const navLinkClass = ({ isActive }) =>
     `text-xl font-bold font-orbitron tracking-widest flex items-center space-x-1 ${isActive ? 'text-green-400' : 'text-white'}`;
 
@@ -126,12 +122,9 @@ const Compiler = () => {
         <div className="container mx-auto flex items-center justify-between">
           <NavLink to="/user/dashboard" className={navLinkClass}>
             <span className="text-green-400">{'<'}</span>
-            <span className="text-white">BitCode</span>
+            <span className="text-white">BitCode Compiler</span>
             <span className="text-green-400">{'/>'}</span>
-            <h1 className="text-xl font-orbitron tracking-widest text-green-400">COMPILER</h1>
-            
           </NavLink>
-          
         </div>
       </nav>
       <div className="relative z-10 container mx-auto px-4 py-4 h-[110vh]">
@@ -195,18 +188,11 @@ const Compiler = () => {
                   </button>
                 </div>
               </div>
-              <div className="flex bg-gray-950/90 rounded border border-gray-800 overflow-hidden">
-                <div className="bg-gray-800/50 text-gray-500 p-2 text-right select-none text-sm" style={{ width: '3em' }}>
-                  <pre>{lineNumbers}</pre>
-                </div>
-                <textarea
-                  ref={textareaRef}
-                  className="w-full h-[66vh] p-2 bg-transparent text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-400/50"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  spellCheck="false"
-                />
-              </div>
+              <CodeEditor
+                code={code}
+                setCode={setCode}
+                language={language}
+              />
             </div>
           </div>
           <div className={`transition-all duration-300 ${isOutputFull ? 'w-full h-[88vh]' : isEditorFull ? 'w-0' : 'w-full lg:w-[35%]'} bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-800 p-4 flex flex-col`}>

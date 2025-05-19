@@ -21,17 +21,19 @@ import Profile from './pages/user/Profile';
 import Compiler from './pages/user/Compiler';
 import Rooms from './pages/user/Rooms';
 import RoomLobby from './pages/user/RoomLobby';
-
-
+import { useLocation } from 'react-router-dom';
 import BitWarAdminLogin from './pages/admin/Login';
 import UserNavbar from './components/user/UserNavbar';
 import AuthCallback from './components/auth/AuthCallback';
 import LoadingIndicator from './components/ui/LoadingIndicator';
 
 const UserLayout = ({ children }) => {
+  const location = useLocation();
+  const isCompilerPage = location.pathname === '/user/compiler';
   return (
     <>
-      <UserNavbar />
+    {!isCompilerPage && <UserNavbar />}
+      
       {children}
     </>
   );

@@ -1,428 +1,273 @@
-import axios from 'axios';
-import React, { useState, useEffect } from 'react';
-import { Play, Box, Cpu, Activity, DownloadCloud, Copy, Check, Save, Trash, RefreshCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink } from 'react-router-dom';
+import { Code, Check, Play, Save, X, Copy, Trash, Maximize, Minimize } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import CustomButton from '../../components/ui/CustomButton';
-
+import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const Compiler = () => {
   const dispatch = useDispatch();
-  const loadingState = useSelector((state) => state.loading);
-  const [code, setCode] = useState('// Write your code here\console.log("Hello, quantum world!");');
+  const { isLoading } = useSelector((state) => state.loading);
   const [language, setLanguage] = useState('javascript');
+  const [code, setCode] = useState('');
   const [output, setOutput] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [saveStatus, setSaveStatus] = useState('');
-  const [theme, setTheme] = useState('dark');
-  const [codeHistory, setCodeHistory] = useState([]);
-  const [executionStats, setExecutionStats] = useState({
-    memory: '0.0 MB',
-    cpu: '0.00 ms',
-    status: 'Ready'
-  });
+  const [status, setStatus] = useState('Ready');
+  const [time, setTime] = useState('0.00 ms');
+  const [memory, setMemory] = useState('0.0 MB');
+  const [showCheck, setShowCheck] = useState(false);
+  const [isEditorFull, setIsEditorFull] = useState(false);
+  const [isOutputFull, setIsOutputFull] = useState(false);
+  const textareaRef = useRef(null);
 
-  const languageOptions = [
-    { value: 'javascript', label: 'JavaScript', icon: '🟨' },
-    { value: 'python', label: 'Python', icon: '🐍' },
-    { value: 'go', label: 'Go', icon: '🔵' },
-
+  const languages = [
+    {
+      name: 'javascript',
+      icon: 'https://raw.githubusercontent.com/voodootikigod/logo.js/master/js.png',
+      placeholder: '// JavaScript code\nconsole.log("Hello, Bit Code!");'
+    },
+    {
+      name: 'python',
+      icon: 'https://img.icons8.com/?size=100&id=13441&format=png&color=000000',
+      placeholder: '# Python code\nprint("Hello, Bit Code!")'
+    },
+    {
+      name: 'go',
+      icon: 'https://go.dev/images/go-logo-white.svg',
+      placeholder: 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello, Bit Code!")\n}'
+    },
   ];
 
-  const handleRunCode = async () => {
-    // Save current code to history
-    setCodeHistory(prev => [...prev.slice(-9), code]);
+  useEffect(() => {
+    const savedCode = localStorage.getItem(`compiler_${language}`) || languages.find(l => l.name === language).placeholder;
+    setCode(savedCode);
+  }, [language]);
 
-    // Set loading states
-   
-    setOutput('');
-    setExecutionStats({
-      memory: '...',
-      cpu: '...',
-      status: 'Executing'
-    });
-
-    dispatch(setLoading({
-      isLoading: true,
-      message: `Executing ${language} code in quantum environment...`,
-      style: 'terminal'
-    }));
-
-    try {
-      // Simulated execution with timeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Generate appropriate output based on language
-      let simulatedOutput = '';
-      let memory = (Math.random() * 5 + 1).toFixed(1) + ' MB';
-      let cpu = (Math.random() * 0.2).toFixed(2) + ' ms';
-
-      if (language === 'javascript') {
-        simulatedOutput = '> Hello, quantum world!\n> Process completed successfully.';
-      } else if (language === 'python') {
-        simulatedOutput = '>>> Hello, quantum world!\n>>> Process completed successfully.';
-      } else if (language === 'cpp') {
-        simulatedOutput = 'Hello, quantum world!\n[Process finished with exit code 0]';
-      } else if (language === 'rust') {
-        simulatedOutput = 'Hello, quantum world!\nCompilation successful. Program exited normally.';
-      } else if (language === 'go') {
-        simulatedOutput = 'Hello, quantum world!\ngo run completed successfully.';
-      } else if (language === 'java') {
-        simulatedOutput = 'Hello, quantum world!\nCompiled and executed successfully.';
-      }
-
-      simulatedOutput += `\n\n${getRandomQuantumQuote()}`;
-
-      setOutput(simulatedOutput);
-      setExecutionStats({
-        memory,
-        cpu,
-        status: 'Completed'
-      });
-    } catch (error) {
-      setOutput(`Error: ${error.message || 'An unexpected error occurred'}`);
-      setExecutionStats({
-        memory: '0.0 MB',
-        cpu: '0.00 ms',
-        status: 'Error'
-      });
-    } finally {
-      setIsRunning(false);
-      dispatch(resetLoading());
-    }
-  };
-
-  // Random quantum computing quotes
-  const getRandomQuantumQuote = () => {
-    const quotes = [
-      "// Quantum computation is... a distinctively new way of harnessing nature.",
-      "// In quantum computing, entanglement is not a bug but a feature.",
-      "// The quantum computer is not just a faster classical computer.",
-      "// Quantum isn't about being in multiple states, it's about efficiency.",
-      "// Quantum advantage: when classical simulation becomes impossible."
-    ];
-    return quotes[Math.floor(Math.random() * quotes.length)];
-  };
-
-  // Copy code to clipboard
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Simulate saving code
-  const handleSaveCode = async () => {
-    setSaveStatus('saving');
-    dispatch(setLoading({ isLoading: true, message: 'Saving to quantum storage...', style: 'terminal' }));
-
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(''), 2000);
-    } catch (error) {
-      setSaveStatus('error');
-    } finally {
-      dispatch(resetLoading());
-    }
-  };
-
-  // Clear code
-  const handleClearCode = () => {
-    setCode('// Write your code here');
-    setOutput('');
-    setExecutionStats({
-      memory: '0.0 MB',
-      cpu: '0.00 ms',
-      status: 'Ready'
-    });
-  };
-
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Run code with Ctrl+Enter or Cmd+Enter
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
-        handleRunCode();
+        runCode();
       }
-
-      // Save with Ctrl+S or Cmd+S
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        handleSaveCode();
+        saveCode();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [code, language]);
+  }, [code]);
+
+  const runCode = async () => {
+    setStatus('Executing');
+    setOutput('');
+    dispatch(setLoading({ isLoading: true, message: `Executing ${language} code...`, style: 'terminal', progress: 0 }));
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const randTime = (Math.random() * 0.2).toFixed(2);
+      const randMemory = (Math.random() * 5 + 1).toFixed(1);
+      setTime(`${randTime} ms`);
+      setMemory(`${randMemory} MB`);
+      setOutput(language === 'javascript' ? '> Sample output\n> Process completed' :
+                language === 'python' ? '>>> Sample output\n>>> Process completed' :
+                'Sample output\ngo run completed');
+      setStatus(Math.random() > 0.1 ? 'Completed' : 'Error');
+    } catch (error) {
+      setOutput(`Error: ${error.message || 'Execution failed'}`);
+      setStatus('Error');
+    } finally {
+      dispatch(resetLoading());
+    }
+  };
+
+  const saveCode = () => {
+    localStorage.setItem(`compiler_${language}`, code);
+    setShowCheck(true);
+    setTimeout(() => setShowCheck(false), 2000);
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(code);
+    setShowCheck(true);
+    setTimeout(() => setShowCheck(false), 2000);
+  };
+
+  const clearCode = () => {
+    const placeholder = languages.find(l => l.name === language).placeholder;
+    setCode(placeholder);
+    localStorage.setItem(`compiler_${language}`, placeholder);
+    setOutput('');
+    setTime('0.00 ms');
+    setMemory('0.0 MB');
+    setStatus('Ready');
+  };
+
+  const toggleEditorFull = () => {
+    setIsEditorFull(!isEditorFull);
+    setIsOutputFull(false);
+  };
+
+  const toggleOutputFull = () => {
+    setIsOutputFull(!isOutputFull);
+    setIsEditorFull(false);
+  };
+
+  const lineNumbers = code.split('\n').map((_, i) => i + 1).join('\n');
+
+  const navLinkClass = ({ isActive }) =>
+    `text-xl font-bold font-orbitron tracking-widest flex items-center space-x-1 ${isActive ? 'text-green-400' : 'text-white'}`;
 
   return (
-    <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden font-mono pt-16">
-      {/* Loading overlay */}
-      {/* <LoadingOverlay
-        isLoading={loadingState.isLoading}
-        message={loadingState.message}
-        style={loadingState.style}
-      /> */}
-
-      {/* Cyber Perspective Grid Background */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="perspective-grid"></div>
-      </div>
-
-      {/* Content Container */}
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="text-center mb-6">
-          <div className="inline-block relative">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">QUANTUM</span>
-              <span className="text-gray-300"> COMPILER</span>
-            </h1>
-            <div className="absolute -top-3 -right-6 bg-green-500 text-black text-xs px-2 py-0.5 rounded-lg transform rotate-12 font-bold">v3.0</div>
-          </div>
-          <p className="text-green-500/80 mt-2 text-lg max-w-xl mx-auto">
-            Next-generation code execution in a quantum-enhanced environment
-          </p>
-        </header>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Code Editor Section */}
-          <div className="lg:col-span-3 relative">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 blur-md -m-0.5"></div>
-            <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-800 relative">
-              {/* Editor Toolbar */}
-              <div className="flex items-center justify-between p-3 border-b border-gray-800/80">
-                <div className="flex items-center space-x-3">
-                  <div className="flex space-x-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  </div>
-
+    <div className="min-h-screen bg-black text-white font-mono relative overflow-hidden">
+      <nav className="bg-gray-900/90 backdrop-blur-sm border-b border-gray-800 h-[57px] flex items-center px-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <NavLink to="/user/dashboard" className={navLinkClass}>
+            <span className="text-green-400">{'<'}</span>
+            <span className="text-white">BitCode</span>
+            <span className="text-green-400">{'/>'}</span>
+            <h1 className="text-xl font-orbitron tracking-widest text-green-400">COMPILER</h1>
+            
+          </NavLink>
+          
+        </div>
+      </nav>
+      <div className="relative z-10 container mx-auto px-4 py-4 h-[110vh]">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className={`transition-all duration-300 ${isEditorFull ? 'w-full h-[88vh]' : isOutputFull ? 'w-0' : 'w-full lg:w-[65%]'} overflow-hidden`}>
+            <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-800 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
                   <select
-                    className="bg-gray-800 text-green-400 rounded-md px-3 py-1.5 text-sm border border-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="bg-gray-800 text-white rounded-md px-3 py-1.5 text-sm border border-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                   >
-                    {languageOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.icon} {option.label}
+                    {languages.map(lang => (
+                      <option key={lang.name} value={lang.name}>
+                        {lang.name.charAt(0).toUpperCase() + lang.name.slice(1)}
                       </option>
                     ))}
                   </select>
-
-                  <div className="hidden md:block text-xs text-gray-500 bg-gray-800/70 px-2 py-1 rounded-md">
-                    {theme === 'dark' ? '● Dark' : '○ Light'}
-                  </div>
+                  <img
+                    src={languages.find(l => l.name === language).icon}
+                    alt={`${language} logo`}
+                    className="w-5 h-5 object-contain"
+                  />
                 </div>
-
-                <div className="flex items-center space-x-2">
+                <div className="flex gap-2">
                   <button
-                    className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                    onClick={handleClearCode}
-                    title="Clear code"
+                    onClick={runCode}
+                    className="p-1.5 rounded-md text-green-400 hover:text-white hover:bg-green-400/20 transition-colors border border-green-400/50 hover:border-green-400"
+                    title="Run (Ctrl+Enter)"
                   >
-                    <Trash size={16} />
+                    <Play className="w-5 h-5" />
                   </button>
-
                   <button
-                    className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                    onClick={handleCopyCode}
-                    title="Copy code"
+                    onClick={saveCode}
+                    className="p-1.5 rounded-md text-green-400 hover:text-white hover:bg-green-400/20 transition-colors border border-green-400/50 hover:border-green-400"
+                    title="Save (Ctrl+S)"
                   >
-                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                    {showCheck ? <Check className="w-5 h-5 text-green-400" /> : <Save className="w-5 h-5" />}
                   </button>
-
                   <button
-                    className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                    onClick={handleSaveCode}
-                    title="Save code"
+                    onClick={copyCode}
+                    className="p-1.5 rounded-md text-green-400 hover:text-white hover:bg-green-400/20 transition-colors border border-green-400/50 hover:border-green-400"
+                    title="Copy"
                   >
-                    {saveStatus === 'saved' ? (
-                      <Check size={16} className="text-green-500" />
-                    ) : saveStatus === 'saving' ? (
-                      <RefreshCcw size={16} className="animate-spin" />
-                    ) : (
-                      <Save size={16} />
-                    )}
+                    {showCheck ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                  <button
+                    onClick={clearCode}
+                    className="p-1.5 rounded-md text-green-400 hover:text-white hover:bg-green-400/20 transition-colors border border-green-400/50 hover:border-green-400"
+                    title="Clear"
+                  >
+                    <Trash className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={toggleEditorFull}
+                    className="p-1.5 rounded-md text-green-400 hover:text-white hover:bg-green-400/20 transition-colors border border-green-400/50 hover:border-green-400"
+                    title={isEditorFull ? "Minimize Editor" : "Maximize Editor"}
+                  >
+                    {isEditorFull ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
-
-              {/* Code Editor */}
-              <div className="relative">
-                <div className="absolute left-0 top-0 h-full w-10 bg-gray-800/50 flex flex-col items-center pt-2 text-xs text-gray-500">
-                  {Array.from({ length: code.split('\n').length }, (_, i) => (
-                    <div key={i} className="leading-6">{i + 1}</div>
-                  ))}
+              <div className="flex bg-gray-950/90 rounded border border-gray-800 overflow-hidden">
+                <div className="bg-gray-800/50 text-gray-500 p-2 text-right select-none text-sm" style={{ width: '3em' }}>
+                  <pre>{lineNumbers}</pre>
                 </div>
                 <textarea
-                  className="w-full h-[60vh] bg-gray-900/90 text-gray-200 font-mono text-sm p-2 pl-10 border-0 focus:outline-none focus:ring-0 resize-none leading-6"
+                  ref={textareaRef}
+                  className="w-full h-[66vh] p-2 bg-transparent text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-400/50"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   spellCheck="false"
-                  placeholder="Write your code here..."
                 />
               </div>
-
-              {/* Editor Footer */}
-              <div className="border-t border-gray-800/80 p-3 flex justify-between items-center text-xs">
-                <div className="text-gray-500">
-                  {code.split('\n').length} lines | {code.length} characters
-                </div>
-                <div className="text-gray-500">
-                  Press <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-700">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-700">Enter</kbd> to run
-                </div>
-              </div>
             </div>
-
-            {/* Action Button */}
-            <div className="mt-4 flex justify-end">
-              <CustomButton
-                variant="create"
-                onClick={handleRunCode}
-                isLoading={isRunning}
-                disabled={isRunning || code.trim() === ''}
-                size="lg"
-                className="w-full md:w-auto"
+          </div>
+          <div className={`transition-all duration-300 ${isOutputFull ? 'w-full h-[88vh]' : isEditorFull ? 'w-0' : 'w-full lg:w-[35%]'} bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-800 p-4 flex flex-col`}>
+            <div className="flex justify-between items-center mb-4">
+              <button
+                onClick={() => setIsEditorFull(true)}
+                className={`p-2 bg-gray-800 text-green-400 rounded-md text-sm border border-gray-700 hover:bg-green-400/20 hover:border-green-400 ${isEditorFull || isOutputFull ? 'hidden' : ''}`}
               >
-                <Play size={16} className="mr-2" />
-                {isRunning ? 'Executing...' : 'Execute Code'}
-              </CustomButton>
+                Open Editor
+              </button>
+              <button
+                onClick={toggleOutputFull}
+                className="p-1.5 rounded-md text-green-400 hover:text-white hover:bg-green-400/20 transition-colors border border-green-400/50 hover:border-green-400"
+                title={isOutputFull ? "Minimize Output" : "Maximize Output"}
+              >
+                {isOutputFull ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </button>
             </div>
-          </div>
-
-          {/* Output Section */}
-          <div className="lg:col-span-2 relative">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-500/10 to-blue-500/10 blur-md -m-0.5"></div>
-            <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-800 relative h-full">
-              {/* Output Header */}
-              <div className="p-3 border-b border-gray-800/80 flex justify-between items-center">
-                <div className="flex items-center">
-                  <h2 className="text-sm font-medium text-green-400 mr-2">Console Output</h2>
-                  <div className={`h-2 w-2 rounded-full ${isRunning ? 'bg-yellow-500 animate-pulse' :
-                      executionStats.status === 'Completed' ? 'bg-green-500' :
-                        executionStats.status === 'Error' ? 'bg-red-500' :
-                          'bg-gray-500'
-                    }`}></div>
+            <div className="flex-1 flex flex-col">
+              <div className="h-[77%] bg-gray-950/90 rounded border border-gray-800 p-4 overflow-auto">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold text-green-400 font-orbitron tracking-wide">Console Output</h3>
+                  <span className={`text-sm ${status === 'Error' ? 'text-white' : 'text-green-400'}`}>{status}</span>
                 </div>
-
-                <div className="text-xs text-gray-500">
-                  {executionStats.status}
-                </div>
+                <pre className="text-white text-sm">{output || '// Output will display here'}</pre>
               </div>
-
-              {/* Output Content */}
-              <div className="p-4">
-                <div className="w-full h-[37vh] bg-black/70 text-green-400 font-mono text-sm p-4 rounded-md border border-gray-800/50 overflow-auto">
-                  {isRunning ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full"></div>
-                      <span>Executing code...</span>
-                    </div>
-                  ) : output ? (
-                    <pre className="whitespace-pre-wrap">{output}</pre>
-                  ) : (
-                    <div className="text-gray-600 flex flex-col space-y-2">
-                      <span>// Output will display here</span>
-                      <span>// Ready to execute code...</span>
-                      <span className="text-xs mt-2 text-gray-700">Hint: Try writing some code and click 'Execute Code'</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Statistics Panel */}
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <div className="bg-black/30 border border-gray-800/50 rounded-md p-3 flex items-center">
-                    <Box size={14} className="text-green-500 mr-2" />
-                    <div>
-                      <div className="text-xs text-gray-500">Memory</div>
-                      <div className="text-green-400 font-medium">{executionStats.memory}</div>
-                    </div>
+              <div className="h-[33%] mt-4 bg-gray-950/90 rounded border border-gray-800 p-4">
+                <h3 className="text-lg font-semibold text-green-400 font-orbitron tracking-wide mb-2">Execution Stats</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-500">Time</p>
+                    <p className="text-green-400">{time}</p>
                   </div>
-                  <div className="bg-black/30 border border-gray-800/50 rounded-md p-3 flex items-center">
-                    <Cpu size={14} className="text-green-500 mr-2" />
-                    <div>
-                      <div className="text-xs text-gray-500">CPU</div>
-                      <div className="text-green-400 font-medium">{executionStats.cpu}</div>
-                    </div>
-                  </div>
-                  <div className="bg-black/30 border border-gray-800/50 rounded-md p-3 flex items-center">
-                    <Activity size={14} className="text-green-500 mr-2" />
-                    <div>
-                      <div className="text-xs text-gray-500">Status</div>
-                      <div className={`font-medium ${executionStats.status === 'Completed' ? 'text-green-400' :
-                          executionStats.status === 'Error' ? 'text-red-400' :
-                            executionStats.status === 'Executing' ? 'text-yellow-400' :
-                              'text-gray-400'
-                        }`}>
-                        {executionStats.status}
-                      </div>
-                    </div>
+                  <div>
+                    <p className="text-gray-500">Memory</p>
+                    <p className="text-green-400">{memory}</p>
                   </div>
                 </div>
-
-                {/* History Panel */}
-                {codeHistory.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-xs text-gray-500 mb-2">Recent Executions</h3>
-                    <div className="text-xs bg-black/30 border border-gray-800/50 rounded-md p-2 max-h-24 overflow-y-auto">
-                      {codeHistory.map((historyItem, idx) => (
-                        <div
-                          key={idx}
-                          className="p-1 hover:bg-gray-800/30 rounded cursor-pointer flex items-center"
-                          onClick={() => setCode(historyItem)}
-                        >
-                          <span className="text-gray-500 mr-2">{idx + 1}.</span>
-                          <span className="truncate text-gray-400">{historyItem.substring(0, 40)}{historyItem.length > 40 ? '...' : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-4 border border-gray-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-bl-full"></div>
-            <h3 className="text-green-400 font-medium mb-2">Quantum Acceleration</h3>
-            <p className="text-gray-400 text-sm">Harness the power of quantum computing for blazing fast code execution and enhanced capabilities.</p>
-          </div>
-
-          <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-4 border border-gray-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-full"></div>
-            <h3 className="text-blue-400 font-medium mb-2">Multi-language Support</h3>
-            <p className="text-gray-400 text-sm">Execute code in JavaScript, Python, C++, Rust, Go, and Java with real-time compilation.</p>
-          </div>
-
-          <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-4 border border-gray-800 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-full"></div>
-            <h3 className="text-purple-400 font-medium mb-2">Secure Environment</h3>
-            <p className="text-gray-400 text-sm">All code executes in an isolated quantum sandbox with advanced cryptographic security.</p>
-          </div>
-        </div>
-
-        {/* Footer */}
         <footer className="mt-8 text-center text-gray-600 text-xs border-t border-gray-800/50 pt-4">
-          <p>QUANTUM COMPILER v3.0 • Neural Environment • 2025 Edition</p>
-          <p className="mt-1">Keyboard shortcuts: Ctrl+Enter to run • Ctrl+S to save</p>
+          <p>BITCODE COMPILER v1.0 • Quantum Environment • 2025</p>
+          <p className="mt-1">Shortcuts: Ctrl+Enter to run • Ctrl+S to save</p>
         </footer>
       </div>
-
-      {/* CSS for the perspective grid background */}
-
+      <style jsx>{`
+        .perspective-grid {
+          background-image: linear-gradient(to bottom, rgba(34, 197, 94, 0.1) 1px, transparent 1px),
+                            linear-gradient(to right, rgba(34, 197, 94, 0.1) 1px, transparent 1px);
+          background-size: 40px 40px;
+          transform: perspective(600px) rotateX(60deg);
+          opacity: 0.3;
+          height: 200%;
+          position: absolute;
+          top: -50%;
+          left: 0;
+          width: 100%;
+        }
+      `}</style>
     </div>
   );
 };

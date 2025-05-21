@@ -1,92 +1,78 @@
-// src/App.jsx
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Provider, useDispatch, useSelector } from 'react-redux';
-import store from './store';
-import { updateTokens, logoutSuccess } from './store/slices/authSlice';
-import { setLoading, resetLoading } from './store/slices/loadingSlice';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import PropTypes from 'prop-types';
+import store from './store';
 import { setupInterceptors } from './api';
 import AuthPage from './components/auth/AuthPage';
+import AuthCallback from './components/auth/AuthCallback';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Battles from './pages/admin/Battles';
-import Dashboard from './pages/user/UserDashboard';
 import Users from './pages/admin/Users';
-import PrivateRoute from './routes/PrivateRoute';
-import AdminRoute from './routes/AdminRoute';
-import NotFound from './components/user/NotFound';
+import Questions from './pages/admin/Questions';
+import BitWarAdminLogin from './pages/admin/Login';
+import Dashboard from './pages/user/UserDashboard';
 import Profile from './pages/user/Profile';
 import Compiler from './pages/user/Compiler';
 import Rooms from './pages/user/Rooms';
 import RoomLobby from './pages/user/RoomLobby';
-import { useLocation } from 'react-router-dom';
-import BitWarAdminLogin from './pages/admin/Login';
+import PrivateRoute from './routes/PrivateRoute';
+import AdminRoute from './routes/AdminRoute';
+import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
-import AuthCallback from './components/auth/AuthCallback';
 import LoadingIndicator from './components/ui/LoadingIndicator';
+
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 font-mono">
+          Something went wrong. Please try again.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 const UserLayout = ({ children }) => {
   const location = useLocation();
   const isCompilerPage = location.pathname === '/user/compiler';
+
   return (
-    <>
-    {!isCompilerPage && <UserNavbar />}
-      
+    <div role="main" aria-label="User Dashboard">
+      {!isCompilerPage && <UserNavbar />}
       {children}
-    </>
+    </div>
   );
 };
 
+UserLayout.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
 const AppWrapper = () => {
-  const dispatch = useDispatch();
-
-  const refreshToken = async () => {
-    const currentRefreshToken = useSelector((state) => state.auth.refreshToken);
-    if (!currentRefreshToken) {
-      dispatch(logoutSuccess());
-      return false;
-    }
-
-    dispatch(setLoading({ isLoading: true, message: 'Refreshing token...', style: 'default' }));
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/token/refresh/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh: currentRefreshToken }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        dispatch(updateTokens({
-          accessToken: data.access,
-          refreshToken: data.refresh,
-        }));
-        return true;
-      }
-      throw new Error('Refresh failed');
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      dispatch(logoutSuccess());
-      return false;
-    } finally {
-      dispatch(resetLoading());
-    }
-  };
-
-  const logout = () => {
-    dispatch(logoutSuccess());
-    window.location.href = '/';
-  };
-
   useEffect(() => {
-    setupInterceptors(refreshToken, logout);
-  }, [dispatch]);
+    setupInterceptors();
+  }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <LoadingIndicator />
       <Routes>
         <Route path="/" element={<AuthPage />} />
@@ -96,7 +82,7 @@ const AppWrapper = () => {
 
         <Route element={<PrivateRoute />}>
           <Route
-            path="/user/*"    
+            path="/user/*"
             element={
               <UserLayout>
                 <Routes>
@@ -105,28 +91,36 @@ const AppWrapper = () => {
                   <Route path="compiler" element={<Compiler />} />
                   <Route path="rooms" element={<Rooms />} />
                   <Route path="room/:roomId" element={<RoomLobby />} />
-
                 </Routes>
               </UserLayout>
             }
           />
         </Route>
 
-        <Route element={<AdminRoute />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<Users />} />
-          <Route path="/admin/battles" element={<Battles />} />
-        </Route>
+        
+          <Route element={<AdminRoute />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<Users />} />
+            <Route path="/admin/battles" element={<Battles />} />
+            <Route path="/admin/questions" element={<Questions />} />
+          </Route>
+       
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 };
 
 function App() {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+  if (!googleClientId) {
+    console.warn('Google Client ID is missing. Please set VITE_GOOGLE_CLIENT_ID in your environment variables.');
+  }
+
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       <Provider store={store}>
         <Router>
           <ToastContainer
@@ -139,7 +133,8 @@ function App() {
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="colored"
+            theme="dark"
+            aria-live="polite"
           />
           <AppWrapper />
         </Router>

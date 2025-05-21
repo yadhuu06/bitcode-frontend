@@ -242,9 +242,9 @@ const Rooms = () => {
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <div className="flex justify-between items-center mb-8 border-b border-green-500/30 pb-4">
           <h1 className="text-4xl md:text-5xl text-white font-orbitron tracking-widest font-bold flex items-center justify-center space-x-2">
-            <span className="text-[#22c55e]">&lt;</span>
-            <span className="text-[#22c55e]">BATTLE</span>
-            <span className="text-[#22c55e]">&gt;</span>
+           <span className="text-green-500">{'<'}</span>
+      <span>Battle</span>
+      <span className="text-green-500">{'/>'}</span>
           </h1>
 
           <CustomButton variant="create" onClick={() => setShowModal(true)}>

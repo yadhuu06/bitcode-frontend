@@ -47,6 +47,7 @@ export const login = async (credentials) => {
   }
 };
 
+
 export const logout = async () => {
   try {
     const state = store.getState();
@@ -56,10 +57,12 @@ export const logout = async () => {
       throw new Error('No refresh token available for logout');
     }
 
-    const response = await post('{}/api/auth/logout/', { refresh_token: refreshToken });
+    const response = await api.post('/api/auth/logout/', { refresh_token: refreshToken });
+    store.dispatch(logoutSuccess());
     return response.data;
   } catch (error) {
     console.error('Error during logout:', error.message);
+    store.dispatch(logoutSuccess()); 
     throw error;
   }
 };

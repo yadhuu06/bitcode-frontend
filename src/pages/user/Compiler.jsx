@@ -136,20 +136,23 @@ const Compiler = () => {
 
   return (
     <div className={`min-h-screen bg-black text-white font-mono ${isFullScreen ? 'fixed inset-0 z-50 overflow-hidden' : ''}`}>
-      <nav className="bg-black border-b-2 border-green-500 h-16 flex items-center px-4 sm:px-6 fixed top-0 left-0 w-full z-50">
-        <div className="container mx-auto flex items-center justify-between">
-          <NavLink
-            to="/user/dashboard"
-            className={({ isActive }) =>
-              `text-base sm:text-lg font-semibold transition-colors duration-300 ${isActive ? 'text-green-500' : 'text-white hover:text-green-500'}`
-            }
-          >
-            <span>{'<'}</span>
-            <span>BitCode Compiler</span>
-            <span>{'/>'}</span>
-          </NavLink>
-        </div>
-      </nav>
+<nav className="bg-black border-b-2 border-green-500 h-16 flex items-center px-4 sm:px-6 fixed top-0 left-0 w-full z-50">
+  <div className="container mx-auto flex items-center justify-between">
+    <NavLink
+      to="/user/dashboard"
+      className={({ isActive }) =>
+        `text-base sm:text-lg font-semibold transition-colors duration-300 ${
+          isActive ? 'text-green-500' : 'text-white hover:text-green-500'
+        }`
+      }
+    >
+      <span className="text-green-500">{'<'}</span>
+      <span>BitCode Compiler</span>
+      <span className="text-green-500">{'/>'}</span>
+    </NavLink>
+  </div>
+</nav>
+
       <div className="container mx-auto px-4 sm:px-6 pt-20 pb-6">
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           <div

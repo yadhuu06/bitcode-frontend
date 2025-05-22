@@ -40,14 +40,15 @@ const AdminLayout = ({ children }) => {
 
   return (
     <ErrorBoundary>
-      <div className="flex min-h-screen bg-black text-white font-mono" role="application" aria-label="Admin Dashboard">
-        <Sidebar />
+      <div className="flex flex-col md:flex-row min-h-screen bg-black text-white font-mono" role="application" aria-label="Admin Dashboard">
+        <Sidebar onCollapseChange={(collapsed) => {
+          document.body.classList.toggle('sidebar-collapsed', collapsed);
+        }} />
         <main
-          className="flex-1 p-8 ml-64 min-h-screen"
+          className={`flex-1 p-4 md:p-8 transition-all duration-300 md:ml-64 ${document.body.classList.contains('sidebar-collapsed') ? 'md:ml-16' : 'md:ml-64'} mt-16 md:mt-0`}
           role="main"
           aria-label="Main Content"
         >
-          
           {children}
         </main>
       </div>

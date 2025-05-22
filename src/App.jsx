@@ -25,6 +25,7 @@ import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
 import LoadingIndicator from './components/ui/LoadingIndicator';
 import AdminLayout from './components/admin/AdminLayout'; // Import AdminLayout
+import CreateQuestion from './pages/admin/CreateQuestion';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -107,6 +108,8 @@ const AppWrapper = () => {
                   <Route path="users" element={<Users />} />
                   <Route path="battles" element={<Battles />} />
                   <Route path="questions" element={<Questions />} />
+                  <Route path="questions/add" element={<CreateQuestion />} />
+                  
                 </Routes>
               </AdminLayout>
             }

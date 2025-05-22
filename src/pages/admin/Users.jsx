@@ -4,7 +4,7 @@ import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Table from '../../components/admin/Table';
 import { toast } from 'react-toastify';
 import api from '../../api';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X ,RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, RefreshCw } from 'lucide-react';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -181,8 +181,12 @@ const Users = () => {
     let startPage = Math.max(1, currentPage - halfMax);
     let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
 
-    if (endPage - startPage + 1 < maxPageButtons) {
-      startPage = Math.max(1, endPage - maxPageButtons + 1);
+    // Adjust maxPageButtons for smaller screens
+    const adjustedMaxPageButtons = window.innerWidth < 640 ? 3 : maxPageButtons; // Show only 3 buttons on mobile
+    if (endPage - startPage + 1 < adjustedMaxPageButtons) {
+      startPage = Math.max(1, endPage - adjustedMaxPageButtons + 1);
+    } else if (endPage - startPage + 1 > adjustedMaxPageButtons) {
+      endPage = startPage + adjustedMaxPageButtons - 1;
     }
 
     return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
@@ -206,14 +210,14 @@ const Users = () => {
   return (
     <div>
       {/* Heading and Date Filters in a Single Row */}
-      <div className="flex justify-between items-center mb-4">
-<h1 className="text-2xl font-bold text-green-500 font-sans flex items-center gap-2">
-  <span className="text-white">&lt;</span>
-  User Management
-  <span className="text-white">/&gt;</span>
-</h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-4">
+        <h1 className="text-2xl font-bold text-green-500 font-sans flex items-center gap-2">
+          <span className="text-white">&lt;</span>
+          User Management
+          <span className="text-white">/&gt;</span>
+        </h1>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative">
             <label className="block text-sm text-gray-200 font-sans mb-1">Start Date</label>
             <div className="relative">
@@ -222,7 +226,7 @@ const Users = () => {
                 name="start"
                 value={dateRange.start}
                 onChange={handleDateChange}
-                className="bg-gray-800/50 text-gray-200 text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-400 focus:outline-none px-3 py-2 font-sans pr-8"
+                className="w-full bg-gray-800/50 text-gray-200 text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-400 focus:outline-none px-3 py-2 font-sans pr-8"
               />
               {dateRange.start && (
                 <button
@@ -243,7 +247,7 @@ const Users = () => {
                 name="end"
                 value={dateRange.end}
                 onChange={handleDateChange}
-                className="bg-gray-800/50 text-gray-200 text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-400 focus:outline-none px-3 py-2 font-sans pr-8"
+                className="w-full bg-gray-800/50 text-gray-200 text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-400 focus:outline-none px-3 py-2 font-sans pr-8"
               />
               {dateRange.end && (
                 <button
@@ -253,7 +257,6 @@ const Users = () => {
                 >
                   <X size={16} />
                 </button>
-                
               )}
             </div>
           </div>
@@ -261,8 +264,8 @@ const Users = () => {
       </div>
 
       {/* Email Search and Reset Button */}
-      <div className="mb-4 flex items-end gap-4">
-        <div className="relative w-80">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="relative w-full sm:w-80">
           <label className="block text-sm text-gray-200 font-sans mb-1">Search by Email</label>
           <input
             type="text"
@@ -281,14 +284,14 @@ const Users = () => {
             </button>
           )}
         </div>
-     
-<button
-  onClick={handleResetFilters}
-  className="p-2 bg-transparent text-gray-400 rounded-lg border border-gray-600 hover:text-green-400 transition-colors duration-200"
-  title="Reset Filters"
->
-  <RefreshCw className="w-5 h-5" />
-</button>
+
+        <button
+          onClick={handleResetFilters}
+          className="p-2 bg-transparent text-gray-400 rounded-lg border border-gray-600 hover:text-green-400 transition-colors duration-200"
+          title="Reset Filters"
+        >
+          <RefreshCw className="w-5 h-5" />
+        </button>
       </div>
 
       {error ? (
@@ -297,19 +300,23 @@ const Users = () => {
         </div>
       ) : (
         <>
-          <Table
-            data={paginatedUsers}
-            columns={columns}
-            onToggleBlock={handleToggleBlock}
-            onViewDetails={handleViewDetails}
-            isLoading={isLoading}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-          />
+          {/* Table with horizontal scroll on small screens */}
+          <div className="overflow-x-auto">
+            <Table
+              data={paginatedUsers}
+              columns={columns}
+              onToggleBlock={handleToggleBlock}
+              onViewDetails={handleViewDetails}
+              isLoading={isLoading}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+            />
+          </div>
+
           {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex flex-col items-center gap-2 mt-6">
-              <div className="flex justify-center items-center gap-2">
+              <div className="flex justify-center items-center gap-1 sm:gap-2 flex-wrap">
                 <button
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
@@ -331,7 +338,7 @@ const Users = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-4 py-2 rounded-lg text-sm font-sans transition-all duration-300 ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-sans transition-all duration-300 ${
                         currentPage === page
                           ? 'bg-green-500 text-black shadow-md shadow-green-500/50'
                           : 'bg-gray-800/50 text-gray-200 hover:bg-gray-700/80 hover:shadow-lg hover:shadow-green-500/30'

@@ -24,8 +24,8 @@ import AdminRoute from './routes/AdminRoute';
 import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
 import LoadingIndicator from './components/ui/LoadingIndicator';
-import AdminLayout from './components/admin/AdminLayout'; // Import AdminLayout
-import CreateQuestion from './pages/admin/CreateQuestion';
+import AdminLayout from './components/admin/AdminLayout';
+import CreateQuestion from './components/admin/questions/CreateQuestion';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {

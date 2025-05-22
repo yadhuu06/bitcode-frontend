@@ -8,7 +8,9 @@ import {
   ChevronDown,
   ChevronUp,
   Swords,
-  Menu
+  Menu,
+  ChevronLeft, // Added ChevronLeft to the imports
+  ChevronRight
 } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { useDispatch } from 'react-redux';
@@ -16,7 +18,6 @@ import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { toast } from 'react-toastify';
 import { logout as authLogout } from '../../services/AuthService';
-import { ChevronRight } from 'lucide-react';
 
 const Sidebar = ({ onCollapseChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(true); // Collapsed by default on mobile

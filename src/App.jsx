@@ -24,7 +24,7 @@ import AdminRoute from './routes/AdminRoute';
 import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
 import LoadingIndicator from './components/ui/LoadingIndicator';
-
+import AdminLayout from './components/admin/AdminLayout'; // Import AdminLayout
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -97,14 +97,21 @@ const AppWrapper = () => {
           />
         </Route>
 
-        
-          <Route element={<AdminRoute />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<Users />} />
-            <Route path="/admin/battles" element={<Battles />} />
-            <Route path="/admin/questions" element={<Questions />} />
-          </Route>
-       
+        <Route element={<AdminRoute />}>
+          <Route
+            path="/admin/*"
+            element={
+              <AdminLayout>
+                <Routes>
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="battles" element={<Battles />} />
+                  <Route path="questions" element={<Questions />} />
+                </Routes>
+              </AdminLayout>
+            }
+          />
+        </Route>
 
         <Route path="*" element={<NotFound />} />
       </Routes>

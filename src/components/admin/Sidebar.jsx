@@ -65,15 +65,15 @@ const Sidebar = ({ onCollapseChange }) => {
           <Link to="/admin/dashboard" className="flex flex-col">
             <h1 className="text-xl font-bold tracking-wider">
               <span className="text-white">{'<'}</span>
-              <span className="text-white">Bit </span>
+              <span className="text-white">Bit</span>
               <span className="text-[#73E600]">Code</span>
-              <span className="text-white">{'>'}</span>
+              <span className="text-white">{'/>'}</span>
             </h1>
           </Link>
         )}
         <button
           onClick={handleToggle}
-          className="p-2 rounded-md hover:bg-gray-900 transition-colors text-[#73E600]"
+          className="p-2 rounded-md hover:bg-gray-900 transition-colors t"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>

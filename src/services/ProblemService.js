@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const createQuestion=async(questionData)=>{
     try{
-        const response = await api.post(`/problems/create`, questionData);
+        const response = await api.post(`/problems/create/`, questionData);
 
     return response.data
     }

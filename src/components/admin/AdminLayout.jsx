@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
@@ -29,6 +29,7 @@ ErrorBoundary.propTypes = {
 
 const AdminLayout = ({ children }) => {
   const { accessToken } = useSelector((state) => state.auth);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   console.log('AdminLayout - accessToken:', accessToken ? 'Present' : 'Missing');
   if (!accessToken) {
@@ -41,11 +42,9 @@ const AdminLayout = ({ children }) => {
   return (
     <ErrorBoundary>
       <div className="flex flex-col md:flex-row min-h-screen bg-black text-white font-mono" role="application" aria-label="Admin Dashboard">
-        <Sidebar onCollapseChange={(collapsed) => {
-          document.body.classList.toggle('sidebar-collapsed', collapsed);
-        }} />
+        <Sidebar onCollapseChange={setIsSidebarCollapsed} />
         <main
-          className={`flex-1 p-4 md:p-8 transition-all duration-300 md:ml-64 ${document.body.classList.contains('sidebar-collapsed') ? 'md:ml-16' : 'md:ml-64'} mt-16 md:mt-0`}
+          className={`flex-1 p-4 md:p-8 transition-all duration-300 mt-16 md:mt-0 ${isSidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}
           role="main"
           aria-label="Main Content"
         >

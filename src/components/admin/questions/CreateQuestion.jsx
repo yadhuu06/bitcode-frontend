@@ -108,8 +108,8 @@ const CreateQuestion = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    difficulty: 'easy',
-    t: 'Array',
+    difficulty: 'EASY',
+    tags: 'Array',
   });
 
   const handleInputChange = (e) => {
@@ -139,8 +139,8 @@ const CreateQuestion = () => {
     setFormData({
       title: '',
       description: '',
-      difficulty: 'easy',
-      topic: 'Array',
+      difficulty: 'EASY',
+      tags: 'Array',
     });
     navigate('/admin/questions');
   };
@@ -221,16 +221,16 @@ const CreateQuestion = () => {
               value={formData.difficulty}
               onChange={handleInputChange}
               className={`w-full bg-gray-800/50 text-sm rounded-lg border   focus:outline-none px-4 py-3 capitalize font-mono ${
-                formData.difficulty === 'easy'
+                formData.difficulty === 'EASY'
                   ? 'text-green-400 border-green-500/50'
                   : formData.difficulty === 'medium'
                   ? 'text-yellow-400 border-yellow-500/50'
                   : 'text-red-400 border-red-500/50'
               }`}
             >
-              <option value="easy" className="bg-gray-800 text-green-400">Easy</option>
-              <option value="medium" className="bg-gray-800 text-yellow-400">Medium</option>
-              <option value="hard" className="bg-gray-800 text-red-400">Hard</option>
+              <option value="EASY" className="bg-gray-800 text-green-400">Easy</option>
+              <option value="MEDIOUM" className="bg-gray-800 text-yellow-400">Medium</option>
+              <option value="HARD" className="bg-gray-800 text-red-400">Hard</option>
             </select>
           </div>
 
@@ -239,7 +239,7 @@ const CreateQuestion = () => {
             <label className="block text-sm text-gray-400 mb-2">Topic</label>
             <select
               name="topic"
-              value={formData.topic}
+              value={formData.tags}
               onChange={handleInputChange}
               className="w-full bg-gray-800/50 text-white text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-3 font-mono"
             >

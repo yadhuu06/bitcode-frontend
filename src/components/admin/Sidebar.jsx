@@ -5,9 +5,6 @@ import {
   Users, 
   HelpCircle, 
   LogOut,
-  ChevronDown,
-  ChevronUp,
-  Swords,
   Menu,
   ChevronLeft, 
   ChevronRight
@@ -20,15 +17,16 @@ import { toast } from 'react-toastify';
 import { logout as authLogout } from '../../services/AuthService';
 
 const Sidebar = ({ onCollapseChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false); // Default to expanded for desktop
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
 
   const handleToggle = () => {
-    setIsCollapsed(prev => !prev);
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
     if (onCollapseChange) {
-      onCollapseChange(!isCollapsed); 
+      onCollapseChange(newCollapsedState); 
     }
   };
 
@@ -52,7 +50,7 @@ const Sidebar = ({ onCollapseChange }) => {
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Users', path: '/admin/users', icon: Users },
-    { name: 'Battles', path: '/admin/battles', icon: Swords },
+    { name: 'Battles', path: '/admin/battles', icon: HelpCircle },
     { name: 'Questions', path: '/admin/questions', icon: HelpCircle },
   ];
 
@@ -89,7 +87,7 @@ const Sidebar = ({ onCollapseChange }) => {
                   onClick={() => setIsCollapsed(true)} // Close menu on selection
                   className={`flex items-center p-4 mx-2 my-1 rounded-md transition-all ${
                     isActive 
-                      ? 'bg-gray-900 text-[#73E600] border-l-4 border-[#73E600] shadow-[0_0_10px_rgba(115,230,0,0.3)]' 
+                      ? 'bg-gray-900 text-[#73E600] shadow-[0_0_10px_rgba(115,230,0,0.3)]' 
                       : 'hover:bg-gray-900 hover:text-[#73E600]'
                   }`}
                 >
@@ -113,15 +111,15 @@ const Sidebar = ({ onCollapseChange }) => {
 
       {/* Desktop Sidebar (visible on medium screens and above) */}
       <div 
-        className={`hidden md:flex fixed top-0 left-0 h-full bg-[#000000] text-white transition-all duration-300 z-50 flex-col w-64`}
+        className={`hidden md:flex fixed top-0 left-0 h-full bg-[#000000] text-white transition-all duration-300 z-50 flex-col ${isCollapsed ? 'w-16' : 'w-64'}`}
         style={{ fontFamily: "'Fira Code', monospace" }}
       >
-        <div className="p-4 flex items-center justify-between border-b border-gray-800">
-          <Link to="/admin/dashboard" className="flex flex-col">
+        <div className={`p-4 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} border-b border-gray-800`}>
+          <Link to="/admin/dashboard" className={`${isCollapsed ? 'hidden' : 'flex'} flex-col`}>
             <h1 className="text-xl font-bold tracking-wider">
               <span className="text-white">{'<'}</span>
               <span className="text-white">Bit</span>
-              <span className="text-[#22c55e]">Code</span>
+              <span className="text-[#73E600]">Code</span>
               <span className="text-white">{'/>'}</span>
             </h1>
           </Link>
@@ -143,12 +141,12 @@ const Sidebar = ({ onCollapseChange }) => {
                 to={item.path}
                 className={`flex items-center p-4 mx-2 my-1 rounded-md transition-all ${
                   isActive 
-                    ? 'bg-gray-900 text-[#73E600] border-l-4 border-[#73E600] shadow-[0_0_10px_rgba(115,230,0,0.3)]' 
+                    ? 'bg-gray-900 text-[#73E600] shadow-[0_0_10px_rgba(115,230,0,0.3)]' 
                     : 'hover:bg-gray-900 hover:text-[#73E600]'
                 }`}
               >
                 <item.icon 
-                  className={`w-6 h-6 ${isActive ? 'animate-pulse' : ''}`} 
+                  className={`w-6 h-6 ${isActive ? 'animate-pulse' : ''} ${isCollapsed ? 'mx-auto' : ''}`} 
                 />
                 {!isCollapsed && (
                   <span className="ml-4 text-sm font-medium">{item.name}</span>
@@ -161,7 +159,7 @@ const Sidebar = ({ onCollapseChange }) => {
         <div className="p-4 mt-auto border-t border-gray-800">
           <button
             onClick={handleLogout}
-            className="flex items-center w-full p-4 mx-2 rounded-md text-gray-400 hover:text-[#73E600] hover:bg-gray-900 hover:shadow-[0_0_10px_rgba(115,230,0,0.2)] transition-all duration-300"
+            className={`flex items-center w-full p-4 mx-2 rounded-md text-gray-400 hover:text-[#73E600] hover:bg-gray-900 hover:shadow-[0_0_10px_rgba(115,230,0,0.2)] transition-all duration-300 ${isCollapsed ? 'justify-center' : ''}`}
           >
             <LogOut className="w-6 h-6" />
             {!isCollapsed && (

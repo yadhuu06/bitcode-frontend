@@ -91,7 +91,6 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
 
         const response = await createRoom(payload);
 
-        // Call join_room API
         await api.post(`/rooms/${response.room_id}/join/`, formData.visibility === 'private' ? { password: formData.password } : {});
 
         onRoomCreated({

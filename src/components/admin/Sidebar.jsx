@@ -9,7 +9,7 @@ import {
   ChevronUp,
   Swords,
   Menu,
-  ChevronLeft, // Added ChevronLeft to the imports
+  ChevronLeft, 
   ChevronRight
 } from 'lucide-react';
 import Cookies from 'js-cookie';
@@ -20,7 +20,7 @@ import { toast } from 'react-toastify';
 import { logout as authLogout } from '../../services/AuthService';
 
 const Sidebar = ({ onCollapseChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true); // Collapsed by default on mobile
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -121,7 +121,7 @@ const Sidebar = ({ onCollapseChange }) => {
             <h1 className="text-xl font-bold tracking-wider">
               <span className="text-white">{'<'}</span>
               <span className="text-white">Bit</span>
-              <span className="text-[#73E600]">Code</span>
+              <span className="text-[#22c55e]">Code</span>
               <span className="text-white">{'/>'}</span>
             </h1>
           </Link>

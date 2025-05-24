@@ -3,59 +3,99 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, HelpCircle } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import CustomButton from '../../ui/CustomButton';
+import { createQuestion } from '../../../services/ProblemService';
 
-// Custom styles for the Markdown editor to match the dark theme
 const editorStyles = `
+  /* Base editor container */
   .w-md-editor {
-
-
- 
-
-
- 
+    background-color: #0f172a; /* dark navy background */
+    border-radius: 0.75rem;
+    border: 1px solid #334155;
+    font-family: 'Fira Code', monospace;
+    color: #e2e8f0;
+    overflow: hidden;
+  }
 
   /* Placeholder styling */
   .w-md-editor-text textarea::placeholder {
     color: #64748b !important;
+    font-style: italic;
   }
 
-  /* Toolbar styling */
+  /* Toolbar */
   .w-md-editor-toolbar {
     background-color: #1e293b !important;
     border-bottom: 1px solid #334155 !important;
-    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    padding: 0.5rem;
   }
 
   .w-md-editor-toolbar button {
     color: #94a3b8 !important;
+    transition: color 0.2s ease;
   }
 
   .w-md-editor-toolbar button:hover {
-    color: #4ade80 !important;
+    color: #22c55e !important; /* green hover */
   }
 
-  /* Preview area styling */
- 
+  /* Text input area */
+  .w-md-editor-text {
+    background-color: #0f172a !important;
+  }
 
-  /* Markdown rendered content */
+  .w-md-editor-text-container textarea {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 1rem;
+    min-height: 300px;
+  }
+
+  /* Rendered markdown preview */
+
   .wmde-markdown {
-    background-color:rgb(25, 29, 37) !important;
-    color: #ffffff !important;
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
     font-family: 'Fira Code', monospace !important;
+    font-size: 14px;
+    padding: 1rem;
+    line-height: 1.75;
+  }
+
+  .wmde-markdown h1, .wmde-markdown h2, .wmde-markdown h3 {
+    color: #facc15;
+  }
+
+  .wmde-markdown code {
+    background-color: #334155;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 90%;
+  }
+
+  .wmde-markdown pre code {
+    background-color: #0f172a;
+    padding: 1em;
+    display: block;
+    overflow-x: auto;
+    border-radius: 6px;
   }
 
   /* Fullscreen mode */
   .w-md-editor-fullscreen {
-    background-color:rgb(63, 43, 43) !important;
+    background-color: #0f172a !important;
+    z-index: 9999;
   }
 
-  /* Focus outline */
+  /* Focus outline for accessibility */
   .w-md-editor:focus-within {
-    outline: 1px solid #4ade80 !important;
+    outline: 2px solid #22c55e !important;
     outline-offset: 2px;
   }
 
-  /* Ensure visibility of input area */
+  /* Ensure text input is always visible */
   .w-md-editor-text-container {
     display: block !important;
     visibility: visible !important;
@@ -69,7 +109,7 @@ const CreateQuestion = () => {
     title: '',
     description: '',
     difficulty: 'easy',
-    topic: 'Array',
+    t: 'Array',
   });
 
   const handleInputChange = (e) => {
@@ -81,9 +121,18 @@ const CreateQuestion = () => {
     setFormData((prev) => ({ ...prev, description: value || '' }));
   };
 
-  const handleCreateQuestion = () => {
-    console.log('Creating question:', formData);
-    navigate('/admin/questions');
+  const handleCreateQuestion = async() => {
+    try{
+      console.log ("creating the question")
+      await createQuestion(formData);
+      navigate('/admin/questions')
+    }catch(error){
+      console.log("failed",error)
+    }
+    
+   
+
+
   };
 
   const handleCancel = () => {
@@ -95,6 +144,7 @@ const CreateQuestion = () => {
     });
     navigate('/admin/questions');
   };
+
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -170,7 +220,7 @@ const CreateQuestion = () => {
               name="difficulty"
               value={formData.difficulty}
               onChange={handleInputChange}
-              className={`w-full bg-gray-800/50 text-sm rounded-lg border focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-3 capitalize font-mono ${
+              className={`w-full bg-gray-800/50 text-sm rounded-lg border   focus:outline-none px-4 py-3 capitalize font-mono ${
                 formData.difficulty === 'easy'
                   ? 'text-green-400 border-green-500/50'
                   : formData.difficulty === 'medium'

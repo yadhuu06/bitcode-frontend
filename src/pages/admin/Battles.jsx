@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import api from '../../api';
 import {
   Swords,
   Users,
@@ -23,33 +24,29 @@ const Battles = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchBattles = useCallback(async () => {
-    if (!accessToken) {
-      toast.error('Please log in to view battles');
-      return;
-    }
+const fetchBattles = useCallback(async () => {
+  if (!accessToken) {
+    toast.error('Please log in to view battles');
+    return;
+  }
 
-    dispatch(setLoading({ isLoading: true, message: 'Loading battles...', style: 'terminal', progress: 50 }));
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin-panel/battles/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setBattles(data.battles || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching battles:', err);
-      setError('Failed to load battles');
-      toast.error('Failed to load battles');
-    } finally {
-      dispatch(resetLoading());
-    }
-  }, [accessToken, dispatch]);
+  dispatch(setLoading({ isLoading: true, message: 'Loading battles...', style: 'terminal', progress: 50 }));
+  try {
+    const response = await api.get('/admin-panel/battles/'); // Use api.get instead of api.fetch
+    console.log('Battles response:', response.data); // Log response for debugging
+    setBattles(response.data.battles || []);
+    setError(null);
+  } catch (err) {
+    const errorMessage = err.response
+      ? `Server error: ${err.response.status} - ${err.response.data?.detail || err.message}`
+      : `Network error: ${err.message}`;
+    console.error('Error fetching battles:', errorMessage);
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    dispatch(resetLoading());
+  }
+}, [accessToken, dispatch]);
 
   useEffect(() => {
     fetchBattles();

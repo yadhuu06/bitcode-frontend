@@ -1,4 +1,4 @@
-import api from '../api'; // Use the api instance from api.js
+import api from '../api';
 import store from '../store';
 
 // Utility function to validate email format
@@ -7,14 +7,16 @@ const validateEmail = (email) => {
   return emailRegex.test(email.trim().toLowerCase());
 };
 
-// Utility function to validate password (minimum requirements)
+// Utility function to validate password (enhanced requirements)
 const validatePassword = (password) => {
-  return password.trim().length >= 8;
+  // Require at least 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return passwordRegex.test(password.trim());
 };
 
 // Utility function to validate OTP
 const validateOtp = (otp) => {
-  return otp.trim().length === 6 && /^\d{6}$/.test(otp);
+  return otp.trim().length === 6 && /^\d{6}$/.test(otp.trim());
 };
 
 export const login = async (credentials) => {
@@ -27,7 +29,7 @@ export const login = async (credentials) => {
     throw new Error('Invalid email format');
   }
   if (!validatePassword(password)) {
-    throw new Error('Password must be at least 8 characters long');
+    throw new Error('Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character');
   }
 
   try {
@@ -39,14 +41,14 @@ export const login = async (credentials) => {
       refresh: response.data.refresh,
       access: response.data.access,
       role: response.data.role,
-      redirect_url: response.data.redirect_url,
+      redirect_url: response.data.redirect_url, // Frontend should redirect to this URL
     };
   } catch (error) {
     console.error('Error during login:', error.message);
-    throw new Error(error.response?.data?.error || `Login failed (Status: ${error.response?.status || 'unknown'})`);
+    const errorMessage = error.response?.data?.error || error.message || 'Login failed';
+    throw new Error(errorMessage);
   }
 };
-
 
 export const logout = async () => {
   try {
@@ -58,12 +60,14 @@ export const logout = async () => {
     }
 
     const response = await api.post('/api/auth/logout/', { refresh_token: refreshToken });
-    store.dispatch(logoutSuccess());
-    return response.data;
+    store.dispatch(logoutSuccess()); // Only dispatch on success
+    return {
+      message: response.data.message, // e.g., "Successfully logged out"
+    };
   } catch (error) {
-    console.error('Error during logout:', error.message);
-    store.dispatch(logoutSuccess()); 
-    throw error;
+    console.error('Error during logout:', error.response?.data || error.message);
+    const errorMessage = error.response?.data?.error || error.message || 'Logout failed';
+    throw new Error(errorMessage); // Let the frontend handle the error (e.g., show a toast)
   }
 };
 
@@ -78,11 +82,12 @@ export const refreshToken = async (refreshToken) => {
     });
     return {
       access: response.data.access,
-      refresh: response.data.refresh || refreshToken, 
+      refresh: response.data.refresh || refreshToken, // Use new refresh token if rotated
     };
   } catch (error) {
-    console.error('Error refreshing token:', error.message);
-    throw new Error(error.response?.data?.error || `Token refresh failed (Status: ${error.response?.status || 'unknown'})`);
+    console.error('Error refreshing token:', error.response?.data || error.message);
+    const errorMessage = error.response?.data?.error || error.message || 'Token refresh failed';
+    throw new Error(errorMessage);
   }
 };
 
@@ -100,11 +105,12 @@ export const generateOtp = async (email) => {
     });
     return {
       message: response.data.message,
-      expires_in: response.data.expires_in,
+      expires_in: response.data.expires_in, // Time in seconds until OTP expires
     };
   } catch (error) {
-    console.error('Error generating OTP:', error.message);
-    throw new Error(error.response?.data?.error || `OTP generation failed (Status: ${error.response?.status || 'unknown'})`);
+    console.error('Error generating OTP:', error.response?.data || error.message);
+    const errorMessage = error.response?.data?.error || error.message || 'OTP generation failed';
+    throw new Error(errorMessage);
   }
 };
 
@@ -124,10 +130,14 @@ export const verifyOtp = async (email, otp) => {
       email: email.trim(),
       otp: otp.trim(),
     });
-    return response.data;
+    return {
+      message: response.data.message,
+      redirect_url: response.data.redirect_url, // Optional: URL to redirect after verification
+    };
   } catch (error) {
-    console.error('Error verifying OTP:', error.message);
-    throw new Error(error.response?.data?.error || `OTP verification failed (Status: ${error.response?.status || 'unknown'})`);
+    console.error('Error verifying OTP:', error.response?.data || error.message);
+    const errorMessage = error.response?.data?.error || error.message || 'OTP verification failed';
+    throw new Error(errorMessage);
   }
 };
 
@@ -148,18 +158,18 @@ export const resendOtp = async (email) => {
       expires_in: response.data.expires_in,
     };
   } catch (error) {
-    console.error('Error resending OTP:', error.message);
+    console.error('Error resending OTP:', error.response?.data || error.message);
     if (error.response?.data?.error?.includes('Please wait')) {
       const cooldownMatch = error.response.data.error.match(/(\d+)/);
       const cooldown = cooldownMatch ? parseInt(cooldownMatch[0], 10) : 0;
       throw Object.assign(new Error(error.response.data.error), { cooldown });
     }
-    throw new Error(error.response?.data?.error || `OTP resend failed (Status: ${error.response?.status || 'unknown'})`);
+    const errorMessage = error.response?.data?.error || error.message || 'OTP resend failed';
+    throw new Error(errorMessage);
   }
 };
 
 export const completeRegistration = async (email, password, confirmPassword) => {
-  console.log(email,password,confirmPassword)
   if (!email || !password || !confirmPassword) {
     throw new Error('All fields are required');
   }
@@ -167,7 +177,7 @@ export const completeRegistration = async (email, password, confirmPassword) => 
     throw new Error('Invalid email format');
   }
   if (!validatePassword(password)) {
-    throw new Error('Password must be at least 8 characters long');
+    throw new Error('Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character');
   }
   if (password !== confirmPassword) {
     throw new Error('Passwords do not match');
@@ -176,7 +186,7 @@ export const completeRegistration = async (email, password, confirmPassword) => 
   try {
     const response = await api.post('/api/auth/register/complete/', {
       email: email.trim(),
-      username:email,
+      username: email.trim(), // Using email as username; consider allowing separate usernames
       password: password.trim(),
       confirm_password: confirmPassword.trim(),
     });
@@ -184,16 +194,13 @@ export const completeRegistration = async (email, password, confirmPassword) => 
       refresh: response.data.refresh,
       access: response.data.access,
       role: response.data.role,
-      redirect_url: 'user/dashboard',
+      redirect_url: response.data.redirect_url || 'user/dashboard',
     };
   } catch (error) {
-    console.error('Error completing registration:', error.message);
-    if (error.response?.data?.error) {
-      throw new Error(error.response.data.error);
-    }
+    console.error('Error completing registration:', error.response?.data || error.message);
     const errorMessage = Object.values(error.response?.data || {})
       .flat()
-      .join(', ') || `Registration failed (Status: ${error.response?.status || 'unknown'})`;
+      .join(', ') || error.message || 'Registration failed';
     throw new Error(errorMessage);
   }
 };

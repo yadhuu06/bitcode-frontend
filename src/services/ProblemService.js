@@ -14,3 +14,19 @@ export const createQuestion=async(questionData)=>{
     }
    
 }
+
+
+export const fetchQuestions=async()=>{
+    try{
+    const response=await api.get('/problems')
+    return response.data;
+
+        
+    }
+    catch(error)
+  {
+    console.log("eroor",error)
+    throw error
+  }
+
+}

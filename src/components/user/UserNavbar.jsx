@@ -11,7 +11,7 @@ const UserNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const { isAuthenticated, refreshToken } = useSelector((state) => state.auth); // Get refreshToken
 
   const toggleMenu = () => setIsOpen((prev) => !prev);
 
@@ -22,7 +22,8 @@ const UserNavbar = () => {
       style: 'terminal',
     }));
     try {
-      await logout();
+      const result = await logout(refreshToken); // Pass refreshToken
+      console.log('Logout result:', result);
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!', {
         position: 'top-right',
@@ -31,8 +32,8 @@ const UserNavbar = () => {
       });
       navigate('/');
     } catch (error) {
-      console.error('Logout error:', error.message);
-      dispatch(logoutSuccess()); 
+      console.error('Logout error:', error.message, error.stack);
+      dispatch(logoutSuccess());
       toast.error('Logout failed, but session cleared', {
         position: 'top-right',
         autoClose: 3000,
@@ -48,19 +49,17 @@ const UserNavbar = () => {
     `text-lg font-semibold transition-colors duration-200 ${
       isActive ? 'text-green-500' : 'text-white hover:text-green-500'
     }`;
+
   return (
-    
-    <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left- w-full z-50 shadow-md text-white font-mono flex items-center">
+    <nav className="bg-black border-b-2 border-green-500 h-16 fixed top-0 left-0 w-full z-50 shadow-md text-white font-mono flex items-center">
       <div className="container mx-auto flex justify-between items-center h-full px-6">
-      <div className="text-[60px] font-bold flex items-center h-full">
-  <NavLink to="/user/dashboard" className={navLinkClass}>
-    <span className="text-green-500">{'<'}</span>
-    <span className="text-white">BitCode</span>
-    <span className="text-green-500">{'/>'}</span>
-  </NavLink>
-</div>
-
-
+        <div className="text-[60px] font-bold flex items-center h-full">
+          <NavLink to="/user/dashboard" className={navLinkClass}>
+            <span className="text-green-500">{'<'}</span>
+            <span className="text-white">BitCode</span>
+            <span className="text-green-500">{'/>'}</span>
+          </NavLink>
+        </div>
 
         <ul className="hidden md:flex space-x-8 items-center h-full">
           <li className="h-full flex items-center">

@@ -24,29 +24,28 @@ const Battles = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
-const fetchBattles = useCallback(async () => {
-  if (!accessToken) {
-    toast.error('Please log in to view battles');
-    return;
-  }
+  const fetchBattles = useCallback(async () => {
+    if (!accessToken) {
+      toast.error('Please log in to view battles');
+      return;
+    }
 
-  dispatch(setLoading({ isLoading: true, message: 'Loading battles...', style: 'terminal', progress: 50 }));
-  try {
-    const response = await api.get('/admin-panel/battles/'); // Use api.get instead of api.fetch
-    console.log('Battles response:', response.data); // Log response for debugging
-    setBattles(response.data.battles || []);
-    setError(null);
-  } catch (err) {
-    const errorMessage = err.response
-      ? `Server error: ${err.response.status} - ${err.response.data?.detail || err.message}`
-      : `Network error: ${err.message}`;
-    console.error('Error fetching battles:', errorMessage);
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    dispatch(resetLoading());
-  }
-}, [accessToken, dispatch]);
+    dispatch(setLoading({ isLoading: true, message: 'Loading battles...', style: 'terminal', progress: 50 }));
+    try {
+      const response = await api.get('/admin-panel/battles/');
+      setBattles(response.data.battles || []);
+      setError(null);
+    } catch (err) {
+      const errorMessage = err.response
+        ? `Server error: ${err.response.status} - ${err.response.data?.detail || err.message}`
+        : `Network error: ${err.message}`;
+      console.error('Error fetching battles:', errorMessage);
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      dispatch(resetLoading());
+    }
+  }, [accessToken, dispatch]);
 
   useEffect(() => {
     fetchBattles();
@@ -55,6 +54,7 @@ const fetchBattles = useCallback(async () => {
   const handleBattleClick = useCallback((battle) => {
     setSelectedBattle(battle);
     setIsModalOpen(true);
+    // toast.info(`Viewing details for "${battle.name}"`);
   }, []);
 
   const closeModal = useCallback(() => {
@@ -106,16 +106,16 @@ const fetchBattles = useCallback(async () => {
         </div>
         <div className="flex gap-2 mt-3">
           <span
-            className={`px-2 py-1 rounded text-xs font-medium ${
+            className={`px-2 py-1 rounded text-xs font-semibold ${
               battle.difficulty === 'easy' ? 'bg-green-900/50 text-green-400 border border-green-500/50' :
-              battle.difficulty === 'medium' ? 'bg-yellow-900/50 text-yellow-400 border border-yellow-500/50' :
-              'bg-red-900/50 text-red-400 border border-red-500/50'
+              battle.difficulty === 'medium' ? 'bg-yellow-500/50 text-yellow-400 border border-yellow-500/50' :
+              'bg-red-600/50 text-red-400 border border-red-600/50'
             }`}
           >
             {battle.difficulty.toUpperCase()}
           </span>
           <span
-            className={`px-2 py-1 rounded text-xs font-medium ${
+            className={`px-2 py-1 rounded text-xs font-semibold ${
               battle.visibility === 'public' ? 'bg-blue-900/50 text-blue-400 border border-blue-500/50' :
               'bg-purple-900/50 text-purple-400 border border-purple-500/50'
             }`}
@@ -130,7 +130,7 @@ const fetchBattles = useCallback(async () => {
   return (
     <div>
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text- flex items-center gap-2 border-b-2 border-[#73E600] pb-2">
+        <h1 className="text-3xl font-bold flex items-center gap-2 border-b-2 border-[#73E600] pb-2">
           <Swords className="w-8 h-8" />
           Battle Rooms
         </h1>
@@ -158,7 +158,7 @@ const fetchBattles = useCallback(async () => {
           aria-labelledby="battle-modal-title"
           aria-modal="true"
         >
-          <div className="bg-gray-900/95 p-8 rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-y-auto relative">
+          <div className="relative bg-black p-6 md:p-8 rounded-xl border-[1.5px] border-[#73E600] w-full max-w-3xl transform transition-all duration-300 scale-100 hover:scale-[1.02] overflow-y-hidden">
             <button
               onClick={closeModal}
               className="absolute top-4 right-4 text-gray-400 hover:text-[#73E600] transition-colors"
@@ -170,14 +170,14 @@ const fetchBattles = useCallback(async () => {
               <Swords className="w-6 h-6" />
               {selectedBattle.name}
             </h2>
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 text-sm text-gray-300">
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-gray-400">Room ID:</span>
-                <span className="text-white font-mono">{selectedBattle.room_id}</span>
+                <span className="text-white font-mono truncate">{selectedBattle.room_id}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-gray-400">Join Code:</span>
-                <span className="text-[#73E600] font-mono flex items-center gap-1">
+                <span className="text-[#73E600] font-mono flex items-center gap-1 truncate">
                   <Hash className="w-4 h-4" />
                   {selectedBattle.join_code}
                 </span>
@@ -233,23 +233,23 @@ const fetchBattles = useCallback(async () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-gray-400">Topic:</span>
-                <span className="text-white">{selectedBattle.topic || 'N/A'}</span>
+                <span className="text-white truncate">{selectedBattle.topic || 'N/A'}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-gray-400">Host:</span>
-                <span className="text-white">{selectedBattle.owner__username}</span>
+                <span className="text-white truncate">{selectedBattle.owner__username}</span>
               </div>
             </div>
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-[#73E600] mb-3">Participants</h3>
               {selectedBattle.participants && selectedBattle.participants.length > 0 ? (
-                <ul className="space-y-2">
+                <ul className="space-y-2 max-h-[200px] overflow-hidden">
                   {selectedBattle.participants.map((participant, index) => (
                     <li
                       key={index}
                       className="flex justify-between items-center bg-gray-800/50 p-3 rounded border border-gray-700"
                     >
-                      <span className="text-white">{participant.user__username}</span>
+                      <span className="text-white truncate">{participant.user__username}</span>
                       <span
                         className={`text-xs px-2 py-1 rounded ${
                           participant.role === 'host' ? 'bg-green-900/50 text-green-400' :

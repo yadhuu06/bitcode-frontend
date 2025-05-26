@@ -49,28 +49,22 @@ export const login = async (credentials) => {
     throw new Error(errorMessage);
   }
 };
-
-export const logout = async () => {
+export const logout = async (refreshToken) => {
   try {
-    const state = store.getState();
-    const refreshToken = state.auth.refreshToken;
-
     if (!refreshToken) {
       throw new Error('No refresh token available for logout');
     }
 
     const response = await api.post('/api/auth/logout/', { refresh_token: refreshToken });
-    store.dispatch(logoutSuccess()); // Only dispatch on success
     return {
-      message: response.data.message, // e.g., "Successfully logged out"
+      message: response.data.message,
     };
   } catch (error) {
     console.error('Error during logout:', error.response?.data || error.message);
     const errorMessage = error.response?.data?.error || error.message || 'Logout failed';
-    throw new Error(errorMessage); // Let the frontend handle the error (e.g., show a toast)
+    throw new Error(errorMessage);
   }
 };
-
 export const refreshToken = async (refreshToken) => {
   if (!refreshToken) {
     throw new Error('Refresh token is required');
@@ -132,7 +126,7 @@ export const verifyOtp = async (email, otp) => {
     });
     return {
       message: response.data.message,
-      redirect_url: response.data.redirect_url, // Optional: URL to redirect after verification
+      redirect_url: response.data.redirect_url, 
     };
   } catch (error) {
     console.error('Error verifying OTP:', error.response?.data || error.message);

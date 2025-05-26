@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
-import api from '../../api';
-import { logout } from '../../services/AuthService';
+import Cookies from 'js-cookie'; // Added for cookie fallback
+import { fetchProfile, updateProfile, logout } from '../../services/ProfileService'; // Updated import
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
+import {toast} from 'react-toastify'; // Added explicit import for toast
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
@@ -37,6 +38,7 @@ const Profile = () => {
   const dispatch = useDispatch();
   const { user: reduxUser, isAuthenticated } = useSelector((state) => state.auth);
   const { isLoading, message, progress, style } = useSelector((state) => state.loading);
+  const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token'); // Added to retrieve refreshToken
 
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -51,12 +53,12 @@ const Profile = () => {
     const fetchUserData = async () => {
       dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
       try {
-        const response = await api.get('/api/auth/profile/');
-        setUser(response.data);
-        setUsername(response.data.username || '');
+        const userData = await fetchProfile(); // Use ProfileService
+        setUser(userData);
+        setUsername(userData.username || '');
       } catch (error) {
         console.error('Error fetching user data:', error);
-        toast.error(error.response?.data?.error || error.message || 'Failed to load profile data');
+        toast.error(error.message || 'Failed to load profile data');
       } finally {
         dispatch(resetLoading());
       }
@@ -162,19 +164,15 @@ const Profile = () => {
         formData.append('profile_picture', blob, 'profile.jpg');
       }
 
-      const response = await api.patch('/api/auth/profile/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setUser(response.data);
+      const updatedUser = await updateProfile(formData); // Use ProfileService
+      setUser(updatedUser);
       setIsEditing(false);
       setProfilePic(null);
       setCroppedImage(null);
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.error || error.message || 'Failed to update profile');
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       dispatch(resetLoading());
     }
@@ -183,7 +181,7 @@ const Profile = () => {
   const handleLogout = async () => {
     dispatch(setLoading({ isLoading: true, message: 'Logging out...', style: 'battle', progress: 0 }));
     try {
-      await logout();
+      await logout(); // Use ProfileService logout, which handles refreshToken internally
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
       window.location.href = '/';

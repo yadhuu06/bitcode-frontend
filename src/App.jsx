@@ -25,9 +25,8 @@ import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
 import LoadingIndicator from './components/ui/LoadingIndicator';
 import AdminLayout from './components/admin/AdminLayout';
-import CreateQuestion from './components/admin/questions/CreateQuestion';
+import QuestionForm from './components/admin/questions/QuestionForm';
 
-// Error Boundary Component
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
 
@@ -53,11 +52,14 @@ ErrorBoundary.propTypes = {
 
 const UserLayout = ({ children }) => {
   const location = useLocation();
-  const isCompilerPage = location.pathname === '/user/compiler';
+  const { pathname } = location;
+
+  const hideNavbar =
+    pathname === '/user/compiler' || pathname.startsWith('/user/room/');
 
   return (
     <div role="main" aria-label="User Dashboard">
-      {!isCompilerPage && <UserNavbar />}
+      {!hideNavbar && <UserNavbar />}
       {children}
     </div>
   );
@@ -108,8 +110,8 @@ const AppWrapper = () => {
                   <Route path="users" element={<Users />} />
                   <Route path="battles" element={<Battles />} />
                   <Route path="questions" element={<Questions />} />
-                  <Route path="questions/add" element={<CreateQuestion />} />
-                  
+                  <Route path="questions/add" element={<QuestionForm />} />
+                  <Route path="questions/edit/:questionId" element={<QuestionForm />} />
                 </Routes>
               </AdminLayout>
             }

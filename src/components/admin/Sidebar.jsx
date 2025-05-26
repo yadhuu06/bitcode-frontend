@@ -10,7 +10,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Cookies from 'js-cookie';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux'; // Added useSelector
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { toast } from 'react-toastify';
@@ -21,6 +21,7 @@ const Sidebar = ({ onCollapseChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token'); // Retrieve refreshToken
 
   const handleToggle = () => {
     const newCollapsedState = !isCollapsed;
@@ -33,7 +34,8 @@ const Sidebar = ({ onCollapseChange }) => {
   const handleLogout = async () => {
     dispatch(setLoading({ isLoading: true, message: 'Logging out...', style: 'default' }));
     try {
-      await authLogout();
+      // Pass the refreshToken to authLogout
+      await authLogout(refreshToken);
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
       navigate('/');

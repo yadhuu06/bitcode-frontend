@@ -19,9 +19,8 @@ const Questions = () => {
       setQuestions(response.questions || []);
       setError(null);
     } catch (err) {
-      const errorMessage = err.message.includes('{') ? JSON.parse(err.message) : { error: 'Failed to fetch questions' };
+      const errorMessage = JSON.parse(err.message);
       setError(errorMessage.error || 'Failed to fetch questions');
-      // Remove toast.error, as ProblemService handles it
     } finally {
       setLoading(false);
     }
@@ -40,14 +39,20 @@ const Questions = () => {
     (questionId, e) => {
       e.stopPropagation();
       navigate(`/admin/questions/edit/${questionId}`);
-      // Optional: toast.info('Opening edit form...');
+    },
+    [navigate]
+  );
+
+  const handleTestCases = useCallback(
+    (questionId, e) => {
+      e.stopPropagation();
+      navigate(`/admin/questions/${questionId}/test-cases`);
     },
     [navigate]
   );
 
   const openModal = useCallback((question) => {
     setSelectedQuestion(question);
-    // Optional: toast.info(`Viewing details for "${question.title}"`);
   }, []);
 
   const closeModal = useCallback(() => {
@@ -89,7 +94,7 @@ const Questions = () => {
             {question.difficulty}
           </span>
           <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-900/50 text-blue-400 border border-blue-500/50">
-            {question.tags} {/* Displays 'Array', 'String', 'DSA' from serializer */}
+            {question.tags}
           </span>
         </div>
         <div className="space-y-2 text-sm">
@@ -103,7 +108,7 @@ const Questions = () => {
           </p>
           <div className="flex flex-wrap gap-2 mt-4">
             <button
-              onClick={(e) => handleComingSoon('Test Cases', e)}
+              onClick={(e) => handleTestCases(question.question_id, e)}
               className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
             >
               <Code className="w-4 h-4 mr-1" />
@@ -141,7 +146,7 @@ const Questions = () => {
         </div>
       </div>
     ));
-  }, [questions, openModal, handleComingSoon, handleEdit]);
+  }, [questions, openModal, handleComingSoon, handleEdit, handleTestCases]);
 
   return (
     <div className="min-h-screen text-white">
@@ -150,18 +155,19 @@ const Questions = () => {
           <FileText className="w-8 h-8" />
           Questions
         </h1>
-        <CustomButton variant="create" onClick={() => {
-          navigate('/admin/questions/add');
-          toast.info('Opening new question form...');
-        }}>
+        <CustomButton
+          variant="create"
+          onClick={() => {
+            navigate('/admin/questions/add');
+            toast.info('Opening new question form...');
+          }}
+        >
           <span className="hidden sm:inline">Add Question</span>
           <span className="inline sm:hidden">Add Qn</span>
         </CustomButton>
       </header>
 
-      {loading && (
-        <div className="text-center text-gray-400">Loading questions...</div>
-      )}
+      {loading && <div className="text-center text-gray-400">Loading questions...</div>}
 
       {error && (
         <div className="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-400 rounded-lg flex items-center mx-4 md:mx-6">
@@ -182,7 +188,7 @@ const Questions = () => {
 
       {selectedQuestion && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-<div className="relative bg-black p-6 md:p-8 rounded-xl border-[1.5px] border-[#73E600] w-full max-w-3xl transform transition-all duration-300 scale-100 hover:scale-[1.02]">
+          <div className="relative bg-black p-6 md:p-8 rounded-xl border-[1.5px] border-[#73E600] w-full max-w-3xl transform transition-all duration-300 scale-100 hover:scale-[1.02]">
             <button
               onClick={closeModal}
               className="absolute top-4 right-4 text-gray-400 hover:text-[#73E600] transition-colors"

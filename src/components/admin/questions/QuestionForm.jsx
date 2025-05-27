@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, HelpCircle } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Code } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import CustomButton from '../../ui/CustomButton';
 import { createQuestion, editQuestion, fetchQuestionById } from '../../../services/ProblemService';
@@ -82,14 +82,12 @@ const editorStyles = `
   }
 `;
 
-// Map backend tags to display names
 const tagDisplayMap = {
   ARRAY: 'Array',
   STRING: 'String',
   DSA: 'DSA',
 };
 
-// Map display names back to backend tags
 const tagValueMap = {
   Array: 'ARRAY',
   String: 'STRING',
@@ -105,8 +103,9 @@ const QuestionForm = () => {
     title: '',
     description: '',
     difficulty: 'EASY',
-    tags: 'ARRAY', // Default matches backend
+    tags: 'ARRAY',
   });
+  const [examples, setExamples] = useState([{ input_example: '', output_example: '', explanation: '', order: 0 }]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -120,9 +119,9 @@ const QuestionForm = () => {
             title: question.title,
             description: question.description,
             difficulty: question.difficulty,
-            // Normalize incoming tags to uppercase backend values
             tags: tagValueMap[question.tags] || question.tags,
           });
+          setExamples(question.examples?.length > 0 ? question.examples : [{ input_example: '', output_example: '', explanation: '', order: 0 }]);
         } catch (error) {
           const errorData = JSON.parse(error.message);
           toast.error(errorData.error || 'Failed to load question');
@@ -146,21 +145,39 @@ const QuestionForm = () => {
     setErrors((prev) => ({ ...prev, description: '' }));
   };
 
+  const handleExampleChange = (index, field, value) => {
+    setExamples((prev) => {
+      const newExamples = [...prev];
+      newExamples[index] = { ...newExamples[index], [field]: value };
+      return newExamples;
+    });
+    setErrors((prev) => ({ ...prev, [`example_${index}`]: '' }));
+  };
+
+  const addExample = () => {
+    setExamples((prev) => [...prev, { input_example: '', output_example: '', explanation: '', order: prev.length }]);
+  };
+
+  const removeExample = (index) => {
+    setExamples((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
       setErrors({});
+      const payload = { ...formData, examples };
       if (isEditMode) {
-        await editQuestion(questionId, formData);
+        await editQuestion(questionId, payload);
         toast.success('Question updated successfully');
       } else {
-        await createQuestion(formData);
+        await createQuestion(payload);
         toast.success('Question created successfully');
       }
       navigate('/admin/questions');
     } catch (error) {
       const errorData = JSON.parse(error.message);
-      if (errorData.title || errorData.description || errorData.difficulty || errorData.tags) {
+      if (errorData.title || errorData.description || errorData.difficulty || errorData.tags || errorData.examples) {
         setErrors(errorData);
       } else {
         toast.error(errorData.error || 'Operation failed');
@@ -171,12 +188,8 @@ const QuestionForm = () => {
   };
 
   const handleCancel = () => {
-    setFormData({
-      title: '',
-      description: '',
-      difficulty: 'EASY',
-      tags: 'ARRAY',
-    });
+    setFormData({ title: '', description: '', difficulty: 'EASY', tags: 'ARRAY' });
+    setExamples([{ input_example: '', output_example: '', explanation: '', order: 0 }]);
     setErrors({});
     navigate('/admin/questions');
   };
@@ -185,11 +198,11 @@ const QuestionForm = () => {
     <div className="p-4 md:p-6 lg:p-8">
       <header className="mb-8 flex items-center gap-4">
         <button
-          onClick={() => navigate('/submit')}
+          onClick={() => navigate('/admin/questions')}
           className="text-gray-400 hover:text-white transition-colors"
           aria-label="Go back"
         >
-          <ArrowLeft className="w-6 h-6" />
+          
         </button>
         <h1 className="text-2xl font-bold text-green-500 font-sans flex items-center gap-2">
           <span className="text-white">{'<'}</span>
@@ -212,9 +225,7 @@ const QuestionForm = () => {
             } focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-3 font-mono`}
             disabled={loading}
           />
-          {errors.title && (
-            <p className="text-red-400 text-xs mt-1">{errors.title}</p>
-          )}
+          {errors.title && <p className="text-red-400 text-xs mt-1">{errors.title}</p>}
         </div>
 
         <div className="mb-6" data-color-mode="dark">
@@ -247,8 +258,93 @@ const QuestionForm = () => {
               },
             }}
           />
-          {errors.description && (
-            <p className="text-red-400 text-xs mt-1">{errors.description}</p>
+          {errors.description && <p className="text-red-400 text-xs mt-1">{errors.description}</p>}
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm text-gray-400 mb-2">Examples</label>
+          {examples.map((example, index) => (
+            <div key={index} className="mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Input</label>
+                  <input
+                    type="text"
+                    value={example.input_example}
+                    onChange={(e) => handleExampleChange(index, 'input_example', e.target.value)}
+                    placeholder="Enter input example"
+                    className="w-full bg-gray-800/50 text-white text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-2 font-mono"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Output</label>
+                  <input
+                    type="text"
+                    value={example.output_example}
+                    onChange={(e) => handleExampleChange(index, 'output_example', e.target.value)}
+                    placeholder="Enter output example"
+                    className="w-full bg-gray-800/50 text-white text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-2 font-mono"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-400 mb-1">Explanation</label>
+                  <textarea
+                    value={example.explanation}
+                    onChange={(e) => handleExampleChange(index, 'explanation', e.target.value)}
+                    placeholder="Enter explanation (optional)"
+                    className="w-full bg-gray-800/50 text-white text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-2 font-mono"
+                    rows="3"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Order</label>
+                  <input
+                    type="number"
+                    value={example.order}
+                    onChange={(e) => handleExampleChange(index, 'order', parseInt(e.target.value) || 0)}
+                    className="w-full bg-gray-800/50 text-white text-sm rounded-lg border border-gray-700/50 focus:ring-2 focus:ring-green-500 focus:outline-none px-4 py-2 font-mono"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <CustomButton
+                    onClick={() => removeExample(index)}
+                    variant="cancel"
+                    disabled={loading || examples.length === 1}
+                  >
+                    Remove
+                  </CustomButton>
+                </div>
+              </div>
+              {errors[`example_${index}`] && (
+                <p className="text-red-400 text-xs mt-1">{errors[`example_${index}`]}</p>
+              )}
+            </div>
+          ))}
+          <CustomButton onClick={addExample} variant="create" disabled={loading}>
+            Add Example
+          </CustomButton>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm text-gray-400 mb-2">Test Cases</label>
+          <CustomButton
+            onClick={() => navigate(`/admin/questions/${questionId}/test-cases`)}
+            variant="create"
+            disabled={!isEditMode}
+          >
+            <span className="flex items-center gap-2">
+              <Code className="w-5 h-5" />
+              Manage Test Cases
+            </span>
+          </CustomButton>
+          {!isEditMode && (
+            <p className="text-gray-400 text-xs mt-1">
+              Save the question first to manage test cases.
+            </p>
           )}
         </div>
 
@@ -274,9 +370,7 @@ const QuestionForm = () => {
               <option value="MEDIUM" className="bg-gray-800 text-yellow-400">Medium</option>
               <option value="HARD" className="bg-gray-800 text-red-400">Hard</option>
             </select>
-            {errors.difficulty && (
-              <p className="text-red-400 text-xs mt-1">{errors.difficulty}</p>
-            )}
+            {errors.difficulty && <p className="text-red-400 text-xs mt-1">{errors.difficulty}</p>}
           </div>
 
           <div>
@@ -294,9 +388,7 @@ const QuestionForm = () => {
               <option value="STRING" className="bg-gray-800">String</option>
               <option value="DSA" className="bg-gray-800">DSA</option>
             </select>
-            {errors.tags && (
-              <p className="text-red-400 text-xs mt-1">{errors.tags}</p>
-            )}
+            {errors.tags && <p className="text-red-400 text-xs mt-1">{errors.tags}</p>}
           </div>
         </div>
 
@@ -304,7 +396,6 @@ const QuestionForm = () => {
           <CustomButton onClick={handleCancel} variant="cancel" disabled={loading}>
             Cancel
           </CustomButton>
-
           <CustomButton onClick={handleSubmit} variant="create" disabled={loading}>
             <span className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5" />

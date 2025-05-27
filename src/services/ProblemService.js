@@ -1,61 +1,78 @@
 import api from '../api';
-import { toast } from 'react-toastify';
 
-// Create a new question
-export const createQuestion = async (formData) => {
-  try {
-    const response = await api.post('/problems/questions/create/', formData);
-    toast.success('Question created successfully!');
-    return response.data;
-  } catch (error) {
-    console.error('Error creating question:', error.response?.data || error.message);
-    const errors = error.response?.data || { error: 'Failed to create question' };
-    toast.error(errors.error || 'Failed to create question');
-    throw new Error(JSON.stringify(errors));
-  }
-};
-
-// Edit an existing question
-export const editQuestion = async (questionId, formData) => {
-  try {
-    const response = await api.put(`/problems/questions/edit/${questionId}/`, formData);
-    toast.success('Question updated successfully!');
-    return response.data;
-  } catch (error) {
-    console.error('Error editing question:', error.response?.data || error.message);
-    const errors = error.response?.data || { error: 'Failed to edit question' };
-    toast.error(errors.error || 'Failed to edit question');
-    throw new Error(JSON.stringify(errors));
-  }
-};
-
-// Fetch the list of questions
 export const fetchQuestions = async () => {
   try {
-    const response = await api.get('/problems/questions/');
+    const response = await api.get('/questions/');
     return response.data;
   } catch (error) {
-    console.error('Error fetching questions:', error.response?.data || error.message);
-    const errors = error.response?.data || { error: 'Failed to fetch questions' };
-    toast.error(errors.error || 'Failed to fetch questions');
-    throw new Error(JSON.stringify(errors));
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch questions' }));
   }
 };
 
-// Fetch a single question by ID
 export const fetchQuestionById = async (questionId) => {
   try {
-    const response = await fetchQuestions();
-    const question = response.questions.find((q) => q.question_id === questionId);
-    if (!question) {
-      toast.error('Question not found');
-      throw new Error('Question not found');
-    }
-    return question;
+    const response = await api.get('/questions/', {
+      params: { question_id: questionId },
+    });
+    return response.data.questions.find((q) => q.question_id === questionId);
   } catch (error) {
-    console.error('Error fetching question:', error.response?.data || error.message);
-    const errors = error.response?.data || { error: error.message || 'Failed to fetch question' };
-    toast.error(errors.error || 'Failed to fetch question');
-    throw new Error(JSON.stringify(errors));
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch question' }));
+  }
+};
+
+export const createQuestion = async (data) => {
+  try {
+    const response = await api.post('/questions/create/', data);
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to create question' }));
+  }
+};
+
+export const editQuestion = async (questionId, data) => {
+  try {
+    const response = await api.put(`/questions/edit/${questionId}/`, data);
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to update question' }));
+  }
+};
+
+export const fetchTestCases = async (questionId, page = 1, pageSize = 10, search = '', isSample = null) => {
+  try {
+    const params = { page, page_size: pageSize };
+    if (search) params.search = search;
+    if (isSample !== null) params.is_sample = isSample;
+    const response = await api.get(`/questions/${questionId}/test-cases/`, { params });
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch test cases' }));
+  }
+};
+
+export const createTestCase = async (questionId, data) => {
+  try {
+    const response = await api.post(`/questions/${questionId}/test-cases/`, data);
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to create test case' }));
+  }
+};
+
+export const updateTestCase = async (questionId, testCaseId, data) => {
+  try {
+    const response = await api.put(`/questions/${questionId}/test-cases/${testCaseId}/`, data);
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to update test case' }));
+  }
+};
+
+export const deleteTestCase = async (questionId, testCaseId) => {
+  try {
+    const response = await api.delete(`/questions/${questionId}/test-cases/${testCaseId}/`);
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to delete test case' }));
   }
 };

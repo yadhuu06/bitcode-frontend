@@ -2,7 +2,6 @@ import api from '../api';
 import store from '../store';
 import Cookies from 'js-cookie';
 
-// Fetch the user's profile data
 export const fetchProfile = async () => {
   try {
     const response = await api.get('/api/auth/profile/');
@@ -14,7 +13,6 @@ export const fetchProfile = async () => {
   }
 };
 
-// Update the user's profile (username and profile picture)
 export const updateProfile = async (formData) => {
   try {
     const response = await api.patch('/api/auth/profile/', formData, {
@@ -30,9 +28,9 @@ export const updateProfile = async (formData) => {
   }
 };
 
-// Logout function
+
 export const logout = async () => {
-  // Retrieve refreshToken from Redux state or cookies
+
   const state = store.getState();
   const refreshToken = state.auth.refreshToken || Cookies.get('refresh_token');
 

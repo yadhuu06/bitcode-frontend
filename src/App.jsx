@@ -26,6 +26,7 @@ import UserNavbar from './components/user/UserNavbar';
 import LoadingIndicator from './components/ui/LoadingIndicator';
 import AdminLayout from './components/admin/AdminLayout';
 import QuestionForm from './components/admin/questions/QuestionForm';
+import TestCaseManager from './components/admin/questions/TestCaseManager'; // Import TestCaseManager
 
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -112,6 +113,7 @@ const AppWrapper = () => {
                   <Route path="questions" element={<Questions />} />
                   <Route path="questions/add" element={<QuestionForm />} />
                   <Route path="questions/edit/:questionId" element={<QuestionForm />} />
+                  <Route path="questions/:questionId/test-cases" element={<TestCaseManager />} /> {/* Added TestCaseManager route */}
                 </Routes>
               </AdminLayout>
             }

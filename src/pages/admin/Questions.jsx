@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import CustomButton from '../../components/ui/CustomButton';
 import { toast } from 'react-toastify';
 import { fetchQuestions } from '../../services/ProblemService';
-import { FileText, Code, BookOpen, CheckCircle, Edit } from 'lucide-react';
+import { FileText, CheckCircle, Edit, Code, BookOpen, X } from 'lucide-react';
 
 const Questions = () => {
   const navigate = useNavigate();
@@ -59,6 +60,12 @@ const Questions = () => {
     setSelectedQuestion(null);
   }, []);
 
+  const handleBackgroundClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      closeModal();
+    }
+  }, [closeModal]);
+
   const questionList = useMemo(() => {
     return questions.map((question) => (
       <div
@@ -110,37 +117,26 @@ const Questions = () => {
             <button
               onClick={(e) => handleTestCases(question.question_id, e)}
               className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
+              title="Test Cases"
             >
               <Code className="w-4 h-4 mr-1" />
-              Test Cases
+              <span className="hidden sm:inline">Test Cases</span>
             </button>
             <button
               onClick={(e) => handleComingSoon('Examples', e)}
               className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
+              title="Examples"
             >
               <BookOpen className="w-4 h-4 mr-1" />
-              Examples
-            </button>
-            <button
-              onClick={(e) => handleComingSoon('Solutions', e)}
-              className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
-            >
-              <FileText className="w-4 h-4 mr-1" />
-              Solutions
-            </button>
-            <button
-              onClick={(e) => handleComingSoon('Verify', e)}
-              className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
-            >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Verify
+              <span className="hidden sm:inline">Examples</span>
             </button>
             <button
               onClick={(e) => handleEdit(question.question_id, e)}
               className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
+              title="Edit"
             >
               <Edit className="w-4 h-4 mr-1" />
-              Edit
+              <span className="hidden sm:inline">Edit</span>
             </button>
           </div>
         </div>
@@ -187,137 +183,98 @@ const Questions = () => {
       </div>
 
       {selectedQuestion && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="relative bg-black p-6 md:p-8 rounded-xl border-[1.5px] border-[#73E600] w-full max-w-3xl transform transition-all duration-300 scale-100 hover:scale-[1.02]">
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={handleBackgroundClick}
+          role="dialog"
+          aria-labelledby="question-modal-title"
+          aria-modal="true"
+        >
+          <div className="relative bg-black p-6 md:p-8 rounded-xl border-[1.5px] border-[#73E600] w-full h-full max-w-[95vw] max-h-[95vh] overflow-y-auto">
             <button
               onClick={closeModal}
               className="absolute top-4 right-4 text-gray-400 hover:text-[#73E600] transition-colors"
               aria-label="Close modal"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             </button>
-            <h2 className="text-2xl font-bold text-white mb-4 border-b border-[#73E600]/50 pb-2">
+            <h2 id="question-modal-title" className="text-2xl font-bold text-[#73E600] mb-6 flex items-center gap-2">
+              <FileText className="w-6 h-6" />
               {selectedQuestion.title}
             </h2>
             <div className="space-y-4 text-sm text-gray-300">
-              <p>
-                <span className="font-semibold text-white">ID:</span>{' '}
-                <span className="font-mono text-[#73E600]">{selectedQuestion.question_id}</span>
-              </p>
-              <p>
-                <span className="font-semibold text-white">Slug:</span>{' '}
-                {selectedQuestion.slug}
-              </p>
-              <p>
-                <span className="font-semibold text-white">Description:</span>{' '}
-                {selectedQuestion.description}
-              </p>
-              <p>
-                <span className="font-semibold text-white">Difficulty:</span>{' '}
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    selectedQuestion.difficulty === 'EASY'
-                      ? 'bg-green-900/50 text-green-400'
-                      : selectedQuestion.difficulty === 'MEDIUM'
-                      ? 'bg-yellow-500/50 text-yellow-400'
-                      : 'bg-red-600/50 text-red-400'
-                  }`}
-                >
-                  {selectedQuestion.difficulty}
-                </span>
-              </p>
-              <p>
-                <span className="font-semibold text-white">Tag:</span>{' '}
-                <span className="px-2 py-1 rounded text-xs font-medium bg-blue-900/50 text-blue-400">
-                  {selectedQuestion.tags}
-                </span>
-              </p>
-              <p>
-                <span className="font-semibold text-white">Status:</span>{' '}
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    selectedQuestion.is_validate
-                      ? 'bg-green-900/50 text-green-400'
-                      : 'bg-red-900/50 text-red-400'
-                  }`}
-                >
-                  {selectedQuestion.is_validate ? 'Verified' : 'Not Verified'}
-                </span>
-              </p>
-              <p>
-                <span className="font-semibold text-white">Created By:</span>{' '}
-                {selectedQuestion.created_by || 'Unknown'}
-              </p>
-              <p>
-                <span className="font-semibold text-white">Created At:</span>{' '}
-                {new Date(selectedQuestion.created_at).toLocaleString()}
-              </p>
-              <p>
-                <span className="font-semibold text-white">Updated At:</span>{' '}
-                {new Date(selectedQuestion.updated_at).toLocaleString()}
-              </p>
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Examples</h3>
-                {selectedQuestion.examples?.length > 0 ? (
-                  <ul className="space-y-3">
-                    {selectedQuestion.examples.map((example) => (
-                      <li key={example.id} className="bg-gray-800/50 p-4 rounded-lg">
-                        <p><span className="font-semibold">Input:</span> {example.input_example}</p>
-                        <p><span className="font-semibold">Output:</span> {example.output_example}</p>
-                        {example.explanation && (
-                          <p><span className="font-semibold">Explanation:</span> {example.explanation}</p>
-                        )}
-                        <p><span className="font-semibold">Order:</span> {example.order}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No examples available.</p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-gray-400">Question ID:</span>
+                  <span className="text-white font-mono ml-2 truncate">{selectedQuestion.question_id}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Slug:</span>
+                  <span className="text-white ml-2 truncate">{selectedQuestion.slug}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Difficulty:</span>
+                  <span
+                    className={`ml-2 capitalize ${
+                      selectedQuestion.difficulty === 'EASY' ? 'text-green-400' :
+                      selectedQuestion.difficulty === 'MEDIUM' ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}
+                  >
+                    {selectedQuestion.difficulty}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Tag:</span>
+                  <span className="ml-2 text-blue-400">{selectedQuestion.tags}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Status:</span>
+                  <span
+                    className={`ml-2 ${
+                      selectedQuestion.is_validate ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    {selectedQuestion.is_validate ? 'Verified' : 'Not Verified'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Created By:</span>
+                  <span className="text-white ml-2 truncate">{selectedQuestion.created_by || 'Unknown'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Created At:</span>
+                  <span className="text-white ml-2">{new Date(selectedQuestion.created_at).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Updated At:</span>
+                  <span className="text-white ml-2">{new Date(selectedQuestion.updated_at).toLocaleString()}</span>
+                </div>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Test Cases</h3>
-                {selectedQuestion.test_cases?.length > 0 ? (
-                  <ul className="space-y-3">
-                    {selectedQuestion.test_cases.map((testCase) => (
-                      <li key={testCase.id} className="bg-gray-800/50 p-4 rounded-lg">
-                        <p><span className="font-semibold">Input:</span> {testCase.input_data}</p>
-                        <p><span className="font-semibold">Expected Output:</span> {testCase.expected_output}</p>
-                        <p>
-                          <span className="font-semibold">Sample:</span>{' '}
-                          {testCase.is_sample ? 'Yes' : 'No'}
-                        </p>
-                        <p><span className="font-semibold">Order:</span> {testCase.order}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No test cases available.</p>
-                )}
+                <h3 className="text-lg font-semibold text-[#73E600] mb-3">Description</h3>
+                <div className="bg-gray-800/50 p-4 rounded-lg prose prose-invert max-w-none text-gray-300">
+                  <ReactMarkdown>{selectedQuestion.description}</ReactMarkdown>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Solutions</h3>
-                {selectedQuestion.solved_codes?.length > 0 ? (
-                  <ul className="space-y-3">
-                    {selectedQuestion.solved_codes.map((solution) => (
-                      <li key={solution.id} className="bg-gray-800/50 p-4 rounded-lg">
-                        <p><span className="font-semibold">Language:</span> {solution.language}</p>
-                        <pre className="bg-gray-900 p-2 rounded text-xs text-white whitespace-pre-wrap">
-                          {solution.solution_code}
-                        </pre>
-                        <p>
-                          <span className="font-semibold">Created At:</span>{' '}
-                          {new Date(solution.created_at).toLocaleString()}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No solutions available.</p>
-                )}
-              </div>
+            </div>
+            <div className="mt-6 flex gap-4">
+              <button
+                onClick={(e) => handleTestCases(selectedQuestion.question_id, e)}
+                className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 font-medium"
+                title="Test Cases"
+              >
+                <Code className="w-5 h-5 mr-2" />
+                Test Cases
+              </button>
+              <button
+                onClick={(e) => handleEdit(selectedQuestion.question_id, e)}
+                className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 font-medium"
+                title="Edit"
+              >
+                <Edit className="w-5 h-5 mr-2" />
+                Edit
+              </button>
             </div>
           </div>
         </div>

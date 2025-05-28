@@ -1,13 +1,12 @@
-// src/components/BattleWaitingLobby.js
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Users, Clock, Play, Shield, UserX, Code, ClipboardCopy, CheckCircle, Swords } from 'lucide-react';
+import { Users, Clock, Play, Shield, UserX, Code, ClipboardCopy, CheckCircle, Swords, ArrowLeft, XCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
-import 'react-toastify/dist/ReactToastify.css';
 import ChatPanel from './ChatPannel';
+import 'react-toastify/dist/ReactToastify.css';
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -108,6 +107,7 @@ const BattleWaitingLobby = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [readyStatus, setReadyStatus] = useState({});
   const [copied, setCopied] = useState(false);
+  const [isRoomClosed, setIsRoomClosed] = useState(false);
   const wsListenerId = useRef(`lobby-${roomId}`);
 
   const rules = [
@@ -122,7 +122,6 @@ const BattleWaitingLobby = () => {
       setIsLoading(true);
       try {
         let roomData;
-
         if (location.state) {
           roomData = {
             roomId,
@@ -166,7 +165,7 @@ const BattleWaitingLobby = () => {
       fetchRoomDetails();
     } else {
       toast.error('Invalid room or session');
-      navigate('/user/rooms');
+      navigate('/login');
     }
   }, [location, navigate, roomId, accessToken]);
 
@@ -179,7 +178,6 @@ const BattleWaitingLobby = () => {
       if (data.type === 'participant_list' || data.type === 'participant_update') {
         setParticipants(data.participants || []);
         setRoomDetails((prev) => (prev ? { ...prev, participantCount: data.participants.length } : prev));
-        // Update role based on participant's data
         const currentUser = data.participants.find((p) => p.user__username === username);
         if (currentUser && currentUser.role) {
           setRole(currentUser.role);
@@ -188,9 +186,18 @@ const BattleWaitingLobby = () => {
         setCountdown(data.countdown);
       } else if (data.type === 'ready_status') {
         setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
+      } else if (data.type === 'room_closed') {
+        setIsRoomClosed(true);
+        setTimeout(() => navigate('/user/rooms'), 3000);
       } else if (data.type === 'error') {
         toast.error(data.message);
-        if (data.message.includes('401') || data.message.includes('4001') || data.message.includes('4002') || data.code === 4005) {
+        if (
+          data.message.includes('401') ||
+          data.message.includes('4001') ||
+          data.message.includes('4002') ||
+          data.message.includes('Not authorized') ||
+          data.code === 4005
+        ) {
           navigate('/login');
         }
       }
@@ -200,6 +207,7 @@ const BattleWaitingLobby = () => {
 
     return () => {
       WebSocketService.removeListener(wsListenerId.current);
+      WebSocketService.disconnect();
     };
   }, [roomId, accessToken, navigate, username]);
 
@@ -250,7 +258,8 @@ const BattleWaitingLobby = () => {
   };
 
   const handleStartBattle = () => {
-    "coming soon"
+    // Implement battle start logic
+    toast.info('Battle starting soon!');
   };
 
   const initiateCountdown = () => {
@@ -266,13 +275,18 @@ const BattleWaitingLobby = () => {
     WebSocketService.sendMessage({ type: 'start_countdown', countdown: 5 });
   };
 
-  if (!roomDetails) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <BitCodeProgressLoading message="Initializing..." />
-      </div>
-    );
-  }
+  const handleLeaveRoom = () => {
+    WebSocketService.sendMessage({ type: 'leave_room' });
+    navigate('/user/rooms');
+  };
+
+  const handleCloseRoom = () => {
+    if (role !== 'host') {
+      toast.error('Only the host can close the room');
+      return;
+    }
+    WebSocketService.sendMessage({ type: 'close_room' });
+  };
 
   const getDifficultyStyles = (difficulty) => {
     switch (difficulty?.toLowerCase()) {
@@ -287,6 +301,26 @@ const BattleWaitingLobby = () => {
     }
   };
 
+  if (isRoomClosed) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-[#00FF40] font-['Orbitron']">Room Closed</h2>
+          <p className="text-gray-400 mt-2">The host has closed the room. Redirecting to rooms list...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!roomDetails) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <BitCodeProgressLoading message="Initializing..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
       <MatrixBackground />
@@ -295,23 +329,29 @@ const BattleWaitingLobby = () => {
         <header className="bg-gray-900/80 border-b border-[#00FF40]/30 p-4 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-4">
+              {role !== 'host' && (
+                <button
+                  onClick={handleLeaveRoom}
+                  className="p-2 rounded-full bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-[#00FF40] transition-all duration-300"
+                  title="Leave Room"
+                  aria-label="Leave Room"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+              )}
               <h1 className="text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider">
                 {roomDetails.roomName}
               </h1>
               <div className="flex gap-2">
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${roomDetails.difficulty === 'easy'
-                      ? 'bg-green-500/20 text-green-400'
-                      : roomDetails.difficulty === 'medium'
-                        ? 'bg-yellow-500/20 text-yellow-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}
+                  className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyStyles(roomDetails.difficulty)}`}
                 >
                   {roomDetails.difficulty?.toUpperCase()}
                 </span>
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${roomDetails.isPrivate ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#00FF40]/20 text-[#00FF40]'
-                    }`}
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    roomDetails.isPrivate ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#00FF40]/20 text-[#00FF40]'
+                  }`}
                 >
                   {roomDetails.isPrivate ? 'PRIVATE' : 'PUBLIC'}
                 </span>
@@ -358,8 +398,9 @@ const BattleWaitingLobby = () => {
                         </div>
                         <div className="flex items-center text-xs mt-1">
                           <span
-                            className={`h-2 w-2 rounded-full mr-1 ${participant.status === 'joined' ? 'bg-[#00FF40]' : 'bg-yellow-400'
-                              }`}
+                            className={`h-2 w-2 rounded-full mr-1 ${
+                              participant.status === 'joined' ? 'bg-[#00FF40]' : 'bg-yellow-400'
+                            }`}
                           ></span>
                           <span className={participant.status === 'joined' ? 'text-[#00FF40]' : 'text-yellow-400'}>
                             {participant.status.toUpperCase()}
@@ -385,10 +426,11 @@ const BattleWaitingLobby = () => {
                       {role !== 'host' && participant.user__username === username && (
                         <button
                           onClick={handleReadyToggle}
-                          className={`p-2 rounded-full ${readyStatus[username]
+                          className={`p-2 rounded-full ${
+                            readyStatus[username]
                               ? 'bg-[#00FF40]/20 text-[#00FF40]'
                               : 'bg-gray-700/50 text-gray-400'
-                            } hover:bg-[#22c55e]/30 transition-all duration-300`}
+                          } hover:bg-[#22c55e]/30 transition-all duration-300`}
                           title={readyStatus[username] ? 'Unready' : 'Ready'}
                           aria-label={readyStatus[username] ? 'Unready' : 'Ready'}
                         >
@@ -417,10 +459,11 @@ const BattleWaitingLobby = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${activeTab === tab
+                  className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${
+                    activeTab === tab
                       ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
                       : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
-                    }`}
+                  }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
@@ -477,7 +520,7 @@ const BattleWaitingLobby = () => {
                 </div>
               )}
 
-              {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} />}
+              {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} isActiveTab={activeTab === 'chat'} />}
 
               {activeTab === 'rules' && (
                 <div className="space-y-4">
@@ -504,29 +547,51 @@ const BattleWaitingLobby = () => {
             </div>
 
             {/* Host Controls */}
-            {(role === 'host' || role === '') && (
-              <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
-                <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Host Dashboard
-                </h3>
-                <div className="space-y-3">
+            <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
+              <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                {role === 'host' ? 'Host Dashboard' : 'Participant Controls'}
+              </h3>
+              <div className="space-y-3">
+                {role === 'host' ? (
+                  <>
+                    <button
+                      onClick={initiateCountdown}
+                      disabled={participants.length < 1 || isLoading}
+                      className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
+                        ${
+                          participants.length < 1 || isLoading
+                            ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                            : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
+                        }`}
+                      aria-label="Start battle"
+                    >
+                      <Swords size={16} />
+                      Start Battle
+                    </button>
+                    <button
+                      onClick={handleCloseRoom}
+                      disabled={isLoading}
+                      className="w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-black transition-colors duration-300"
+                      aria-label="Close room"
+                    >
+                      <XCircle size={16} />
+                      Close Room
+                    </button>
+                  </>
+                ) : (
                   <button
-                    onClick={initiateCountdown}
-                    disabled={participants.length < 1 || isLoading}
-                    className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
-                      ${participants.length < 1 || isLoading
-                        ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
-                      }`}
-                    aria-label="Start battle"
+                    onClick={handleLeaveRoom}
+                    disabled={isLoading}
+                    className="w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black transition-colors duration-300"
+                    aria-label="Leave room"
                   >
-                    <Swords size={16} />
-                    Start Battle
+                    <ArrowLeft size={16} />
+                    Leave Room
                   </button>
-                </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </main>
 

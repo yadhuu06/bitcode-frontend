@@ -22,12 +22,18 @@ export const createRoom = async (payload) => {
     throw error.response?.data || error;
   }
 };
+
 export const getRoomDetails = async (roomId) => {
   try {
     const response = await api.get(`/rooms/${roomId}/`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching room details:', error);
-    throw error.response?.data?.error || error.message;
+    const errMsg = error.response?.data?.error || error.message;
+
+    if (error.response?.status === 403 && errMsg === 'You are not authorised person') {
+      toast.error('You are not authorised person');
+    }
+
+    throw errMsg;
   }
 };

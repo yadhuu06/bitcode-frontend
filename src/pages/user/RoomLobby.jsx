@@ -7,6 +7,7 @@ import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
 import ChatPanel from './ChatPannel';
 import 'react-toastify/dist/ReactToastify.css';
+import { setLoading } from '../../store/slices/loadingSlice';
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -100,7 +101,7 @@ const BattleWaitingLobby = () => {
   const [currentTime, setCurrentTime] = useState(
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   );
-  const [role, setRole] = useState(location.state?.role || '');
+  const [role, setRole] = useState('participant');
   const [roomDetails, setRoomDetails] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [countdown, setCountdown] = useState(null);
@@ -108,6 +109,8 @@ const BattleWaitingLobby = () => {
   const [readyStatus, setReadyStatus] = useState({});
   const [copied, setCopied] = useState(false);
   const [isRoomClosed, setIsRoomClosed] = useState(false);
+  const [lobbyMessages, setLobbyMessages] = useState([]);
+  const [isKicked, setIsKicked] = useState(false); // New state to track if user is kicked
   const wsListenerId = useRef(`lobby-${roomId}`);
 
   const rules = [
@@ -116,71 +119,93 @@ const BattleWaitingLobby = () => {
     'No external resources during the battle.',
     'Maintain respect and fair play.',
   ];
+useEffect(() => {
+  const fetchRoomDetails = async () => {
+    setIsLoading(true);
+    try {
+      let roomData;
 
-  useEffect(() => {
-    const fetchRoomDetails = async () => {
-      setIsLoading(true);
-      try {
-        let roomData;
-        if (location.state) {
-          roomData = {
-            roomId,
-            roomName: location.state.roomName,
-            isPrivate: location.state.isPrivate,
-            join_code: location.state.joinCode,
-            difficulty: location.state.difficulty,
-            timeLimit: location.state.timeLimit,
-            capacity: location.state.capacity,
-            participantCount: location.state.participantCount || 1,
-            status: 'active',
-          };
-          setParticipants(location.state.participants || []);
-          setRole(location.state.role || '');
-        } else {
-          const response = await getRoomDetails(roomId, accessToken);
-          roomData = {
-            roomId,
-            roomName: response.room.name,
-            isPrivate: response.room.visibility === 'private',
-            join_code: response.room.join_code,
-            difficulty: response.room.difficulty,
-            timeLimit: response.room.time_limit,
-            capacity: response.room.capacity,
-            participantCount: response.room.participant_count,
-            status: response.room.status,
-          };
-          setParticipants(response.participants || []);
-        }
-        setRoomDetails(roomData);
-      } catch (err) {
-        console.error('Error fetching room details:', err);
-        toast.error('Failed to load room details');
-        navigate('/user/rooms');
-      } finally {
-        setIsLoading(false);
+      if (location.state) {
+        roomData = {
+          roomId,
+          roomName: location.state.roomName,
+          isPrivate: location.state.isPrivate,
+          join_code: location.state.joinCode,
+          difficulty: location.state.difficulty,
+          timeLimit: location.state.timeLimit,
+          capacity: location.state.capacity,
+          participantCount: location.state.participantCount || 1,
+          status: 'active',
+        };
+        setParticipants(location.state.participants || []);
+        setRole(location.state.role);
+      } else {
+        const response = await getRoomDetails(roomId, accessToken);
+        roomData = {
+          roomId,
+          roomName: response.room.name,
+          isPrivate: response.room.visibility === 'private',
+          join_code: response.room.join_code,
+          difficulty: response.room.difficulty,
+          timeLimit: response.room.time_limit,
+          capacity: response.room.capacity,
+          participantCount: response.room.participant_count,
+          status: response.room.status,
+        };
+        setParticipants(response.participants || []);
+        setRole(
+          response.participants.find(p => p.user__username === user?.username)?.role || 'participant'
+        );
       }
-    };
 
-    if (accessToken && roomId) {
-      fetchRoomDetails();
-    } else {
-      toast.error('Invalid room or session');
-      navigate('/login');
+      setRoomDetails(roomData);
+    } catch (err) {
+      console.error('Error fetching room details:', err);
+      const message = err?.response?.data?.error;
+
+      if (
+        err?.response?.status === 403 &&
+        (message === 'You are not authorised person' || message === 'You are not authorised person.')
+      ) {
+        toast.error('You are not authorised to view this room');
+      } else {
+        toast.error('Failed to load room details');
+      }
+
+      navigate('/user/rooms');
+    } finally {
+      setIsLoading(false);
     }
-  }, [location, navigate, roomId, accessToken]);
+  };
+
+  if (accessToken && roomId) {
+    fetchRoomDetails();
+  } else {
+    toast.error('Invalid room or session');
+    navigate('/login');
+  }
+}, [location, navigate, roomId, accessToken]);
 
   useEffect(() => {
     if (!roomId || !accessToken) return;
 
-    WebSocketService.connect(accessToken, roomId);
+
+    WebSocketService.connect(accessToken, roomId, () => {
+    console.warn("Redirecting due to WebSocket initial failure...");
+    navigate('/error'); 
+    });
 
     const handleMessage = (data) => {
+      console.log('WebSocket message received:', data); // Debug log to verify message receipt
       if (data.type === 'participant_list' || data.type === 'participant_update') {
-        setParticipants(data.participants || []);
-        setRoomDetails((prev) => (prev ? { ...prev, participantCount: data.participants.length } : prev));
-        const currentUser = data.participants.find((p) => p.user__username === username);
+        const activeParticipants = (data.participants || []).filter(p => p.status === 'joined');
+        setParticipants(activeParticipants);
+        setRoomDetails((prev) => (prev ? { ...prev, participantCount: activeParticipants.length } : prev));
+        const currentUser = activeParticipants.find((p) => p.user__username === username);
         if (currentUser && currentUser.role) {
           setRole(currentUser.role);
+        } else if (location.state?.isHost) {
+          setRole('host');
         }
       } else if (data.type === 'countdown') {
         setCountdown(data.countdown);
@@ -189,6 +214,26 @@ const BattleWaitingLobby = () => {
       } else if (data.type === 'room_closed') {
         setIsRoomClosed(true);
         setTimeout(() => navigate('/user/rooms'), 3000);
+      } else if (data.type === 'kicked') {
+        console.log('Kicked message received:', data); // Debug log
+        if (data.username === username) {
+          setIsKicked(true); // Set kicked state to true
+          toast.error('You have been kicked from the room');
+          // Disconnect WebSocket to stop receiving further updates
+          WebSocketService.disconnect();
+          // Navigate to rooms list after a short delay
+          setTimeout(() => {
+            navigate('/user/rooms');
+          }, 2000);
+        }
+      } else if (data.type === 'participant_left') {
+        setLobbyMessages((prev) => [
+          ...prev,
+          `${data.username} left the lobby`,
+        ]);
+        setTimeout(() => {
+          setLobbyMessages((prev) => prev.slice(1));
+        }, 5000);
       } else if (data.type === 'error') {
         toast.error(data.message);
         if (
@@ -258,7 +303,6 @@ const BattleWaitingLobby = () => {
   };
 
   const handleStartBattle = () => {
-    // Implement battle start logic
     toast.info('Battle starting soon!');
   };
 
@@ -300,6 +344,19 @@ const BattleWaitingLobby = () => {
         return 'text-gray-400 bg-gray-800';
     }
   };
+
+  // If user is kicked, show only the kicked message
+  if (isKicked) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-[#00FF40] font-['Orbitron']">Kicked from Room</h2>
+          <p className="text-gray-400 mt-2">You have been kicked from the room. Redirecting to rooms list...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isRoomClosed) {
     return (
@@ -448,6 +505,17 @@ const BattleWaitingLobby = () => {
                   </div>
                 </div>
               )}
+            </div>
+            {/* Lobby Messages */}
+            <div className="mt-4 space-y-2">
+              {lobbyMessages.map((message, index) => (
+                <div
+                  key={`lobby-message-${index}`}
+                  className="text-sm text-gray-300 bg-gray-800/50 p-2 rounded-lg border border-[#00FF40]/20 animate-fade-in"
+                >
+                  {message}
+                </div>
+              ))}
             </div>
           </div>
 

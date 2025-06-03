@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { toast } from 'react-toastify';
 import WebSocketService from '../../services/WebSocketService';
 
-const ChatPanel = ({ roomId, username }) => {
+const ChatPanel = ({ roomId, username, isActiveTab }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -23,20 +22,32 @@ const ChatPanel = ({ roomId, username }) => {
     const handleMessage = (data) => {
       console.log(`Received message: ${JSON.stringify(data)}`);
       if (data.type === 'chat_message') {
-        console.log("data", data.message)
-        console.log(messages)
         setMessages((prev) => [
           ...prev,
           {
             id: prev.length + 1,
             user: data.sender,
             message: data.message,
-            time: new Date().toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-            isSystem: false,
+            time: data.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isSystem: data.is_system || false,
           },
+        ]);
+      } else if (data.type === 'chat_history') {
+        setMessages([
+          {
+            id: 1,
+            user: 'System',
+            message: 'Welcome to the battle lobby!',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isSystem: true,
+          },
+          ...data.messages.map((msg, index) => ({
+            id: index + 2,
+            user: msg.sender,
+            message: msg.message,
+            time: msg.timestamp,
+            isSystem: msg.is_system,
+          })),
         ]);
       } else if (data.type === 'room_closed') {
         setMessages([
@@ -44,10 +55,7 @@ const ChatPanel = ({ roomId, username }) => {
             id: 1,
             user: 'System',
             message: 'Room closed. Chat cleared.',
-            time: new Date().toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSystem: true,
           },
         ]);
@@ -65,10 +73,10 @@ const ChatPanel = ({ roomId, username }) => {
   }, [roomId]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && isActiveTab) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isActiveTab]);
 
   const handleSendMessage = () => {
     if (!chatMessage.trim()) return;
@@ -76,6 +84,7 @@ const ChatPanel = ({ roomId, username }) => {
     const payload = {
       type: 'chat_message',
       message: chatMessage,
+      sender: username,
     };
 
     WebSocketService.sendMessage(payload);
@@ -124,10 +133,11 @@ const ChatPanel = ({ roomId, username }) => {
         <button
           onClick={handleSendMessage}
           disabled={!chatMessage.trim()}
-          className={`px-3 rounded-r-md transition-colors ${chatMessage.trim()
+          className={`px-3 rounded-r-md transition-colors ${
+            chatMessage.trim()
               ? 'bg-[#00FF40] text-black hover:bg-[#00e636]'
               : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-            }`}
+          }`}
           aria-label="Send message"
         >
           <Send size={16} />

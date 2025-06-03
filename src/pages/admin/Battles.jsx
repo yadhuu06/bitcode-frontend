@@ -184,7 +184,7 @@ const Battles = () => {
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2 border-b-2 border-[#73E600] pb-2">
+        <h1 className="text-3xl font-bold flex items-center gap-2 border-b-1 border-[#73E600] pb-2">
           <Swords className="w-8 h-8" />
           Battle Rooms
         </h1>

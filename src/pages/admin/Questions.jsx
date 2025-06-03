@@ -128,7 +128,7 @@ const Questions = () => {
               title="Examples"
             >
               <BookOpen className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Examples</span>
+              <span className="hidden sm:inline">answers</span>
             </button>
             <button
               onClick={(e) => handleEdit(question.question_id, e)}
@@ -146,22 +146,24 @@ const Questions = () => {
 
   return (
     <div className="min-h-screen text-white">
-      <header className="mb-8 flex justify-between items-center px-4 md:px-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2 border-b-2 border-[#73E600] pb-2">
-          <FileText className="w-8 h-8" />
-          Questions
-        </h1>
-        <CustomButton
-          variant="create"
-          onClick={() => {
-            navigate('/admin/questions/add');
-            toast.info('Opening new question form...');
-          }}
-        >
-          <span className="hidden sm:inline">Add Question</span>
-          <span className="inline sm:hidden">Add Qn</span>
-        </CustomButton>
-      </header>
+<header className="mb-8 px-4 md:px-6">
+  <h1 className="text-3xl font-bold border-b-2 border-[#73E600] pb-2 mb-4">
+    Questions
+  </h1>
+  <div className="flex justify-end">
+    <CustomButton
+      variant="create"
+      onClick={() => {
+        navigate('/admin/questions/add');
+        toast.info('Opening new question form...');
+      }}
+    >
+      <span className="hidden sm:inline">Add Question</span>
+      <span className="inline sm:hidden">Add Qn</span>
+    </CustomButton>
+  </div>
+</header>
+
 
       {loading && <div className="text-center text-gray-400">Loading questions...</div>}
 

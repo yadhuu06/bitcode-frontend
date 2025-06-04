@@ -237,9 +237,9 @@ const Compiler = () => {
                 {isFullScreen ? (
  <div className="flex h-full gap-4 sm:gap-6">
   <div className="w-[75%] bg-gray-950 rounded-lg border border-green-500 p-4 sm:p-6">
-    <h3 className="text-sm font-semibold text-white mb-4">Output</h3>
+    
     <div className="overflow-y-auto max-h-[calc(100%-2rem)]">
-      <pre className="text-gray-200 text-sm whitespace-pre-wrap leading-relaxed font-mono">{output || '// Output will display here'}</pre>
+     
     </div>
   </div>
   <div className="w-[25%] flex flex-col gap-4">
@@ -268,7 +268,6 @@ const Compiler = () => {
                 ) : (
                   <>
                     <div className="h-[75%] bg-gray-950 rounded-lg border border-green-500 p-4 sm:p-6 overflow-hidden">
-                      <h3 className="text-sm font-semibold text-white mb-4">Output</h3>
                       <div className="overflow-y-auto max-h-[calc(100%-2rem)]">
                         <pre className="text-gray-200 text-sm whitespace-pre-wrap leading-relaxed font-mono">{output || '// Output will display here'}</pre>
                       </div>

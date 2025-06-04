@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
@@ -7,39 +7,75 @@ import 'react-toastify/dist/ReactToastify.css';
 import PropTypes from 'prop-types';
 import store from './store';
 import { setupInterceptors } from './api';
-import AuthPage from './components/auth/AuthPage';
-import AuthCallback from './components/auth/AuthCallback';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Battles from './pages/admin/Battles';
-import Users from './pages/admin/Users';
-import Questions from './pages/admin/Questions';
-import BitWarAdminLogin from './pages/admin/Login';
-import Dashboard from './pages/user/UserDashboard';
-import Profile from './pages/user/Profile';
-import Compiler from './pages/user/Compiler';
-import Rooms from './pages/user/Rooms';
-import RoomLobby from './pages/user/RoomLobby';
-import PrivateRoute from './routes/PrivateRoute';
-import AdminRoute from './routes/AdminRoute';
+import LoadingIndicator from './components/ui/LoadingIndicator';
 import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
-import LoadingIndicator from './components/ui/LoadingIndicator';
 import AdminLayout from './components/admin/AdminLayout';
-import QuestionForm from './components/admin/questions/QuestionForm';
-import TestCaseManager from './components/admin/questions/TestCaseManager'; // Import TestCaseManager
+import { useLocation } from 'react-router-dom';
 
+const AuthPage = lazy(() => import('./components/auth/AuthPage'));
+const AuthCallback = lazy(() => import('./components/auth/AuthCallback'));
+const BitWarAdminLogin = lazy(() => import('./pages/admin/Login'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const Battles = lazy(() => import('./pages/admin/Battles'));
+const Users = lazy(() => import('./pages/admin/Users'));
+const Questions = lazy(() => import('./pages/admin/Questions'));
+const QuestionForm = lazy(() => import('./components/admin/questions/QuestionForm'));
+const TestCaseManager = lazy(() => import('./components/admin/questions/TestCaseManager'));
+const Dashboard = lazy(() => import('./pages/user/UserDashboard'));
+const Profile = lazy(() => import('./pages/user/Profile'));
+const Compiler = lazy(() => import('./pages/user/Compiler'));
+const Rooms = lazy(() => import('./pages/user/Rooms'));
+const RoomLobby = lazy(() => import('./pages/user/RoomLobby'));
+const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
+const AdminRoute = lazy(() => import('./routes/AdminRoute'));
+const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification')); // Fixed import
+
+// Centralized route paths
+const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  AUTH_CALLBACK: '/auth-callback',
+  ADMIN_LOGIN: '/admin_login',
+  USER_DASHBOARD: '/user/dashboard',
+  USER_PROFILE: '/user/profile',
+  USER_COMPILER: '/user/compiler',
+  USER_ROOMS: '/user/rooms',
+  USER_ROOM: '/user/room/:roomId',
+  ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_BATTLES: '/admin/battles',
+  ADMIN_QUESTIONS: '/admin/questions',
+  ADMIN_QUESTION_ADD: '/admin/questions/add',
+  ADMIN_QUESTION_EDIT: '/admin/questions/edit/:questionId',
+  ADMIN_QUESTION_VERIFY: '/admin/questions/verify/:questionId',
+  ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
+  NOT_FOUND: '*',
+};
+
+// Enhanced Error Boundary
 class ErrorBoundary extends React.Component {
-  state = { hasError: false };
+  state = { hasError: false, error: null };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 font-mono">
-          Something went wrong. Please try again.
+        <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 font-mono text-center">
+          Something went wrong. Please refresh or contact support.
+          <button
+            className="mt-2 px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700"
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Retry
+          </button>
         </div>
       );
     }
@@ -51,12 +87,10 @@ ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
+// User Layout with Outlet
 const UserLayout = ({ children }) => {
-  const location = useLocation();
-  const { pathname } = location;
-
-  const hideNavbar =
-    pathname === '/user/compiler' || pathname.startsWith('/user/room/');
+  const { pathname } = useLocation();
+  const hideNavbar = pathname === ROUTES.USER_COMPILER || pathname.startsWith('/user/room/');
 
   return (
     <div role="main" aria-label="User Dashboard">
@@ -72,56 +106,57 @@ UserLayout.propTypes = {
 
 const AppWrapper = () => {
   useEffect(() => {
-    setupInterceptors();
+    const cleanup = setupInterceptors();
+    return cleanup;
   }, []);
 
   return (
     <ErrorBoundary>
-      <LoadingIndicator />
-      <Routes>
-        <Route path="/" element={<AuthPage />} />
-        <Route path="/login" element={<AuthPage />} />
-        <Route path="/auth-callback" element={<AuthCallback />} />
-        <Route path="/admin_login" element={<BitWarAdminLogin />} />
+      <Suspense fallback={<LoadingIndicator />}>
+        <Routes>
+          <Route path={ROUTES.HOME} element={<AuthPage />} />
+          <Route path={ROUTES.LOGIN} element={<AuthPage />} />
+          <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallback />} />
+          <Route path={ROUTES.ADMIN_LOGIN} element={<BitWarAdminLogin />} />
 
-        <Route element={<PrivateRoute />}>
-          <Route
-            path="/user/*"
-            element={
-              <UserLayout>
-                <Routes>
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="compiler" element={<Compiler />} />
-                  <Route path="rooms" element={<Rooms />} />
-                  <Route path="room/:roomId" element={<RoomLobby />} />
-                </Routes>
-              </UserLayout>
-            }
-          />
-        </Route>
+          <Route element={<PrivateRoute />}>
+            <Route
+              element={
+                <UserLayout>
+                  <Outlet />
+                </UserLayout>
+              }
+            >
+              <Route path={ROUTES.USER_DASHBOARD} element={<Dashboard />} />
+              <Route path={ROUTES.USER_PROFILE} element={<Profile />} />
+              <Route path={ROUTES.USER_COMPILER} element={<Compiler />} />
+              <Route path={ROUTES.USER_ROOMS} element={<Rooms />} />
+              <Route path={ROUTES.USER_ROOM} element={<RoomLobby />} />
+            </Route>
+          </Route>
 
-        <Route element={<AdminRoute />}>
-          <Route
-            path="/admin/*"
-            element={
-              <AdminLayout>
-                <Routes>
-                  <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="users" element={<Users />} />
-                  <Route path="battles" element={<Battles />} />
-                  <Route path="questions" element={<Questions />} />
-                  <Route path="questions/add" element={<QuestionForm />} />
-                  <Route path="questions/edit/:questionId" element={<QuestionForm />} />
-                  <Route path="questions/:questionId/test-cases" element={<TestCaseManager />} /> {/* Added TestCaseManager route */}
-                </Routes>
-              </AdminLayout>
-            }
-          />
-        </Route>
+          <Route element={<AdminRoute />}>
+            <Route
+              element={
+                <AdminLayout>
+                  <Outlet />
+                </AdminLayout>
+              }
+            >
+              <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
+              <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
+              <Route path={ROUTES.ADMIN_BATTLES} element={<Battles />} />
+              <Route path={ROUTES.ADMIN_QUESTIONS} element={<Questions />} />
+              <Route path={ROUTES.ADMIN_QUESTION_ADD} element={<QuestionForm />} />
+              <Route path={ROUTES.ADMIN_QUESTION_VERIFY} element={<AnswerVerification />} />
+              <Route path={ROUTES.ADMIN_QUESTION_EDIT} element={<QuestionForm />} />
+              <Route path={ROUTES.ADMIN_QUESTION_TEST_CASES} element={<TestCaseManager />} />
+            </Route>
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   );
 };
@@ -130,7 +165,13 @@ function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
   if (!googleClientId) {
-    console.warn('Google Client ID is missing. Please set VITE_GOOGLE_CLIENT_ID in your environment variables.');
+    return (
+      <div className="min-h-screen bg-black text-white font-mono flex items-center justify-center">
+        <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 text-center">
+          Configuration Error: Google Client ID is missing. Please contact support.
+        </div>
+      </div>
+    );
   }
 
   return (

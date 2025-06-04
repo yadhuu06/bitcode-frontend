@@ -4,7 +4,7 @@ import Cookies from 'js-cookie';
 const PrivateRoute = () => {
   const accessToken = Cookies.get('access_token');
 
-  return accessToken ? <Outlet /> : <Navigate to="/" replace />;
+  return accessToken ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 export default PrivateRoute;

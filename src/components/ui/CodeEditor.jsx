@@ -22,8 +22,8 @@ const CodeEditor = ({ code, setCode, language = 'javascript' }) => {
           'editor.background': '#030712', // Solid dark background
           'editor.foreground': '#FFFFFF', // Default text color
           'editorLineNumber.foreground': '#6B7280',
-          'editor.selectionBackground': '#030712', // Match background to hide selection
-          'editor.selectionHighlightBackground': '#030712', // Match background to hide selection highlight
+          'editor.selectionBackground': '#22C55E33', // Semi-transparent green for visible selection
+          'editor.selectionHighlightBackground': '#22C55E1A', // Lighter highlight for related text
           'editorCursor.foreground': '#22C55E', // Visible cursor color
           'editorHoverWidget.background': '#1F2937',
           'editorHoverWidget.border': '#22C55E4D',
@@ -69,11 +69,12 @@ const CodeEditor = ({ code, setCode, language = 'javascript' }) => {
         scrollBeyondLastLine: false,
         lineNumbers: 'on',
         padding: { top: 8, bottom: 8 },
-        selectOnLineNumbers: false,
-        renderLineHighlight: 'none', // Disable line highlight entirely
-        renderHighlightCurrentLine: false, // Explicitly disable current line highlight
-        renderSelection: false, // Disable selection rendering
-        highlightActiveLine: false, // Disable active line highlight
+        selectOnLineNumbers: true, // Allow selecting lines by clicking line numbers
+        renderLineHighlight: 'none', // Keep minimalistic look
+        renderHighlightCurrentLine: false, // Avoid line highlight
+        renderSelection: true, // Enable text selection rendering
+        highlightActiveLine: false, // Keep line highlight disabled
+        selectionHighlight: true, // Highlight related text occurrences
       }}
     />
   );

@@ -5,7 +5,8 @@ import CustomButton from '../../components/ui/CustomButton';
 import { toast } from 'react-toastify';
 import { fetchQuestions } from '../../services/ProblemService';
 import { FileText, CheckCircle, Edit, Code, BookOpen, X } from 'lucide-react';
-
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 const Questions = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
@@ -31,11 +32,6 @@ const Questions = () => {
     fetchQuestionsList();
   }, [fetchQuestionsList]);
 
-  const handleComingSoon = useCallback((feature, e) => {
-    e.stopPropagation();
-    toast.info(`${feature} feature coming soon!`);
-  }, []);
-
   const handleEdit = useCallback(
     (questionId, e) => {
       e.stopPropagation();
@@ -52,6 +48,14 @@ const Questions = () => {
     [navigate]
   );
 
+  const handleAnswers = useCallback(
+    (questionId, e) => {
+      e.stopPropagation();
+      navigate(`/admin/questions/verify/${questionId}`);
+    },
+    [navigate]
+  );
+
   const openModal = useCallback((question) => {
     setSelectedQuestion(question);
   }, []);
@@ -60,11 +64,14 @@ const Questions = () => {
     setSelectedQuestion(null);
   }, []);
 
-  const handleBackgroundClick = useCallback((e) => {
-    if (e.target === e.currentTarget) {
-      closeModal();
-    }
-  }, [closeModal]);
+  const handleBackgroundClick = useCallback(
+    (e) => {
+      if (e.target === e.currentTarget) {
+        closeModal();
+      }
+    },
+    [closeModal]
+  );
 
   const questionList = useMemo(() => {
     return questions.map((question) => (
@@ -123,12 +130,12 @@ const Questions = () => {
               <span className="hidden sm:inline">Test Cases</span>
             </button>
             <button
-              onClick={(e) => handleComingSoon('Examples', e)}
+              onClick={(e) => handleAnswers(question.question_id, e)}
               className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
-              title="Examples"
+              title="Answers"
             >
               <BookOpen className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">answers</span>
+              <span className="hidden sm:inline">Answers</span>
             </button>
             <button
               onClick={(e) => handleEdit(question.question_id, e)}
@@ -142,28 +149,25 @@ const Questions = () => {
         </div>
       </div>
     ));
-  }, [questions, openModal, handleComingSoon, handleEdit, handleTestCases]);
+  }, [questions, openModal, handleAnswers, handleEdit, handleTestCases]);
 
   return (
     <div className="min-h-screen text-white">
-<header className="mb-8 px-4 md:px-6">
-  <h1 className="text-3xl font-bold border-b-2 border-[#73E600] pb-2 mb-4">
-    Questions
-  </h1>
-  <div className="flex justify-end">
-    <CustomButton
-      variant="create"
-      onClick={() => {
-        navigate('/admin/questions/add');
-        toast.info('Opening new question form...');
-      }}
-    >
-      <span className="hidden sm:inline">Add Question</span>
-      <span className="inline sm:hidden">Add Qn</span>
-    </CustomButton>
-  </div>
-</header>
-
+      <header className="mb-8 px-4 md:px-6">
+        <h1 className="text-3xl font-bold border-b-2 border-[#73E600] pb-2 mb-4">Questions</h1>
+        <div className="flex justify-end">
+          <CustomButton
+            variant="create"
+            onClick={() => {
+              navigate('/admin/questions/add');
+              toast.info('Opening new question form...');
+            }}
+          >
+            <span className="hidden sm:inline">Add Question</span>
+            <span className="inline sm:hidden">Add Qn</span>
+          </CustomButton>
+        </div>
+      </header>
 
       {loading && <div className="text-center text-gray-400">Loading questions...</div>}
 
@@ -178,9 +182,7 @@ const Questions = () => {
         {questions.length > 0 ? (
           questionList
         ) : (
-          <p className="col-span-full text-center text-gray-500 text-lg">
-            No questions found.
-          </p>
+          <p className="col-span-full text-center text-gray-500 text-lg">No questions found.</p>
         )}
       </div>
 
@@ -200,7 +202,10 @@ const Questions = () => {
             >
               <X className="w-6 h-6" />
             </button>
-            <h2 id="question-modal-title" className="text-2xl font-bold text-[#73E600] mb-6 flex items-center gap-2">
+            <h2
+              id="question-modal-title"
+              className="text-2xl font-bold text-[#73E600] mb-6 flex items-center gap-2"
+            >
               <FileText className="w-6 h-6" />
               {selectedQuestion.title}
             </h2>
@@ -218,9 +223,11 @@ const Questions = () => {
                   <span className="text-gray-400">Difficulty:</span>
                   <span
                     className={`ml-2 capitalize ${
-                      selectedQuestion.difficulty === 'EASY' ? 'text-green-400' :
-                      selectedQuestion.difficulty === 'MEDIUM' ? 'text-yellow-400' :
-                      'text-red-400'
+                      selectedQuestion.difficulty === 'EASY'
+                        ? 'text-green-400'
+                        : selectedQuestion.difficulty === 'MEDIUM'
+                        ? 'text-yellow-400'
+                        : 'text-red-400'
                     }`}
                   >
                     {selectedQuestion.difficulty}
@@ -233,9 +240,7 @@ const Questions = () => {
                 <div>
                   <span className="text-gray-400">Status:</span>
                   <span
-                    className={`ml-2 ${
-                      selectedQuestion.is_validate ? 'text-green-400' : 'text-red-400'
-                    }`}
+                    className={`ml-2 ${selectedQuestion.is_validate ? 'text-green-400' : 'text-red-400'}`}
                   >
                     {selectedQuestion.is_validate ? 'Verified' : 'Not Verified'}
                   </span>
@@ -256,7 +261,12 @@ const Questions = () => {
               <div>
                 <h3 className="text-lg font-semibold text-[#73E600] mb-3">Description</h3>
                 <div className="bg-gray-800/50 p-4 rounded-lg prose prose-invert max-w-none text-gray-300">
-                  <ReactMarkdown>{selectedQuestion.description}</ReactMarkdown>
+                  <ReactMarkdown
+  remarkPlugins={[remarkGfm]}
+  rehypePlugins={[rehypeRaw]}
+>
+  {selectedQuestion.description}
+</ReactMarkdown>
                 </div>
               </div>
             </div>
@@ -268,6 +278,14 @@ const Questions = () => {
               >
                 <Code className="w-5 h-5 mr-2" />
                 Test Cases
+              </button>
+              <button
+                onClick={(e) => handleAnswers(selectedQuestion.question_id, e)}
+                className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 font-medium"
+                title="Answers"
+              >
+                <BookOpen className="w-5 h-5 mr-2" />
+                Answers
               </button>
               <button
                 onClick={(e) => handleEdit(selectedQuestion.question_id, e)}

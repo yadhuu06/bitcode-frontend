@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FileText, X, CheckCircle, ChevronDown, ChevronUp, Play, Check, Code } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { fetchQuestionById, fetchTestCases } from '../../services/ProblemService';
+import { fetchQuestionById } from '../../services/ProblemService';
+import { verifyAnswer } from '../../services/VerificationService';
+import { runCodeOnJudge0 } from '../../services/Judge0Service';
 import CodeEditor from '../../components/ui/CodeEditor';
-import axios from 'axios';
 
 const AnswerVerification = () => {
   const { questionId } = useParams();
@@ -15,22 +16,24 @@ const AnswerVerification = () => {
   const [testResults, setTestResults] = useState([]);
   const [code, setCode] = useState('// Write your solution here\n');
   const [language, setLanguage] = useState('javascript');
-  const [loading, setLoading] = useState(false);
+  const [customInput, setCustomInput] = useState('');
+  const [compilerOutput, setCompilerOutput] = useState(null);
+  const [loadingRun, setLoadingRun] = useState(false);
+  const [loadingVerify, setLoadingVerify] = useState(false);
   const [error, setError] = useState(null);
   const [isQuestionCollapsed, setIsQuestionCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
 
-  // Language mapping for Judge0
   const languageMap = {
-    javascript: { id: 63, name: 'JavaScript (Node.js 12.14.0)' },
-    python: { id: 71, name: 'Python (3.8.1)' },
-    java: { id: 62, name: 'Java (OpenJDK 13.0.1)' },
-    cpp: { id: 54, name: 'C++ (GCC 9.2.0)' },
+    javascript: 63,
+    python: 71,
+    java: 62,
+    cpp: 54,
   };
 
   const fetchQuestionAndTestCases = useCallback(async () => {
     try {
-      setLoading(true);
+      setLoadingVerify(true);
       const questionData = await fetchQuestionById(questionId);
       setQuestion(questionData);
       setTestCases(questionData.test_cases || []);
@@ -40,7 +43,7 @@ const AnswerVerification = () => {
       setError(errorMessage.error || 'Failed to load question or test cases');
       toast.error(errorMessage.error || 'Failed to load question or test cases');
     } finally {
-      setLoading(false);
+      setLoadingVerify(false);
     }
   }, [questionId]);
 
@@ -52,83 +55,72 @@ const AnswerVerification = () => {
     navigate('/admin/questions');
   }, [navigate]);
 
-  const handleVerifyQuestion = useCallback(() => {
-    toast.info('Verification feature coming soon!');
-  }, []);
-
   const handleRunCode = useCallback(async () => {
-    if (!testCases.length) {
-      setError('No test cases available to run.');
-      toast.error('No test cases available to run.');
+    if (!code || !language) {
+      toast.error('Please provide code and select a language');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setTestResults([]);
-
-    try {
-      const submissions = testCases.map((testCase) => ({
-        source_code: code,
-        language_id: languageMap[language].id,
-        stdin: testCase.input || '',
-        expected_output: testCase.output || '',
-      }));
-
-      // Submit to Judge0
-      const response = await axios.post(
-        'https://judge0-ce.p.rapidapi.com/submissions/batch?base64_encoded=false',
-        { submissions },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-RapidAPI-Key': 'YOUR_JUDGE0_API_KEY', // Replace with actual API key
-            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
-          },
-        }
-      );
-
-      // Poll for results
-      const tokenString = response.data.map((sub) => sub.token).join(',');
-      let results = [];
-      let completed = false;
-
-      while (!completed) {
-        const resultResponse = await axios.get(
-          `https://judge0-ce.p.rapidapi.com/submissions/batch?tokens=${tokenString}&base64_encoded=false`,
-          {
-            headers: {
-              'X-RapidAPI-Key': 'YOUR_JUDGE0_API_KEY', // Replace with actual API key
-            },
-          }
-        );
-
-        results = resultResponse.data.submissions.map((result, index) => ({
-          passed: result.status.description === 'Accepted',
-          expected: testCases[index].output || '',
-          actual: result.stdout || '',
-          error: result.stderr || result.compile_output || result.message || '',
-          status: result.status.description,
-        }));
-
-        completed = resultResponse.data.submissions.every(
-          (sub) => sub.status.description !== 'In Queue' && sub.status.description !== 'Processing'
-        );
-
-        if (!completed) await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-
-      setTestResults(results);
-      const allPassed = results.every((result) => result.passed);
-      toast.success(allPassed ? 'All test cases passed!' : 'Some test cases failed.');
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Failed to execute code';
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setLoading(false);
+    if (!languageMap[language]) {
+      toast.error('Unsupported language');
+      return;
     }
-  }, [code, language, testCases]);
+
+    setLoadingRun(true);
+    try {
+      const result = await runCodeOnJudge0({
+        source_code: code,
+        language_id: languageMap[language],
+        stdin: customInput,
+      });
+
+      setCompilerOutput({
+        stdout: result.stdout || '',
+        stderr: result.stderr || '',
+        status: result.status?.description || 'Unknown',
+      });
+      setActiveTab('compiler');
+      setError(null);
+      toast.success('Code executed successfully');
+    } catch (err) {
+      const errorMessage = err.message || 'Failed to execute code';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoadingRun(false);
+    }
+  }, [code, language, customInput]);
+
+  const handleVerifyCode = useCallback(async () => {
+    if (!code || !language) {
+      toast.error('Please provide code and select a language');
+      return;
+    }
+
+    setLoadingVerify(true);
+    try {
+      const response = await verifyAnswer(questionId, code, language);
+      setTestResults(response.results);
+      if (response.all_passed) {
+        toast.success('All test cases passed! Question verified.');
+        setQuestion((prev) => ({
+          ...prev,
+          is_validate: true,
+          solved_codes: [...(prev.solved_codes || []), response.solved_code],
+        }));
+      } else {
+        toast.error('Some test cases failed.');
+      }
+      setActiveTab('results');
+      setError(null);
+    } catch (err) {
+      const errorMessage = err.message || 'Failed to verify answer';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoadingVerify(false);
+    }
+  }, [questionId, code, language]);
 
   const toggleQuestionCollapse = () => {
     setIsQuestionCollapsed(!isQuestionCollapsed);
@@ -156,7 +148,7 @@ const AnswerVerification = () => {
         </button>
       </header>
 
-      {loading && (
+      {loadingVerify && (
         <div className="text-center text-gray-400 py-10">Loading question...</div>
       )}
 
@@ -169,7 +161,6 @@ const AnswerVerification = () => {
 
       {question && (
         <div className="flex flex-col lg:flex-row gap-6 flex-1">
-          {/* Left Side: Description or Results (35%) */}
           <div
             className={`lg:w-[35%] bg-gray-900/80 p-6 rounded-lg border border-gray-800 transition-all duration-300 ${
               isQuestionCollapsed ? 'h-12 overflow-hidden' : 'min-h-[200px]'
@@ -226,17 +217,23 @@ const AnswerVerification = () => {
                   >
                     Results
                   </button>
+                  <button
+                    onClick={() => setActiveTab('compiler')}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                      activeTab === 'compiler'
+                        ? 'bg-[#73E600] text-black'
+                        : 'bg-gray-800 text-gray-400 hover:text-[#73E600]'
+                    }`}
+                  >
+                    Compiler Output
+                  </button>
                 </div>
                 {activeTab === 'description' && (
                   <div className="space-y-4 text-sm text-gray-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <span className="text-gray-400">Question ID:</span>
-                        <span className="text-white font-mono ml-2 truncate">{question.question_id || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Slug:</span>
-                        <span className="text-white ml-2 truncate">{question.slug || 'N/A'}</span>
+                        <span className="text-white font-mono ml-2 truncate">{question.question_id.slice(-10) || 'N/A'}</span>
                       </div>
                       <div>
                         <span className="text-gray-400">Difficulty:</span>
@@ -321,12 +318,6 @@ const AnswerVerification = () => {
                                   <span className="text-gray-400">Output:</span>
                                   <pre className="text-white font-mono">{testCase.expected_output || 'N/A'}</pre>
                                 </div>
-                                {testCase.explanation && (
-                                  <div>
-                                    <span className="text-gray-400">Explanation:</span>
-                                    <p className="text-white">{testCase.explanation}</p>
-                                  </div>
-                                )}
                               </li>
                             ))}
                         </ul>
@@ -383,7 +374,7 @@ const AnswerVerification = () => {
                         </ul>
                       </div>
                     ) : testCases.length > 0 ? (
-                      <p className="text-gray-400">Run the sample answer to see test case results.</p>
+                      <p className="text-gray-400">Verify the sample answer to see test case results.</p>
                     ) : (
                       <p className="text-gray-400">No test cases available for this question.</p>
                     )}
@@ -398,7 +389,7 @@ const AnswerVerification = () => {
                                 <span className="text-white capitalize">{solution.language || 'Unknown'}</span>
                               </div>
                               <pre className="mt-2 text-gray-300 font-mono text-xs">
-                                {solution.code || 'No code available'}
+                                {solution.solution_code || 'No code available'}
                               </pre>
                             </li>
                           ))}
@@ -409,57 +400,90 @@ const AnswerVerification = () => {
                     </div>
                   </div>
                 )}
+                {activeTab === 'compiler' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-[#73E600] mb-2">Compiler Output</h3>
+                    <div className="mb-4">
+                      <label className="block text-sm text-gray-400 mb-2">Custom Input</label>
+                      <textarea
+                        value={customInput}
+                        onChange={(e) => setCustomInput(e.target.value)}
+                        placeholder="Enter custom input here..."
+                        className="w-full bg-gray-800 text-white rounded p-2 text-sm font-mono"
+                        rows={3}
+                      />
+                    </div>
+                    {compilerOutput ? (
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-gray-400">Status:</span>
+                          <span className="text-white ml-2">{compilerOutput.status}</span>
+                        </div>
+                        {compilerOutput.stdout && (
+                          <div>
+                            <span className="text-gray-400">Output:</span>
+                            <pre className="text-white font-mono bg-gray-800/50 p-2 rounded">{compilerOutput.stdout}</pre>
+                          </div>
+                        )}
+                        {compilerOutput.stderr && (
+                          <div>
+                            <span className="text-gray-400">Error:</span>
+                            <pre className="text-red-400 font-mono bg-gray-800/50 p-2 rounded">{compilerOutput.stderr}</pre>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400">Run the code to see compiler output.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-          {/* Right Side: Code Editor (65%) */}
           <div className="lg:w-[65%] flex flex-col gap-6 flex-1">
             <div className="bg-gray-900/80 p-6 rounded-lg border border-gray-800 flex-1 flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-[#73E600]">Sample Answer</h3>
-                              <div className="mt-4 flex gap-4">
-                <button
-                  onClick={handleRunCode}
-                  disabled={loading || testCases.length === 0}
-                  className={`group relative p-2 ${
-                    loading || testCases.length === 0
-                      ? 'text-gray-600 cursor-not-allowed'
-                      : 'text-gray-400 hover:text-[#73E600]'
-                  } transition-colors`}
-                  aria-label="Run Code"
-                >
-                  <Play className="w-5 h-5" />
-                  <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
-                    Run Code
-                  </span>
-                </button>
-                <button
-                  onClick={handleVerifyQuestion}
-                  disabled={question?.is_validate || !allTestsPassed}
-                  className={`group relative p-2 ${
-                    question?.is_validate || !allTestsPassed
-                      ? 'text-gray-600 cursor-not-allowed'
-                      : 'text-gray-400 hover:text-[#73E600]'
-                  } transition-colors`}
-                  aria-label="Verify Question"
-                >
-                  <Check className="w-5 h-5" />
-                  <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
-                    {question?.is_validate ? 'Question Verified' : 'Verify Question'}
-                  </span>
-                </button>
-              </div>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
-                >
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                </select>
+                <div className="flex items-center gap-4">
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                  >
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                  </select>
+                  <button
+                    onClick={handleRunCode}
+                    disabled={loadingRun}
+                    className={`group relative p-2 ${
+                      loadingRun ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-[#73E600]'
+                    } transition-colors`}
+                    aria-label="Run Code"
+                  >
+                    <Play className="w-5 h-5" />
+                    <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
+                      Run Code
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleVerifyCode}
+                    disabled={loadingVerify || testCases.length === 0}
+                    className={`group relative p-2 ${
+                      loadingVerify || testCases.length === 0
+                        ? 'text-gray-600 cursor-not-allowed'
+                        : 'text-gray-400 hover:text-[#73E600]'
+                    } transition-colors`}
+                    aria-label="Verify Code"
+                  >
+                    <Check className="w-5 h-5" />
+                    <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
+                      Verify Code
+                    </span>
+                  </button>
+                </div>
               </div>
               <div className="flex-1">
                 <CodeEditor
@@ -468,7 +492,6 @@ const AnswerVerification = () => {
                   language={language}
                 />
               </div>
-
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { Check, Play, Save, Copy, Trash, Maximize, Minimize } from 'lucide-react
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import CodeEditor from '../../components/ui/CodeEditor';
-import { runCodeOnJudge0 } from '../../services/CompilerService';
+import { runCodeOnJudge0 } from '../../services/Judge0Service';
 
 const JUDGE0_API = import.meta.env.VITE_JUDGE0_API_URL;
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;

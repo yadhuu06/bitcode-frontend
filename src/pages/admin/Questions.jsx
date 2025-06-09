@@ -160,7 +160,7 @@ const Questions = () => {
             variant="create"
             onClick={() => {
               navigate('/admin/questions/add');
-              toast.info('Opening new question form...');
+              
             }}
           >
             <span className="hidden sm:inline">Add Question</span>

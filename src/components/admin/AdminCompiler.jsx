@@ -5,53 +5,53 @@ import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { Play, CheckCircle, XCircle } from 'lucide-react';
 import { fetchTestCases } from '../../services/ProblemService';
-import axios from 'axios';
+import { verifyAnswer, fetchSolvedCodes } from '../../services/VerificationService';
 import CustomButton from '../ui/CustomButton';
 import LoadingIndicator from '../ui/LoadingIndicator';
 
 const AdminCompiler = ({ questionId }) => {
   const { questionId: paramQuestionId } = useParams();
   const effectiveQuestionId = questionId || paramQuestionId;
-  const [code, setCode] = useState('// Write your solution here\n');
+  const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [testCases, setTestCases] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [solvedCodes, setSolvedCodes] = useState({});
 
-  // Fetch test cases
   useEffect(() => {
-    const loadTestCases = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetchTestCases(effectiveQuestionId);
-        setTestCases(response.test_cases || []);
+        const testCaseResponse = await fetchTestCases(effectiveQuestionId);
+        setTestCases(testCaseResponse.test_cases || []);
+        
+        const solvedResponse = await fetchSolvedCodes(effectiveQuestionId);
+        const codes = solvedResponse.solved_codes || {};
+        setSolvedCodes(codes);
+        setCode(codes[language]?.solution_code || '');
         setError(null);
       } catch (err) {
-        const errorMessage = JSON.parse(err.message);
-        setError(errorMessage.error || 'Failed to fetch test cases');
-        toast.error('Failed to load test cases');
+        const errorMessage = JSON.parse(err.message || JSON.stringify({ error: 'Failed to fetch data' }));
+        setError(errorMessage.error || 'Failed to load test cases or solved codes');
+        toast.error(errorMessage.error || 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
-    loadTestCases();
+    loadData();
   }, [effectiveQuestionId]);
 
-  // Handle code execution
   const handleRunCode = useCallback(async () => {
     setLoading(true);
     setError(null);
     setResults([]);
 
     try {
-      const response = await axios.post('/api/run', {
-        code,
-        language,
-        testCases,
-      });
-      setResults(response.data.results || []);
-      const allPassed = response.data.results.every((result) => result.passed);
+      const response = await verifyAnswer(effectiveQuestionId, code || '// Write your solution here\n', language);
+      setResults(response.results || []);
+      const allPassed = response.all_passed;
       toast.success(allPassed ? 'All test cases passed!' : 'Some test cases failed.');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to execute code');
@@ -59,14 +59,42 @@ const AdminCompiler = ({ questionId }) => {
     } finally {
       setLoading(false);
     }
-  }, [code, language, testCases]);
+  }, [code, language, effectiveQuestionId]);
 
-  // Handle language change
+  const handleVerifyCode = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setResults([]);
+
+    try {
+      const response = await verifyAnswer(effectiveQuestionId, code || '// Write your solution here\n', language);
+      setResults(response.results || []);
+      const allPassed = response.all_passed;
+      
+      if (allPassed) {
+        toast.success('All test cases passed! Solution saved.');
+        setSolvedCodes((prev) => ({
+          ...prev,
+          [language]: response.solved_code || { solution_code: code }
+        }));
+        setCode(response.solved_code?.solution_code || code);
+      } else {
+        toast.error('Some test cases failed.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to verify code');
+      toast.error('Code verification failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [code, language, effectiveQuestionId]);
+
   const handleLanguageChange = (e) => {
-    setLanguage(e.target.value);
+    const newLanguage = e.target.value;
+    setLanguage(newLanguage);
+    setCode(solvedCodes[newLanguage]?.solution_code || '');
   };
 
-  // Handle editor change
   const handleEditorChange = (value) => {
     setCode(value);
   };
@@ -115,18 +143,27 @@ const AdminCompiler = ({ questionId }) => {
         />
       </div>
 
-      <CustomButton
-        variant="create"
-        onClick={handleRunCode}
-        disabled={loading || testCases.length === 0}
-       
-      >
-        <Play className="w-4 h-4 mr-2" />
-        Run Code  
-      </CustomButton>
+      <div className="flex gap-4">
+        <CustomButton
+          variant="create"
+          onClick={handleRunCode}
+          disabled={loading || testCases.length === 0}
+        >
+          <Play className="w-4 h-4 mr-2" />
+          Run Code
+        </CustomButton>
+        <CustomButton
+          variant="create"
+          onClick={handleVerifyCode}
+          disabled={loading || testCases.length === 0}
+        >
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Verify & Save
+        </CustomButton>
+      </div>
 
       {results.length > 0 && (
-        <div className="bg-gray-800/50 p-4 rounded-lg">
+        <div className="bg-gray-800/50 p-4 rounded-lg mt-4">
           <h3 className="text-lg font-semibold text-[#73E600] mb-2">Test Case Results</h3>
           <ul className="space-y-2">
             {results.map((result, index) => (
@@ -152,6 +189,15 @@ const AdminCompiler = ({ questionId }) => {
           </ul>
         </div>
       )}
+
+      <div className="bg-gray-800/50 p-4 rounded-lg mt-4">
+        <h3 className="text-lg font-semibold text-[#73E600] mb-2">Current Solved Code for {language}</h3>
+        {solvedCodes[language] ? (
+          <pre className="text-gray-300 font-mono text-sm">{solvedCodes[language].solution_code}</pre>
+        ) : (
+          <p className="text-gray-400">No code for {language}</p>
+        )}
+      </div>
     </div>
   );
 };

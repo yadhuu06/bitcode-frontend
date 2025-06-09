@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
-import Cookies from 'js-cookie'; // Added for cookie fallback
-import { fetchProfile, updateProfile, logout } from '../../services/ProfileService'; // Updated import
+import Cookies from 'js-cookie';
+import { fetchProfile, updateProfile, logout } from '../../services/ProfileService';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
-import {toast} from 'react-toastify'; // Added explicit import for toast
+import { toast } from 'react-toastify';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+// Loading Component
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -34,11 +35,117 @@ const BitCodeProgressLoading = ({ message, progress, size, showBackground, style
   );
 };
 
+// Default Stats Component
+const StatsSection = ({ stats }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
+    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
+      <h2 className="text-lg font-mono text-green-500 mb-4">Solved Questions</h2>
+      <p className="text-5xl font-mono text-white">{stats.solvedQuestions}</p>
+    </div>
+    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
+      <h2 className="text-lg font-mono text-green-500 mb-4">Attempted Days</h2>
+      <p className="text-5xl font-mono text-white">{stats.attemptedDays}</p>
+    </div>
+    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
+      <h2 className="text-lg font-mono text-green-500 mb-4">Active Streak</h2>
+      <p className="text-5xl font-mono text-white">{stats.activeStreak}</p>
+    </div>
+    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
+      <h2 className="text-lg font-mono text-green-500 mb-4">Last Win</h2>
+      <p className="text-3xl font-mono text-white">{stats.lastWin}</p>
+    </div>
+    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl col-span-1 sm:col-span-2 lg:col-span-2">
+      <h2 className="text-lg font-mono text-green-500 mb-4">Recent History</h2>
+      <ul className="list-disc pl-5 text-white font-mono text-base">
+        {stats.recentHistory.map((item, index) => (
+          <li key={index} className="mb-2">{item}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+);
+
+// Ranking Component
+const RankingSection = () => (
+  <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl">
+    <h2 className="text-lg font-mono text-green-500 mb-4">Ranking</h2>
+    <div className="space-y-4 text-white font-mono">
+      <div className="flex justify-between">
+        <span>Global Rank</span>
+        <span>#142</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Regional Rank</span>
+        <span>#23</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Points</span>
+        <span>1,245</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Level</span>
+        <span>Code Warrior (Lv. 5)</span>
+      </div>
+      <div className="mt-4">
+        <h3 className="text-green-500 mb-2">Achievements</h3>
+        <ul className="list-disc pl-5">
+          <li>Code Master - 50 Problems Solved</li>
+          <li>Streak King - 7 Days Active</li>
+          <li>Challenge Winner - Code Battle #3</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
+// Contributions Section
+const ContributionsSection = () => (
+  <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl">
+    <h2 className="text-lg font-mono text-green-500 mb-4">Contributions</h2>
+    <div className="space-y-4 text-white font-mono">
+      <div className="flex justify-between">
+        <span>Problems Submitted</span>
+        <span>3</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Solutions Accepted</span>
+        <span>28</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Forum Posts</span>
+        <span>12</span>
+      </div>
+      <div className="mt-4">
+        <h3 className="text-green-500 mb-2">Recent Contributions</h3>
+        <ul className="list-disc pl-5">
+          <li>Submitted "Reverse Linked List" - 2025-06-01</li>
+          <li>Answered "How to optimize BFS?" - 2025-06-03</li>
+          <li>Solution accepted for "Matrix Spiral" - 2025-06-07</li>
+        </ul>
+      </div>
+
+      {/* Contribute Button */}
+      <div className="mt-6 text-center">
+        <button
+          onClick={() => {
+            Navigate()
+          }}
+          className="border border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold py-2 px-4 rounded-lg transition duration-300"
+        >
+          Contribute
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+
+// Main Profile Component
 const Profile = () => {
   const dispatch = useDispatch();
   const { user: reduxUser, isAuthenticated } = useSelector((state) => state.auth);
   const { isLoading, message, progress, style } = useSelector((state) => state.loading);
-  const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token'); // Added to retrieve refreshToken
+  const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token');
 
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -48,12 +155,14 @@ const Profile = () => {
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
   const [binaryElements, setBinaryElements] = useState([]);
+  const [selectedSection, setSelectedSection] = useState('stats'); // Default to stats
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
       dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
       try {
-        const userData = await fetchProfile(); // Use ProfileService
+        const userData = await fetchProfile();
         setUser(userData);
         setUsername(userData.username || '');
       } catch (error) {
@@ -164,7 +273,7 @@ const Profile = () => {
         formData.append('profile_picture', blob, 'profile.jpg');
       }
 
-      const updatedUser = await updateProfile(formData); // Use ProfileService
+      const updatedUser = await updateProfile(formData);
       setUser(updatedUser);
       setIsEditing(false);
       setProfilePic(null);
@@ -181,7 +290,7 @@ const Profile = () => {
   const handleLogout = async () => {
     dispatch(setLoading({ isLoading: true, message: 'Logging out...', style: 'battle', progress: 0 }));
     try {
-      await logout(); // Use ProfileService logout, which handles refreshToken internally
+      await logout();
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
       window.location.href = '/';
@@ -201,6 +310,12 @@ const Profile = () => {
     activeStreak: 7,
     lastWin: '2025-04-07',
     recentHistory: ['Solved "Binary Search"', 'Attempted "Dynamic Programming"', 'Won "Code Challenge #3"'],
+  };
+
+  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+  const handleSelection = (section) => {
+    setSelectedSection(section);
+    setDropdownOpen(false);
   };
 
   if (!user && !isLoading) {
@@ -242,6 +357,7 @@ const Profile = () => {
         </div>
       )}
       <div className="w-full max-w-7xl flex flex-col lg:flex-row justify-between px-6 py-6 gap-14">
+        {/* Always Visible User Terminal Section */}
         <div className="w-full lg:w-1/3 lg:order-1">
           <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl relative">
             <h1 className="text-2xl font-mono text-green-500 mb-4 text-center tracking-wider relative group">
@@ -376,33 +492,37 @@ const Profile = () => {
             )}
           </div>
         </div>
+        {/* Dynamic Right Section */}
         <div className="w-full lg:w-2/3 lg:order-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
-            <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-              <h2 className="text-lg font-mono text-green-500 mb-4">Solved Questions</h2>
-              <p className="text-5xl font-mono text-white">{stats.solvedQuestions}</p>
-            </div>
-            <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-              <h2 className="text-lg font-mono text-green-500 mb-4">Attempted Days</h2>
-              <p className="text-5xl font-mono text-white">{stats.attemptedDays}</p>
-            </div>
-            <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-              <h2 className="text-lg font-mono text-green-500 mb-4">Active Streak</h2>
-              <p className="text-5xl font-mono text-white">{stats.activeStreak}</p>
-            </div>
-            <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-              <h2 className="text-lg font-mono text-green-500 mb-4">Last Win</h2>
-              <p className="text-3xl font-mono text-white">{stats.lastWin}</p>
-            </div>
-            <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl col-span-1 sm:col-span-2 lg:col-span-2">
-              <h2 className="text-lg font-mono text-green-500 mb-4">Recent History</h2>
-              <ul className="list-disc pl-5 text-white font-mono text-base">
-                {stats.recentHistory.map((item, index) => (
-                  <li key={index} className="mb-2">{item}</li>
-                ))}
-              </ul>
-            </div>
+          <div className="flex justify-center mb-6 space-x-4">
+            <button
+              className={`px-4 py-2 font-mono text-green-500 bg-black bg-opacity-80 backdrop-blur-md border-2 border-green-500 rounded-lg shadow-xl hover:bg-green-500 hover:text-white transition focus:outline-none ${
+                selectedSection === 'stats' ? 'bg-green-500 text-white' : ''
+              }`}
+              onClick={() => setSelectedSection('stats')}
+            >
+              Stats
+            </button>
+            <button
+              className={`px-4 py-2 font-mono text-green-500 bg-black bg-opacity-80 backdrop-blur-md border-2 border-green-500 rounded-lg shadow-xl hover:bg-green-500 hover:text-white transition focus:outline-none ${
+                selectedSection === 'ranking' ? 'bg-green-500 text-white' : ''
+              }`}
+              onClick={() => setSelectedSection('ranking')}
+            >
+              Ranking
+            </button>
+            <button
+              className={`px-4 py-2 font-mono text-green-500 bg-black bg-opacity-80 backdrop-blur-md border-2 border-green-500 rounded-lg shadow-xl hover:bg-green-500 hover:text-white transition focus:outline-none ${
+                selectedSection === 'contributions' ? 'bg-green-500 text-white' : ''
+              }`}
+              onClick={() => setSelectedSection('contributions')}
+            >
+              Contributions
+            </button>
           </div>
+          {selectedSection === 'stats' && <StatsSection stats={stats} />}
+          {selectedSection === 'ranking' && <RankingSection />}
+          {selectedSection === 'contributions' && <ContributionsSection />}
         </div>
       </div>
     </div>

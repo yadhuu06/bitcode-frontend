@@ -4,8 +4,7 @@ import { toast } from 'react-toastify';
 import { FileText, X, CheckCircle, ChevronDown, ChevronUp, Play, Check, Code } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { fetchQuestionById } from '../../services/ProblemService';
-import { verifyAnswer } from '../../services/VerificationService';
-import { runCodeOnJudge0 } from '../../services/Judge0Service';
+import { verifyAnswer, fetchSolvedCodes } from '../../services/VerificationService';
 import CodeEditor from '../../components/ui/CodeEditor';
 
 const AnswerVerification = () => {
@@ -14,7 +13,7 @@ const AnswerVerification = () => {
   const [question, setQuestion] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [testResults, setTestResults] = useState([]);
-  const [code, setCode] = useState('// Write your solution here\n');
+  const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [customInput, setCustomInput] = useState('');
   const [compilerOutput, setCompilerOutput] = useState(null);
@@ -23,6 +22,7 @@ const AnswerVerification = () => {
   const [error, setError] = useState(null);
   const [isQuestionCollapsed, setIsQuestionCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
+  const [solvedCodes, setSolvedCodes] = useState({});
 
   const languageMap = {
     javascript: 63,
@@ -37,6 +37,11 @@ const AnswerVerification = () => {
       const questionData = await fetchQuestionById(questionId);
       setQuestion(questionData);
       setTestCases(questionData.test_cases || []);
+      
+      const solvedResponse = await fetchSolvedCodes(questionId);
+      const codes = solvedResponse.solved_codes || {};
+      setSolvedCodes(codes);
+      setCode(codes[language]?.solution_code || '');
       setError(null);
     } catch (err) {
       const errorMessage = JSON.parse(err.message || JSON.stringify({ error: 'Failed to load question or test cases' }));
@@ -68,16 +73,11 @@ const AnswerVerification = () => {
 
     setLoadingRun(true);
     try {
-      const result = await runCodeOnJudge0({
-        source_code: code,
-        language_id: languageMap[language],
-        stdin: customInput,
-      });
-
+      const response = await verifyAnswer(questionId, code, language);
       setCompilerOutput({
-        stdout: result.stdout || '',
-        stderr: result.stderr || '',
-        status: result.status?.description || 'Unknown',
+        stdout: response.results[0]?.actual || '',
+        stderr: response.results[0]?.error || '',
+        status: response.results[0]?.passed ? 'Passed' : 'Failed',
       });
       setActiveTab('compiler');
       setError(null);
@@ -89,7 +89,7 @@ const AnswerVerification = () => {
     } finally {
       setLoadingRun(false);
     }
-  }, [code, language, customInput]);
+  }, [code, language, questionId]);
 
   const handleVerifyCode = useCallback(async () => {
     if (!code || !language) {
@@ -106,7 +106,11 @@ const AnswerVerification = () => {
         setQuestion((prev) => ({
           ...prev,
           is_validate: true,
-          solved_codes: [...(prev.solved_codes || []), response.solved_code],
+          solved_codes: [{ language, solution_code: response.solved_code?.solution_code || code }],
+        }));
+        setSolvedCodes((prev) => ({
+          ...prev,
+          [language]: response.solved_code || { solution_code: code }
         }));
       } else {
         toast.error('Some test cases failed.');
@@ -124,6 +128,12 @@ const AnswerVerification = () => {
 
   const toggleQuestionCollapse = () => {
     setIsQuestionCollapsed(!isQuestionCollapsed);
+  };
+
+  const handleLanguageChange = (e) => {
+    const newLanguage = e.target.value;
+    setLanguage(newLanguage);
+    setCode(solvedCodes[newLanguage]?.solution_code || '');
   };
 
   const passedCount = testResults.filter((result) => result.passed).length;
@@ -352,7 +362,7 @@ const AnswerVerification = () => {
                                   <X className="w-5 h-5 text-red-400" />
                                 )}
                                 <span className="text-white">
-                                  Test Case {index + 1}: {result.passed ? 'Passed' : `Failed (${result.status})`}
+                                  Test Case {index + 1}: {result.passed ? 'Passed' : `Failed`}
                                 </span>
                               </div>
                               {!result.passed && (
@@ -379,23 +389,19 @@ const AnswerVerification = () => {
                       <p className="text-gray-400">No test cases available for this question.</p>
                     )}
                     <div>
-                      <h3 className="text-lg font-semibold text-[#73E600] mb-2">Previously Solved Codes</h3>
-                      {question.solved_codes && question.solved_codes.length > 0 ? (
-                        <ul className="space-y-2 max-h-40 overflow-auto">
-                          {question.solved_codes.map((solution, index) => (
-                            <li key={index} className="bg-gray-800/50 p-2 rounded-lg text-sm">
-                              <div className="flex items-center gap-2">
-                                <Code className="w-4 h-4 text-[#73E600]" />
-                                <span className="text-white capitalize">{solution.language || 'Unknown'}</span>
-                              </div>
-                              <pre className="mt-2 text-gray-300 font-mono text-xs">
-                                {solution.solution_code || 'No code available'}
-                              </pre>
-                            </li>
-                          ))}
-                        </ul>
+                      <h3 className="text-lg font-semibold text-[#73E600] mb-2">Previously Solved Code</h3>
+                      {solvedCodes[language] ? (
+                        <div className="bg-gray-800/50 p-2 rounded-lg text-sm">
+                          <div className="flex items-center gap-2">
+                            <Code className="w-4 h-4 text-[#73E600]" />
+                            <span className="text-white capitalize">{language || 'Unknown'}</span>
+                          </div>
+                          <pre className="mt-2 text-gray-300 font-mono text-xs">
+                            {solvedCodes[language].solution_code}
+                          </pre>
+                        </div>
                       ) : (
-                        <p className="text-gray-400">No previously solved codes available.</p>
+                        <p className="text-gray-400">No code for {language}</p>
                       )}
                     </div>
                   </div>
@@ -447,7 +453,7 @@ const AnswerVerification = () => {
                 <div className="flex items-center gap-4">
                   <select
                     value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
+                    onChange={handleLanguageChange}
                     className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
                   >
                     <option value="javascript">JavaScript</option>

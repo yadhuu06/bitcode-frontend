@@ -76,7 +76,7 @@ export const refreshToken = async (refreshToken) => {
     });
     return {
       access: response.data.access,
-      refresh: response.data.refresh || refreshToken, // Use new refresh token if rotated
+      refresh: response.data.refresh || refreshToken, 
     };
   } catch (error) {
     console.error('Error refreshing token:', error.response?.data || error.message);
@@ -99,7 +99,7 @@ export const generateOtp = async (email) => {
     });
     return {
       message: response.data.message,
-      expires_in: response.data.expires_in, // Time in seconds until OTP expires
+      expires_in: response.data.expires_in, 
     };
   } catch (error) {
     console.error('Error generating OTP:', error.response?.data || error.message);
@@ -180,7 +180,7 @@ export const completeRegistration = async (email, password, confirmPassword) => 
   try {
     const response = await api.post('/api/auth/register/complete/', {
       email: email.trim(),
-      username: email.trim(), // Using email as username; consider allowing separate usernames
+      username: email.trim(), 
       password: password.trim(),
       confirm_password: confirmPassword.trim(),
     });

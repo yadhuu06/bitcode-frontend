@@ -9,10 +9,11 @@ import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import StatsSection from '../../components/user/StatsSection';
+import RankingSection from '../../components/user/RankingSection';
+import ContributionsSection from '../../components/user/ContributionsSection';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-// Centralized route paths (align with App.jsx)
 
 // Loading Component
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
@@ -39,118 +40,14 @@ const BitCodeProgressLoading = ({ message, progress, size, showBackground, style
   );
 };
 
-// Default Stats Component
-const StatsSection = ({ stats }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
-    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-      <h2 className="text-lg font-mono text-green-500 mb-4">Solved Questions</h2>
-      <p className="text-5xl font-mono text-white">{stats.solvedQuestions}</p>
-    </div>
-    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-      <h2 className="text-lg font-mono text-green-500 mb-4">Attempted Days</h2>
-      <p className="text-5xl font-mono text-white">{stats.attemptedDays}</p>
-    </div>
-    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-      <h2 className="text-lg font-mono text-green-500 mb-4">Active Streak</h2>
-      <p className="text-5xl font-mono text-white">{stats.activeStreak}</p>
-    </div>
-    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl text-center">
-      <h2 className="text-lg font-mono text-green-500 mb-4">Last Win</h2>
-      <p className="text-3xl font-mono text-white">{stats.lastWin}</p>
-    </div>
-    <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl col-span-1 sm:col-span-2 lg:col-span-2">
-      <h2 className="text-lg font-mono text-green-500 mb-4">Recent History</h2>
-      <ul className="list-disc pl-5 text-white font-mono text-base">
-        {stats.recentHistory.map((item, index) => (
-          <li key={index} className="mb-2">{item}</li>
-        ))}
-      </ul>
-    </div>
-  </div>
-);
-
-// Ranking Component
-const RankingSection = () => (
-  <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl">
-    <h2 className="text-lg font-mono text-green-500 mb-4">Ranking</h2>
-    <div className="space-y-4 text-white font-mono">
-      <div className="flex justify-between">
-        <span>Global Rank</span>
-        <span>#142</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Regional Rank</span>
-        <span>#23</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Points</span>
-        <span>1,245</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Level</span>
-        <span>Code Warrior (Lv. 5)</span>
-      </div>
-      <div className="mt-4">
-        <h3 className="text-green-500 mb-2">Achievements</h3>
-        <ul className="list-disc pl-5">
-          <li>Code Master - 50 Problems Solved</li>
-          <li>Streak King - 7 Days Active</li>
-          <li>Challenge Winner - Code Battle #3</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-);
-
-// Contributions Section
-const ContributionsSection = ({ isAdmin, navigate }) => (
-  <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl">
-    <h2 className="text-lg font-mono text-green-500 mb-4">Contributions</h2>
-    <div className="space-y-4 text-white font-mono">
-      <div className="flex justify-between">
-        <span>Problems Submitted</span>
-        <span>3</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Solutions Accepted</span>
-        <span>28</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Forum Posts</span>
-        <span>12</span>
-      </div>
-      <div className="mt-4">
-        <h3 className="text-green-500 mb-2">Recent Contributions</h3>
-        <ul className="list-disc pl-5">
-          <li>Submitted "Reverse Linked List" - 2025-06-01</li>
-          <li>Answered "How to optimize BFS?" - 2025-06-03</li>
-          <li>Solution accepted for "Matrix Spiral" - 2025-06-07</li>
-        </ul>
-      </div>
-
-      {/* Contribute Button */}
-      <div className="mt-6 text-center">
-        <button
-          onClick={() => {
-            navigate(isAdmin ? ROUTES.ADMIN_QUESTION_ADD : ROUTES.USER_CONTRIBUTE);
-          }}
-          className="border border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold py-2 px-4 rounded-lg transition duration-300"
-        >
-          Contribute
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
 // Main Profile Component
 const Profile = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Moved inside the component
+  const navigate = useNavigate();
   const { user: reduxUser, isAuthenticated } = useSelector((state) => state.auth);
   const { isLoading, message, progress, style } = useSelector((state) => state.loading);
   const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token');
-  const isAdmin = reduxUser?.is_admin; // Check if user is admin
+  const isAdmin = reduxUser?.is_admin;
 
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -160,7 +57,7 @@ const Profile = () => {
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
   const [binaryElements, setBinaryElements] = useState([]);
-  const [selectedSection, setSelectedSection] = useState('stats'); // Default to stats
+  const [selectedSection, setSelectedSection] = useState('stats');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -182,7 +79,7 @@ const Profile = () => {
       fetchUserData();
     } else {
       toast.error('Please log in to view your profile');
-      navigate(ROUTES.LOGIN);
+      navigate('/login');
     }
   }, [dispatch, isAuthenticated, navigate]);
 
@@ -298,12 +195,12 @@ const Profile = () => {
       await logout();
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
-      navigate(ROUTES.HOME);
+      navigate('/home');
     } catch (error) {
       console.error('Error during logout:', error);
       dispatch(logoutSuccess());
       toast.error(error.message || 'Logout failed, but session cleared');
-      navigate(ROUTES.HOME);
+      navigate('/home');
     } finally {
       dispatch(resetLoading());
     }
@@ -527,7 +424,7 @@ const Profile = () => {
           </div>
           {selectedSection === 'stats' && <StatsSection stats={stats} />}
           {selectedSection === 'ranking' && <RankingSection />}
-          {selectedSection === 'contributions' && <ContributionsSection  navigate={navigate} />}
+          {selectedSection === 'contributions' && <ContributionsSection navigate={navigate} />}
         </div>
       </div>
     </div>

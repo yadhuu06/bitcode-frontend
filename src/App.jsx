@@ -12,8 +12,8 @@ import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
 import AdminLayout from './components/admin/AdminLayout';
 import { useLocation } from 'react-router-dom';
+import { ROUTES } from './routes/paths';
 
-// Lazy-loaded components
 const AuthPage = lazy(() => import('./components/auth/AuthPage'));
 const AuthCallback = lazy(() => import('./components/auth/AuthCallback'));
 const BitWarAdminLogin = lazy(() => import('./pages/admin/Login'));
@@ -21,7 +21,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const Battles = lazy(() => import('./pages/admin/Battles'));
 const Users = lazy(() => import('./pages/admin/Users'));
 const Questions = lazy(() => import('./pages/admin/Questions'));
-const QuestionForm = lazy(() => import('./components/common/QuestionForm'));
+const QuestionForm = lazy(() => import('./components/admin/questions/QuestionForm'));
 const TestCaseManager = lazy(() => import('./components/admin/questions/TestCaseManager'));
 const Dashboard = lazy(() => import('./pages/user/UserDashboard'));
 const Profile = lazy(() => import('./pages/user/Profile'));
@@ -32,29 +32,7 @@ const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
 const AdminRoute = lazy(() => import('./routes/AdminRoute'));
 const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification'));
 
-// Centralized route paths
-const ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  AUTH_CALLBACK: '/auth-callback',
-  ADMIN_LOGIN: '/admin_login',
-  USER_DASHBOARD: '/user/dashboard',
-  USER_PROFILE: '/user/profile',
-  USER_COMPILER: '/user/compiler',
-  USER_ROOMS: '/user/rooms',
-  USER_ROOM: '/user/room/:roomId',
-  ADMIN_DASHBOARD: '/admin/dashboard',
-  ADMIN_USERS: '/admin/users',
-  ADMIN_BATTLES: '/admin/battles',
-  ADMIN_QUESTIONS: '/admin/questions',
-  ADMIN_QUESTION_ADD: '/admin/questions/add',
-  ADMIN_QUESTION_EDIT: '/admin/questions/edit/:questionId',
-  ADMIN_QUESTION_VERIFY: '/admin/questions/verify/:questionId',
-  ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
-  NOT_FOUND: '*',
-};
 
-// ErrorBoundary and UserLayout remain unchanged
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
 
@@ -65,7 +43,6 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -132,6 +109,7 @@ const AppWrapper = () => {
               <Route path={ROUTES.USER_COMPILER} element={<Compiler />} />
               <Route path={ROUTES.USER_ROOMS} element={<Rooms />} />
               <Route path={ROUTES.USER_ROOM} element={<RoomLobby />} />
+              <Route path={ROUTES.USER_CONTRIBUTE} element={<QuestionForm isAdmin={false} />} /> 
             </Route>
           </Route>
 
@@ -147,8 +125,8 @@ const AppWrapper = () => {
               <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
               <Route path={ROUTES.ADMIN_BATTLES} element={<Battles />} />
               <Route path={ROUTES.ADMIN_QUESTIONS} element={<Questions />} />
-              <Route path={ROUTES.ADMIN_QUESTION_ADD} element={<QuestionForm />} />
-              <Route path={ROUTES.ADMIN_QUESTION_EDIT} element={<QuestionForm />} />
+              <Route path={ROUTES.ADMIN_QUESTION_ADD} element={<QuestionForm isAdmin={true} />} /> 
+              <Route path={ROUTES.ADMIN_QUESTION_EDIT} element={<QuestionForm isAdmin={true} />} />
               <Route path={ROUTES.ADMIN_QUESTION_VERIFY} element={<AnswerVerification />} />
               <Route path={ROUTES.ADMIN_QUESTION_TEST_CASES} element={<TestCaseManager />} />
             </Route>

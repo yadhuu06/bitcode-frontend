@@ -57,7 +57,7 @@ const UserNavbar = () => {
           <NavLink to="/user/dashboard" className={navLinkClass}>
             <span className="text-green-500">{'<'}</span>
             <span className="text-white">BitCode</span>
-            <span className="text-green-500">{'/>'}</span>
+            <span className="text-green-500">{'>'}</span>
           </NavLink>
         </div>
 

@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState } from 'react';
 import { ArrowLeft, HelpCircle, PlusSquare, X } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import CustomButton from '../ui/CustomButton';
-import { createQuestion, editQuestion, fetchQuestionById } from '../../services/ProblemService'
-import { toast } from 'react-toastify';
 
 const editorStyles = `
   .w-md-editor {
@@ -89,67 +86,27 @@ const editorStyles = `
   }
 `;
 
-const tagDisplayMap = {
-  ARRAY: 'Array',
-  STRING: 'String',
-  DSA: 'DSA',
-};
-
-const tagValueMap = {
-  Array: 'ARRAY',
-  String: 'STRING',
-  DSA: 'DSA',
-};
-
-const QuestionForm = () => {
-  const navigate = useNavigate();
-  const { questionId } = useParams();
-  const isEditMode = !!questionId;
-
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    difficulty: 'EASY',
-    tags: 'ARRAY',
-  });
-  const [examples, setExamples] = useState([{ input_example: '', output_example: '', explanation: '', order: 0 }]);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (isEditMode) {
-      const fetchQuestion = async () => {
-        try {
-          setLoading(true);
-          const question = await fetchQuestionById(questionId);
-          setFormData({
-            title: question.title,
-            description: question.description,
-            difficulty: question.difficulty,
-            tags: tagValueMap[question.tags] || question.tags,
-          });
-          setExamples(question.examples?.length > 0 ? question.examples : [{ input_example: '', output_example: '', explanation: '', order: 0 }]);
-        } catch (error) {
-          const errorData = JSON.parse(error.message);
-          toast.error(errorData.error || 'Failed to load question');
-          navigate('/admin/questions');
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchQuestion();
-    }
-  }, [isEditMode, questionId, navigate]);
+const CommonQuestionForm = ({
+  initialData,
+  examples: initialExamples,
+  isEditMode,
+  onSubmit,
+  onCancel,
+  errors,
+  loading,
+  tags,
+  difficultyOptions,
+}) => {
+  const [formData, setFormData] = useState(initialData);
+  const [examples, setExamples] = useState(initialExamples);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleDescriptionChange = (value) => {
     setFormData((prev) => ({ ...prev, description: value || '' }));
-    setErrors((prev) => ({ ...prev, description: '' }));
   };
 
   const handleExampleChange = (index, field, value) => {
@@ -158,7 +115,6 @@ const QuestionForm = () => {
       newExamples[index] = { ...newExamples[index], [field]: value };
       return newExamples;
     });
-    setErrors((prev) => ({ ...prev, [`example_${index}`]: '' }));
   };
 
   const addExample = () => {
@@ -169,43 +125,15 @@ const QuestionForm = () => {
     setExamples((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      setErrors({});
-      const payload = { ...formData, examples };
-      if (isEditMode) {
-        await editQuestion(questionId, payload);
-        toast.success('Question updated successfully');
-      } else {
-        await createQuestion(payload);
-        toast.success('Question created successfully');
-      }
-      navigate('/admin/questions');
-    } catch (error) {
-      const errorData = JSON.parse(error.message);
-      if (errorData.title || errorData.description || errorData.difficulty || errorData.tags || errorData.examples) {
-        setErrors(errorData);
-      } else {
-        toast.error(errorData.error || 'Operation failed');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setFormData({ title: '', description: '', difficulty: 'EASY', tags: 'ARRAY' });
-    setExamples([{ input_example: '', output_example: '', explanation: '', order: 0 }]);
-    setErrors({});
-    navigate('/admin/questions');
+  const handleFormSubmit = () => {
+    onSubmit({ ...formData, examples });
   };
 
   return (
     <div className="p-6 md:p-8 lg:p-10 bg-black min-h-screen">
       <header className="mb-8 flex items-center gap-4">
         <button
-          onClick={() => navigate('/admin/questions')}
+          onClick={onCancel}
           className="text-gray-300 hover:text-green-400 transition-colors duration-200"
           aria-label="Go back"
         >
@@ -365,9 +293,11 @@ const QuestionForm = () => {
               }`}
               disabled={loading}
             >
-              <option value="EASY" className="bg-[#252525] text-green-400">Easy</option>
-              <option value="MEDIUM" className="bg-[#252525] text-yellow-400">Medium</option>
-              <option value="HARD" className="bg-[#252525] text-red-400">Hard</option>
+              {difficultyOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className={`bg-[#252525] text-${opt.color}`}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
             {errors.difficulty && <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.difficulty}</p>}
           </div>
@@ -383,19 +313,21 @@ const QuestionForm = () => {
               } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-3 font-['Roboto_Mono'] transition-all duration-200`}
               disabled={loading}
             >
-              <option value="ARRAY" className="bg-[#252525]">Array</option>
-              <option value="STRING" className="bg-[#252525]">String</option>
-              <option value="DSA" className="bg-[#252525]">DSA</option>
+              {tags.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#252525]">
+                  {opt.label}
+                </option>
+              ))}
             </select>
             {errors.tags && <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.tags}</p>}
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <CustomButton onClick={handleCancel} variant="cancel" disabled={loading}>
+          <CustomButton onClick={onCancel} variant="cancel" disabled={loading}>
             Cancel
           </CustomButton>
-          <CustomButton onClick={handleSubmit} variant="create" disabled={loading}>
+          <CustomButton onClick={handleFormSubmit} variant="create" disabled={loading}>
             <span className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5" />
               {isEditMode ? 'Update' : 'Create'}
@@ -407,4 +339,4 @@ const QuestionForm = () => {
   );
 };
 
-export default QuestionForm;
+export default CommonQuestionForm;

@@ -227,16 +227,7 @@ const AnswerVerification = () => {
                   >
                     Results
                   </button>
-                  <button
-                    onClick={() => setActiveTab('compiler')}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                      activeTab === 'compiler'
-                        ? 'bg-[#73E600] text-black'
-                        : 'bg-gray-800 text-gray-400 hover:text-[#73E600]'
-                    }`}
-                  >
-                    Compiler Output
-                  </button>
+
                 </div>
                 {activeTab === 'description' && (
                   <div className="space-y-4 text-sm text-gray-300">
@@ -406,91 +397,46 @@ const AnswerVerification = () => {
                     </div>
                   </div>
                 )}
-                {activeTab === 'compiler' && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-[#73E600] mb-2">Compiler Output</h3>
-                    <div className="mb-4">
-                      <label className="block text-sm text-gray-400 mb-2">Custom Input</label>
-                      <textarea
-                        value={customInput}
-                        onChange={(e) => setCustomInput(e.target.value)}
-                        placeholder="Enter custom input here..."
-                        className="w-full bg-gray-800 text-white rounded p-2 text-sm font-mono"
-                        rows={3}
-                      />
-                    </div>
-                    {compilerOutput ? (
-                      <div className="space-y-2">
-                        <div>
-                          <span className="text-gray-400">Status:</span>
-                          <span className="text-white ml-2">{compilerOutput.status}</span>
-                        </div>
-                        {compilerOutput.stdout && (
-                          <div>
-                            <span className="text-gray-400">Output:</span>
-                            <pre className="text-white font-mono bg-gray-800/50 p-2 rounded">{compilerOutput.stdout}</pre>
-                          </div>
-                        )}
-                        {compilerOutput.stderr && (
-                          <div>
-                            <span className="text-gray-400">Error:</span>
-                            <pre className="text-red-400 font-mono bg-gray-800/50 p-2 rounded">{compilerOutput.stderr}</pre>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-gray-400">Run the code to see compiler output.</p>
-                    )}
-                  </div>
-                )}
+
               </div>
             )}
           </div>
           <div className="lg:w-[65%] flex flex-col gap-6 flex-1">
             <div className="bg-gray-900/80 p-6 rounded-lg border border-gray-800 flex-1 flex flex-col">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-[#73E600]">Sample Answer</h3>
-                <div className="flex items-center gap-4">
-                  <select
-                    value={language}
-                    onChange={handleLanguageChange}
-                    className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
-                  >
-                    <option value="javascript">JavaScript</option>
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="cpp">C++</option>
-                  </select>
-                  <button
-                    onClick={handleRunCode}
-                    disabled={loadingRun}
-                    className={`group relative p-2 ${
-                      loadingRun ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-[#73E600]'
-                    } transition-colors`}
-                    aria-label="Run Code"
-                  >
-                    <Play className="w-5 h-5" />
-                    <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
-                      Run Code
-                    </span>
-                  </button>
-                  <button
-                    onClick={handleVerifyCode}
-                    disabled={loadingVerify || testCases.length === 0}
-                    className={`group relative p-2 ${
-                      loadingVerify || testCases.length === 0
-                        ? 'text-gray-600 cursor-not-allowed'
-                        : 'text-gray-400 hover:text-[#73E600]'
-                    } transition-colors`}
-                    aria-label="Verify Code"
-                  >
-                    <Check className="w-5 h-5" />
-                    <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
-                      Verify Code
-                    </span>
-                  </button>
-                </div>
-              </div>
+<div className="flex justify-between items-center mb-4">
+  <h3 className="text-lg font-semibold text-[#73E600]">Sample Answer</h3>
+  <div className="flex items-center gap-4">
+    <select
+      value={language}
+      onChange={handleLanguageChange}
+      className="bg-gray-800 text-white rounded px-3 py-2 text-sm focus:outline-none"
+    >
+      <option value="javascript">JavaScript</option>
+      <option value="python">Python</option>
+      <option value="java">Java</option>
+      <option value="cpp">C++</option>
+    </select>
+
+    <button
+      onClick={handleVerifyCode}
+      disabled={loadingVerify || testCases.length === 0}
+      className={`group relative flex items-center justify-center gap-2 px-4 py-2 rounded-md border text-sm font-medium transition
+        ${
+          loadingVerify || testCases.length === 0
+            ? 'bg-transparent border border-gray-700 text-gray-500 cursor-not-allowed'
+            : 'bg-[#18181B] border-[#2D2D2D] text-gray-300 hover:text-[#73E600] hover:border-[#73E600]'
+        }`}
+      aria-label="Verify Code"
+    >
+      <Check className="w-5 h-5" />
+      <span>Verify</span>
+      <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-md -top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap z-10">
+        Verify code
+      </span>
+    </button>
+  </div>
+</div>
+
               <div className="flex-1">
                 <CodeEditor
                   code={code}

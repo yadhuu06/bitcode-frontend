@@ -13,6 +13,7 @@ import UserNavbar from './components/user/UserNavbar';
 import AdminLayout from './components/admin/AdminLayout';
 import { useLocation } from 'react-router-dom';
 
+// Lazy-loaded components
 const AuthPage = lazy(() => import('./components/auth/AuthPage'));
 const AuthCallback = lazy(() => import('./components/auth/AuthCallback'));
 const BitWarAdminLogin = lazy(() => import('./pages/admin/Login'));
@@ -20,7 +21,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const Battles = lazy(() => import('./pages/admin/Battles'));
 const Users = lazy(() => import('./pages/admin/Users'));
 const Questions = lazy(() => import('./pages/admin/Questions'));
-const QuestionForm = lazy(() => import('./components/admin/questions/QuestionForm'));
+const QuestionForm = lazy(() => import('./components/common/QuestionForm'));
 const TestCaseManager = lazy(() => import('./components/admin/questions/TestCaseManager'));
 const Dashboard = lazy(() => import('./pages/user/UserDashboard'));
 const Profile = lazy(() => import('./pages/user/Profile'));
@@ -29,7 +30,7 @@ const Rooms = lazy(() => import('./pages/user/Rooms'));
 const RoomLobby = lazy(() => import('./pages/user/RoomLobby'));
 const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
 const AdminRoute = lazy(() => import('./routes/AdminRoute'));
-const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification')); // Fixed import
+const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification'));
 
 // Centralized route paths
 const ROUTES = {
@@ -53,7 +54,7 @@ const ROUTES = {
   NOT_FOUND: '*',
 };
 
-// Enhanced Error Boundary
+// ErrorBoundary and UserLayout remain unchanged
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
 
@@ -87,7 +88,6 @@ ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-// User Layout with Outlet
 const UserLayout = ({ children }) => {
   const { pathname } = useLocation();
   const hideNavbar = pathname === ROUTES.USER_COMPILER || pathname.startsWith('/user/room/');
@@ -148,8 +148,8 @@ const AppWrapper = () => {
               <Route path={ROUTES.ADMIN_BATTLES} element={<Battles />} />
               <Route path={ROUTES.ADMIN_QUESTIONS} element={<Questions />} />
               <Route path={ROUTES.ADMIN_QUESTION_ADD} element={<QuestionForm />} />
-              <Route path={ROUTES.ADMIN_QUESTION_VERIFY} element={<AnswerVerification />} />
               <Route path={ROUTES.ADMIN_QUESTION_EDIT} element={<QuestionForm />} />
+              <Route path={ROUTES.ADMIN_QUESTION_VERIFY} element={<AnswerVerification />} />
               <Route path={ROUTES.ADMIN_QUESTION_TEST_CASES} element={<TestCaseManager />} />
             </Route>
           </Route>

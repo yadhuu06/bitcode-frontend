@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Cookies from 'js-cookie';
@@ -8,7 +9,10 @@ import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// Centralized route paths (align with App.jsx)
 
 // Loading Component
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
@@ -99,7 +103,7 @@ const RankingSection = () => (
 );
 
 // Contributions Section
-const ContributionsSection = () => (
+const ContributionsSection = ({ isAdmin, navigate }) => (
   <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl">
     <h2 className="text-lg font-mono text-green-500 mb-4">Contributions</h2>
     <div className="space-y-4 text-white font-mono">
@@ -128,7 +132,7 @@ const ContributionsSection = () => (
       <div className="mt-6 text-center">
         <button
           onClick={() => {
-            Navigate()
+            navigate(isAdmin ? ROUTES.ADMIN_QUESTION_ADD : ROUTES.USER_CONTRIBUTE);
           }}
           className="border border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold py-2 px-4 rounded-lg transition duration-300"
         >
@@ -139,13 +143,14 @@ const ContributionsSection = () => (
   </div>
 );
 
-
 // Main Profile Component
 const Profile = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // Moved inside the component
   const { user: reduxUser, isAuthenticated } = useSelector((state) => state.auth);
   const { isLoading, message, progress, style } = useSelector((state) => state.loading);
   const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token');
+  const isAdmin = reduxUser?.is_admin; // Check if user is admin
 
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -177,9 +182,9 @@ const Profile = () => {
       fetchUserData();
     } else {
       toast.error('Please log in to view your profile');
-      window.location.href = '/login';
+      navigate(ROUTES.LOGIN);
     }
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch, isAuthenticated, navigate]);
 
   useEffect(() => {
     const generateBinary = () => {
@@ -293,12 +298,12 @@ const Profile = () => {
       await logout();
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
-      window.location.href = '/';
+      navigate(ROUTES.HOME);
     } catch (error) {
       console.error('Error during logout:', error);
       dispatch(logoutSuccess());
       toast.error(error.message || 'Logout failed, but session cleared');
-      window.location.href = '/';
+      navigate(ROUTES.HOME);
     } finally {
       dispatch(resetLoading());
     }
@@ -522,7 +527,7 @@ const Profile = () => {
           </div>
           {selectedSection === 'stats' && <StatsSection stats={stats} />}
           {selectedSection === 'ranking' && <RankingSection />}
-          {selectedSection === 'contributions' && <ContributionsSection />}
+          {selectedSection === 'contributions' && <ContributionsSection  navigate={navigate} />}
         </div>
       </div>
     </div>

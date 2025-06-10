@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, HelpCircle, PlusSquare, X } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
-import CustomButton from '../../ui/CustomButton';
-import { createQuestion, editQuestion, fetchQuestionById } from '../../../services/ProblemService';
+import CustomButton from '../ui/CustomButton';
+import { createQuestion, editQuestion, fetchQuestionById } from '../../services/ProblemService'
 import { toast } from 'react-toastify';
 
 const editorStyles = `

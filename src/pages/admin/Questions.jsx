@@ -7,6 +7,15 @@ import { fetchQuestions } from '../../services/ProblemService';
 import { FileText, CheckCircle, Edit, Code, BookOpen, X } from 'lucide-react';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+
+// Centralized route paths (define here or import from App.jsx)
+const ROUTES = {
+  ADMIN_QUESTION_ADD: '/admin/questions/add',
+  ADMIN_QUESTION_EDIT: '/admin/questions/edit/:questionId',
+  ADMIN_QUESTION_VERIFY: '/admin/questions/verify/:questionId',
+  ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
+};
+
 const Questions = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
@@ -159,8 +168,7 @@ const Questions = () => {
           <CustomButton
             variant="create"
             onClick={() => {
-              navigate('/admin/questions/add');
-              
+              navigate(ROUTES.ADMIN_QUESTION_ADD);
             }}
           >
             <span className="hidden sm:inline">Add Question</span>
@@ -261,12 +269,9 @@ const Questions = () => {
               <div>
                 <h3 className="text-lg font-semibold text-[#73E600] mb-3">Description</h3>
                 <div className="bg-gray-800/50 p-4 rounded-lg prose prose-invert max-w-none text-gray-300">
-                  <ReactMarkdown
-  remarkPlugins={[remarkGfm]}
-  rehypePlugins={[rehypeRaw]}
->
-  {selectedQuestion.description}
-</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                    {selectedQuestion.description}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>

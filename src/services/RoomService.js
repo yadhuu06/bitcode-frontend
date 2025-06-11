@@ -37,3 +37,4 @@ export const getRoomDetails = async (roomId) => {
     throw errMsg;
   }
 };
+

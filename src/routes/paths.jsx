@@ -1,4 +1,3 @@
-// src/routes/paths.js
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
@@ -17,6 +16,6 @@ export const ROUTES = {
   ADMIN_QUESTION_EDIT: '/admin/questions/edit/:questionId',
   ADMIN_QUESTION_VERIFY: '/admin/questions/verify/:questionId',
   ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
-  USER_CONTRIBUTE: '/user/contribute',
+  USER_CONTRIBUTE: '/contribute',  
   NOT_FOUND: '*',
 };

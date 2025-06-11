@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Users, Clock, Play, Shield, UserX, Code, ClipboardCopy, CheckCircle, Swords, ArrowLeft, XCircle } from 'lucide-react';
+import { Users, Clock, Shield, UserX, Code, ClipboardCopy, CheckCircle, Swords, ArrowLeft, XCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -7,7 +7,6 @@ import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
 import ChatPanel from './ChatPannel';
 import 'react-toastify/dist/ReactToastify.css';
-import { setLoading } from '../../store/slices/loadingSlice';
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -20,7 +19,7 @@ const BitCodeProgressLoading = memo(({ message }) => (
   </div>
 ));
 
-const MatrixBackground = () => {
+const MatrixBackground = memo(() => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -31,7 +30,7 @@ const MatrixBackground = () => {
 
     const chars = '01';
     const fontSize = 14;
-    const numChars = Math.floor(Math.random() * 21);
+    const numChars = Math.floor(Math.random() * 21) + 10; // Increased minimum particles for better effect
     const particles = [];
 
     for (let i = 0; i < numChars; i++) {
@@ -89,7 +88,7 @@ const MatrixBackground = () => {
   }, []);
 
   return <canvas ref={canvasRef} className="fixed top-0 left-0 z-0 opacity-30" />;
-};
+});
 
 const BattleWaitingLobby = () => {
   const { roomId } = useParams();
@@ -99,7 +98,7 @@ const BattleWaitingLobby = () => {
   const username = useSelector((state) => state.auth.username);
   const [activeTab, setActiveTab] = useState('details');
   const [currentTime, setCurrentTime] = useState(
-    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
   );
   const [role, setRole] = useState('participant');
   const [roomDetails, setRoomDetails] = useState(null);
@@ -110,7 +109,7 @@ const BattleWaitingLobby = () => {
   const [copied, setCopied] = useState(false);
   const [isRoomClosed, setIsRoomClosed] = useState(false);
   const [lobbyMessages, setLobbyMessages] = useState([]);
-  const [isKicked, setIsKicked] = useState(false); // New state to track if user is kicked
+  const [isKicked, setIsKicked] = useState(false);
   const wsListenerId = useRef(`lobby-${roomId}`);
 
   const rules = [
@@ -119,132 +118,130 @@ const BattleWaitingLobby = () => {
     'No external resources during the battle.',
     'Maintain respect and fair play.',
   ];
-useEffect(() => {
-  const fetchRoomDetails = async () => {
-    setIsLoading(true);
-    try {
-      let roomData;
 
-      if (location.state) {
-        roomData = {
-          roomId,
-          roomName: location.state.roomName,
-          isPrivate: location.state.isPrivate,
-          join_code: location.state.joinCode,
-          difficulty: location.state.difficulty,
-          timeLimit: location.state.timeLimit,
-          capacity: location.state.capacity,
-          participantCount: location.state.participantCount || 1,
-          status: 'active',
-        };
-        setParticipants(location.state.participants || []);
-        setRole(location.state.role);
-      } else {
-        const response = await getRoomDetails(roomId, accessToken);
-        roomData = {
-          roomId,
-          roomName: response.room.name,
-          isPrivate: response.room.visibility === 'private',
-          join_code: response.room.join_code,
-          difficulty: response.room.difficulty,
-          timeLimit: response.room.time_limit,
-          capacity: response.room.capacity,
-          participantCount: response.room.participant_count,
-          status: response.room.status,
-        };
-        setParticipants(response.participants || []);
-        setRole(
-          response.participants.find(p => p.user__username === user?.username)?.role || 'participant'
-        );
+  useEffect(() => {
+    const fetchRoomDetails = async () => {
+      setIsLoading(true);
+      try {
+        let roomData;
+
+        if (location.state) {
+          roomData = {
+            roomId,
+            roomName: location.state.roomName,
+            isPrivate: location.state.isPrivate,
+            join_code: location.state.joinCode,
+            difficulty: location.state.difficulty,
+            timeLimit: location.state.timeLimit,
+            capacity: location.state.capacity,
+            participantCount: location.state.participantCount || 1,
+            status: 'active',
+          };
+          setParticipants(location.state.participants || []);
+          setRole(location.state.role || 'participant');
+        } else {
+          const response = await getRoomDetails(roomId, accessToken);
+          roomData = {
+            roomId,
+            roomName: response.room.name,
+            isPrivate: response.room.visibility === 'private',
+            join_code: response.room.join_code,
+            difficulty: response.room.difficulty,
+            timeLimit: response.room.time_limit,
+            capacity: response.room.capacity,
+            participantCount: response.room.participant_count,
+            status: response.room.status,
+          };
+          setParticipants(response.participants || []);
+          setRole(
+            response.participants.find((p) => p.user__username === username)?.role || 'participant'
+          );
+        }
+
+        setRoomDetails(roomData);
+      } catch (err) {
+        console.error('Error fetching room details:', err);
+        const message = err?.response?.data?.error;
+
+        if (err?.response?.status === 403 && message?.includes('not authorised')) {
+          toast.error('You are not authorised to view this room');
+        } else {
+          toast.error('Failed to load room details');
+        }
+        navigate('/user/rooms');
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      setRoomDetails(roomData);
-    } catch (err) {
-      console.error('Error fetching room details:', err);
-      const message = err?.response?.data?.error;
-
-      if (
-        err?.response?.status === 403 &&
-        (message === 'You are not authorised person' || message === 'You are not authorised person.')
-      ) {
-        toast.error('You are not authorised to view this room');
-      } else {
-        toast.error('Failed to load room details');
-      }
-
-      navigate('/user/rooms');
-    } finally {
-      setIsLoading(false);
+    if (accessToken && roomId) {
+      fetchRoomDetails();
+    } else {
+      toast.error('Invalid room or session');
+      navigate('/login');
     }
-  };
-
-  if (accessToken && roomId) {
-    fetchRoomDetails();
-  } else {
-    toast.error('Invalid room or session');
-    navigate('/login');
-  }
-}, [location, navigate, roomId, accessToken]);
+  }, [location, navigate, roomId, accessToken, username]);
 
   useEffect(() => {
     if (!roomId || !accessToken) return;
 
-
     WebSocketService.connect(accessToken, roomId, () => {
-    console.warn("Redirecting due to WebSocket initial failure...");
-    navigate('/error'); 
+      console.warn('Redirecting due to WebSocket initial failure...');
+      toast.error('Failed to connect to room');
+      navigate('/error');
     });
 
     const handleMessage = (data) => {
-      console.log('WebSocket message received:', data); // Debug log to verify message receipt
-      if (data.type === 'participant_list' || data.type === 'participant_update') {
-        const activeParticipants = (data.participants || []).filter(p => p.status === 'joined');
-        setParticipants(activeParticipants);
-        setRoomDetails((prev) => (prev ? { ...prev, participantCount: activeParticipants.length } : prev));
-        const currentUser = activeParticipants.find((p) => p.user__username === username);
-        if (currentUser && currentUser.role) {
-          setRole(currentUser.role);
-        } else if (location.state?.isHost) {
-          setRole('host');
-        }
-      } else if (data.type === 'countdown') {
-        setCountdown(data.countdown);
-      } else if (data.type === 'ready_status') {
-        setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
-      } else if (data.type === 'room_closed') {
-        setIsRoomClosed(true);
-        setTimeout(() => navigate('/user/rooms'), 3000);
-      } else if (data.type === 'kicked') {
-        console.log('Kicked message received:', data); // Debug log
-        if (data.username === username) {
-          setIsKicked(true); // Set kicked state to true
-          toast.error('You have been kicked from the room');
-          // Disconnect WebSocket to stop receiving further updates
-          WebSocketService.disconnect();
-          // Navigate to rooms list after a short delay
-          setTimeout(() => {
-            navigate('/user/rooms');
-          }, 2000);
-        }
-      } else if (data.type === 'participant_left') {
-        setLobbyMessages((prev) => [
-          ...prev,
-          `${data.username} left the lobby`,
-        ]);
-        setTimeout(() => {
-          setLobbyMessages((prev) => prev.slice(1));
-        }, 5000);
-      } else if (data.type === 'error') {
-        toast.error(data.message);
-        if (
-          data.message.includes('401') ||
-          data.message.includes('4001') ||
-          data.message.includes('4002') ||
-          data.message.includes('Not authorized') ||
-          data.code === 4005
-        ) {
-          navigate('/login');
-        }
+      console.log('WebSocket message received:', data);
+      switch (data.type) {
+        case 'participant_list':
+        case 'participant_update':
+          const activeParticipants = (data.participants || []).filter((p) => p.status === 'joined');
+          setParticipants(activeParticipants);
+          setRoomDetails((prev) => (prev ? { ...prev, participantCount: activeParticipants.length } : prev));
+          const currentUser = activeParticipants.find((p) => p.user__username === username);
+          if (currentUser?.role) {
+            setRole(currentUser.role);
+          } else if (location.state?.isHost) {
+            setRole('host');
+          }
+          break;
+        case 'countdown':
+          setCountdown(data.countdown);
+          break;
+        case 'ready_status':
+          setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
+          break;
+        case 'room_closed':
+          setIsRoomClosed(true);
+          setTimeout(() => navigate('/user/rooms'), 3000);
+          break;
+        case 'kicked':
+          if (data.username === username) {
+            setIsKicked(true);
+            toast.error('You have been kicked from the room');
+            WebSocketService.disconnect();
+            setTimeout(() => navigate('/user/rooms'), 2000);
+          }
+          break;
+        case 'participant_left':
+          setLobbyMessages((prev) => [...prev, `${data.username} left the lobby`]);
+          setTimeout(() => setLobbyMessages((prev) => prev.slice(1)), 5000);
+          break;
+        case 'error':
+          toast.error(data.message);
+          if (
+            data.message.includes('401') ||
+            data.message.includes('4001') ||
+            data.message.includes('4002') ||
+            data.message.includes('Not authorized') ||
+            data.code === 4005
+          ) {
+            navigate('/login');
+          }
+          break;
+        default:
+          console.warn('Unknown WebSocket message type:', data.type);
       }
     };
 
@@ -255,10 +252,17 @@ useEffect(() => {
       WebSocketService.disconnect();
     };
   }, [roomId, accessToken, navigate, username]);
-
+ const initiateCountdown = () => {
+    if (participants.length < 1) {
+      toast.error('At least one participant required');
+      return;
+    }
+    
+    WebSocketService.sendMessage({ type: 'start_countdown', countdown: 5 });
+  };
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -304,20 +308,10 @@ useEffect(() => {
 
   const handleStartBattle = () => {
     toast.info('Battle starting soon!');
+    navigate(`/battle/${roomId}`);
   };
 
-  const initiateCountdown = () => {
-    if (participants.length < 1) {
-      toast.error('At least one participant required');
-      return;
-    }
-    const allReady = participants.every((p) => readyStatus[p.user__username] || p.role === 'host');
-    if (!allReady) {
-      toast.error('All participants must be ready');
-      return;
-    }
-    WebSocketService.sendMessage({ type: 'start_countdown', countdown: 5 });
-  };
+
 
   const handleLeaveRoom = () => {
     WebSocketService.sendMessage({ type: 'leave_room' });
@@ -344,8 +338,8 @@ useEffect(() => {
         return 'text-gray-400 bg-gray-800';
     }
   };
-
-  // If user is kicked, show only the kicked message
+console.log('Participants:', participants);
+console.log('Current Username:', username);
   if (isKicked) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -441,6 +435,7 @@ useEffect(() => {
                   <div
                     key={`participant-${participant.user__username}-${index}`}
                     className="flex items-center justify-between bg-gray-800/50 p-3 rounded-lg border border-[#00FF40]/20 hover:border-[#22c55e] transition-all duration-300"
+                    role="listitem"
                   >
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-full bg-[#00FF40]/20 flex items-center justify-center text-[#00FF40] font-bold text-lg">
@@ -450,8 +445,9 @@ useEffect(() => {
                         <div className="flex items-center">
                           <span className="font-medium text-sm text-white">{participant.user__username}</span>
                           {participant.role === 'host' && (
-                            <Shield size={14} className="ml-2 text-[#00FF40]" title="Host" />
+                            <Shield size={14} className="ml-2 text-[#00FF40]" title="Host" aria-label="Host" />
                           )}
+                          
                         </div>
                         <div className="flex items-center text-xs mt-1">
                           <span
@@ -467,31 +463,33 @@ useEffect(() => {
                     </div>
                     <div className="flex items-center gap-2">
                       {readyStatus[participant.user__username] && (
-                        <CheckCircle size={16} className="text-[#00FF40] animate-pulse" title="Ready" />
+                        <CheckCircle size={16} className="text-[#00FF40] animate-pulse" title="Ready" aria-label="Ready" />
                       )}
                       {role === 'host' && participant.role !== 'host' && participant.status === 'joined' && (
                         <button
                           onClick={() => handleKickParticipant(participant.user__username)}
                           disabled={isLoading}
                           className="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all duration-300"
-                          title="Kick participant"
+                          title={`Kick ${participant.user__username}`}
                           aria-label={`Kick ${participant.user__username}`}
                         >
                           <UserX size={16} />
                         </button>
                       )}
-                      {role !== 'host' && participant.user__username === username && (
+                      {participant.user__username === username && role !== 'host' && participant.status === 'joined' && (
                         <button
                           onClick={handleReadyToggle}
-                          className={`p-2 rounded-full ${
+                          disabled={isLoading}
+                          className={`p-2 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300 ${
                             readyStatus[username]
-                              ? 'bg-[#00FF40]/20 text-[#00FF40]'
-                              : 'bg-gray-700/50 text-gray-400'
-                          } hover:bg-[#22c55e]/30 transition-all duration-300`}
-                          title={readyStatus[username] ? 'Unready' : 'Ready'}
-                          aria-label={readyStatus[username] ? 'Unready' : 'Ready'}
+                              ? 'border-[#00FF40] bg-[#00FF40]/20 text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
+                              : 'border-gray-700 bg-gray-700/50 text-gray-400 hover:border-[#22c55e] hover:bg-[#22c55e]/30'
+                          }`}
+                          aria-label={readyStatus[username] ? 'Mark as unready' : 'Mark as ready'}
+                          title={readyStatus[username] ? 'Mark as unready' : 'Mark as ready'}
                         >
-                          <CheckCircle size={16} className="animate-pulse" />
+                          <CheckCircle size={16} className={readyStatus[username] ? 'animate-pulse' : ''} />
+                          {readyStatus[username] ? 'Unready' : 'Ready'}
                         </button>
                       )}
                     </div>
@@ -521,7 +519,6 @@ useEffect(() => {
 
           {/* Sidebar: Tabs & Host Controls */}
           <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
-            {/* Tab Navigation */}
             <div className="flex border-b border-[#00FF40]/30 bg-gray-950/50 rounded-t-2xl">
               {['details', 'chat', 'rules'].map((tab) => (
                 <button
@@ -537,8 +534,6 @@ useEffect(() => {
                 </button>
               ))}
             </div>
-
-            {/* Tab Content */}
             <div className="flex-1 p-6 overflow-y-auto text-sm scrollbar-thin scrollbar-thumb-[#00FF40]/50 scrollbar-track-gray-900">
               {activeTab === 'details' && (
                 <div className="space-y-5">
@@ -587,9 +582,7 @@ useEffect(() => {
                   </div>
                 </div>
               )}
-
               {activeTab === 'chat' && <ChatPanel roomId={roomId} username={username} isActiveTab={activeTab === 'chat'} />}
-
               {activeTab === 'rules' && (
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-[#00FF40] flex items-center gap-2">
@@ -613,8 +606,6 @@ useEffect(() => {
                 </div>
               )}
             </div>
-
-            {/* Host Controls */}
             <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
               <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
                 <Shield className="w-5 h-5" />
@@ -626,12 +617,11 @@ useEffect(() => {
                     <button
                       onClick={initiateCountdown}
                       disabled={participants.length < 1 || isLoading}
-                      className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300
-                        ${
-                          participants.length < 1 || isLoading
-                            ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-                            : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
-                        }`}
+                      className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300 ${
+                        participants.length < 1 || isLoading
+                          ? 'border-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black'
+                      }`}
                       aria-label="Start battle"
                     >
                       <Swords size={16} />
@@ -663,7 +653,6 @@ useEffect(() => {
           </div>
         </main>
 
-        {/* Countdown Overlay */}
         {countdown !== null && (
           <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
             <div className="text-center">
@@ -677,10 +666,8 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Loading Overlay */}
         {isLoading && <BitCodeProgressLoading message="Initializing systems..." />}
 
-        {/* Footer */}
         <footer className="bg-gray-900/80 border-t border-[#00FF40]/30 py-3 px-4 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-400">
             <span className="text-[#00FF40] font-bold">Battle Arena</span>
@@ -699,4 +686,4 @@ useEffect(() => {
   );
 };
 
-export default BattleWaitingLobby;
+export default memo(BattleWaitingLobby);

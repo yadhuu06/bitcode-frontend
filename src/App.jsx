@@ -31,7 +31,7 @@ const RoomLobby = lazy(() => import('./pages/user/RoomLobby'));
 const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
 const AdminRoute = lazy(() => import('./routes/AdminRoute'));
 const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification'));
-
+const Contribute = lazy(() => import('./pages/user/Contribute'));  // New component
 
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
@@ -43,11 +43,12 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
   }
+
   render() {
     if (this.state.hasError) {
       return (
         <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 font-mono text-center">
-          Something went wrong. Please refresh or contact support.
+          Something went wrong. Please retry or contact support.
           <button
             className="mt-2 px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700"
             onClick={() => this.setState({ hasError: false, error: null })}
@@ -67,7 +68,7 @@ ErrorBoundary.propTypes = {
 
 const UserLayout = ({ children }) => {
   const { pathname } = useLocation();
-  const hideNavbar = pathname === ROUTES.USER_COMPILER || pathname.startsWith('/user/room/');
+  const hideNavbar = pathname === ROUTES.USER_COMPILER || pathname.startsWith('/user/room/') || pathname === ROUTES.USER_CONTRIBUTE;
 
   return (
     <div role="main" aria-label="User Dashboard">
@@ -109,7 +110,7 @@ const AppWrapper = () => {
               <Route path={ROUTES.USER_COMPILER} element={<Compiler />} />
               <Route path={ROUTES.USER_ROOMS} element={<Rooms />} />
               <Route path={ROUTES.USER_ROOM} element={<RoomLobby />} />
-              <Route path={ROUTES.USER_CONTRIBUTE} element={<QuestionForm isAdmin={false} />} /> 
+              <Route path={ROUTES.USER_CONTRIBUTE} element={<Contribute />} />
             </Route>
           </Route>
 
@@ -125,7 +126,7 @@ const AppWrapper = () => {
               <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
               <Route path={ROUTES.ADMIN_BATTLES} element={<Battles />} />
               <Route path={ROUTES.ADMIN_QUESTIONS} element={<Questions />} />
-              <Route path={ROUTES.ADMIN_QUESTION_ADD} element={<QuestionForm isAdmin={true} />} /> 
+              <Route path={ROUTES.ADMIN_QUESTION_ADD} element={<QuestionForm isAdmin={true} />} />
               <Route path={ROUTES.ADMIN_QUESTION_EDIT} element={<QuestionForm isAdmin={true} />} />
               <Route path={ROUTES.ADMIN_QUESTION_VERIFY} element={<AnswerVerification />} />
               <Route path={ROUTES.ADMIN_QUESTION_TEST_CASES} element={<TestCaseManager />} />

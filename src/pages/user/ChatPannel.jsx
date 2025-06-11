@@ -28,7 +28,7 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
             id: prev.length + 1,
             user: data.sender,
             message: data.message,
-            time: data.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            time: data.timestamp || new Date().toLocaleTimeString([],{ hour: '2-digit', minute: '2-digit' }),
             isSystem: data.is_system || false,
           },
         ]);

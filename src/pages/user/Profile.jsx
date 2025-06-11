@@ -15,7 +15,6 @@ import ContributionsSection from '../../components/user/ContributionsSection';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Loading Component
 const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -40,7 +39,6 @@ const BitCodeProgressLoading = ({ message, progress, size, showBackground, style
   );
 };
 
-// Main Profile Component
 const Profile = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -64,7 +62,9 @@ const Profile = () => {
     const fetchUserData = async () => {
       dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
       try {
+        await new Promise((resolve) => setTimeout(resolve, 0.001)); // 2-second delay
         const userData = await fetchProfile();
+        console.log('Fetched user data:', userData); // Debug log
         setUser(userData);
         setUsername(userData.username || '');
       } catch (error) {
@@ -79,7 +79,7 @@ const Profile = () => {
       fetchUserData();
     } else {
       toast.error('Please log in to view your profile');
-      navigate('/login');
+      navigate('/login'); // Adjust to your ROUTES.LOGIN
     }
   }, [dispatch, isAuthenticated, navigate]);
 
@@ -97,8 +97,7 @@ const Profile = () => {
       setBinaryElements(newBinary);
     };
     generateBinary();
-    const interval = setInterval(generateBinary, 4000);
-    return () => clearInterval(interval);
+    
   }, []);
 
   const handleFileChange = (e) => {
@@ -195,12 +194,12 @@ const Profile = () => {
       await logout();
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
-      navigate('/home');
+      navigate('/'); // Adjust to your ROUTES.HOME
     } catch (error) {
       console.error('Error during logout:', error);
       dispatch(logoutSuccess());
       toast.error(error.message || 'Logout failed, but session cleared');
-      navigate('/home');
+      navigate('/');
     } finally {
       dispatch(resetLoading());
     }
@@ -236,7 +235,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-26">
+    <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-24">
       {binaryElements.map((element) => (
         <span
           key={element.key}
@@ -258,25 +257,26 @@ const Profile = () => {
           />
         </div>
       )}
-      <div className="w-full max-w-7xl flex flex-col lg:flex-row justify-between px-6 py-6 gap-14">
-        {/* Always Visible User Terminal Section */}
+      <div className="w-full max-w-7xl flex flex-col lg:flex-row justify-between px-6 py-6 gap-12">
         <div className="w-full lg:w-1/3 lg:order-1">
           <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl relative">
             <h1 className="text-2xl font-mono text-green-500 mb-4 text-center tracking-wider relative group">
               <span className="animate-pulse">[ User Terminal ]</span>
-              <span className="absolute -left- top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-green-300"></span>
             </h1>
             <div className="flex justify-center mb-4">
               <div className="relative">
                 <img
                   src={
                     user?.profile_picture
-                      ? `${BASE_URL}${user.profile_picture}`
+                      ? user.profile_picture.startsWith('http')
+                        ? user.profile_picture
+                        : `${BASE_URL}${user.profile_picture}`
                       : `${BASE_URL}/media/profile_pics/default/coding_hacker.png`
                   }
                   alt="Profile"
                   className="w-24 h-24 rounded-full object-cover border-2 border-green-500 shadow-md transition-all duration-300 hover:shadow-lg"
                   onError={(e) => {
+                    console.error('Image load error:', user?.profile_picture); // Debug log
                     e.target.onerror = null;
                     e.target.src = `${BASE_URL}/media/profile_pics/default/coding_hacker.png`;
                   }}
@@ -394,7 +394,6 @@ const Profile = () => {
             )}
           </div>
         </div>
-        {/* Dynamic Right Section */}
         <div className="w-full lg:w-2/3 lg:order-2">
           <div className="flex justify-center mb-6 space-x-4">
             <button
@@ -424,7 +423,7 @@ const Profile = () => {
           </div>
           {selectedSection === 'stats' && <StatsSection stats={stats} />}
           {selectedSection === 'ranking' && <RankingSection />}
-          {selectedSection === 'contributions' && <ContributionsSection navigate={navigate} />}
+          {selectedSection === 'contributions' && <ContributionsSection />}
         </div>
       </div>
     </div>

@@ -52,3 +52,11 @@ export const updateUserProfile = async (profileData) => {
   }
 };
 
+export const fetchUserContributions = async () => {
+  try {
+    const response = await api.get('/users/contributions/');
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch contributions' }));
+  }
+};

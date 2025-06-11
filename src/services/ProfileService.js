@@ -49,3 +49,11 @@ export const logout = async () => {
     throw new Error(errorMessage);
   }
 };
+export const fetchUserContributions = async () => {
+  try {
+    const response = await api.get('questions/contributions/');
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch contributions' }));
+  }
+};

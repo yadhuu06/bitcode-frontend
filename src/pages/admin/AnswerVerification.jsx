@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FileText, X, CheckCircle, ChevronDown, ChevronUp, Play, Check, Code } from 'lucide-react';
+import { FileText, X, CheckCircle, ChevronDown, ChevronUp, Check, Code } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { fetchQuestionById } from '../../services/ProblemService';
 import { verifyAnswer, fetchSolvedCodes } from '../../services/VerificationService';
-import CodeEditor from '../../components/ui/CodeEditor';
+import CodeVerificationForm from '../../components/common/CodeVerificationForm';
 
 const AnswerVerification = () => {
   const { questionId } = useParams();
@@ -15,10 +15,8 @@ const AnswerVerification = () => {
   const [testResults, setTestResults] = useState([]);
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
-  const [customInput, setCustomInput] = useState('');
-  const [compilerOutput, setCompilerOutput] = useState(null);
-  const [loadingRun, setLoadingRun] = useState(false);
   const [loadingVerify, setLoadingVerify] = useState(false);
+  const [loadingRun, setLoadingRun] = useState(false);
   const [error, setError] = useState(null);
   const [isQuestionCollapsed, setIsQuestionCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
@@ -37,7 +35,6 @@ const AnswerVerification = () => {
       const questionData = await fetchQuestionById(questionId);
       setQuestion(questionData);
       setTestCases(questionData.test_cases || []);
-      
       const solvedResponse = await fetchSolvedCodes(questionId);
       const codes = solvedResponse.solved_codes || {};
       setSolvedCodes(codes);
@@ -50,7 +47,7 @@ const AnswerVerification = () => {
     } finally {
       setLoadingVerify(false);
     }
-  }, [questionId]);
+  }, [questionId, language]);
 
   useEffect(() => {
     fetchQuestionAndTestCases();
@@ -60,43 +57,11 @@ const AnswerVerification = () => {
     navigate('/admin/questions');
   }, [navigate]);
 
-  const handleRunCode = useCallback(async () => {
-    if (!code || !language) {
-      toast.error('Please provide code and select a language');
-      return;
-    }
-
-    if (!languageMap[language]) {
-      toast.error('Unsupported language');
-      return;
-    }
-
-    setLoadingRun(true);
-    try {
-      const response = await verifyAnswer(questionId, code, language);
-      setCompilerOutput({
-        stdout: response.results[0]?.actual || '',
-        stderr: response.results[0]?.error || '',
-        status: response.results[0]?.passed ? 'Passed' : 'Failed',
-      });
-      setActiveTab('compiler');
-      setError(null);
-      toast.success('Code executed successfully');
-    } catch (err) {
-      const errorMessage = err.message || 'Failed to execute code';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoadingRun(false);
-    }
-  }, [code, language, questionId]);
-
   const handleVerifyCode = useCallback(async () => {
     if (!code || !language) {
       toast.error('Please provide code and select a language');
       return;
     }
-
     setLoadingVerify(true);
     try {
       const response = await verifyAnswer(questionId, code, language);
@@ -110,7 +75,7 @@ const AnswerVerification = () => {
         }));
         setSolvedCodes((prev) => ({
           ...prev,
-          [language]: response.solved_code || { solution_code: code }
+          [language]: response.solved_code || { solution_code: code },
         }));
       } else {
         toast.error('Some test cases failed.');
@@ -126,10 +91,6 @@ const AnswerVerification = () => {
     }
   }, [questionId, code, language]);
 
-  const toggleQuestionCollapse = () => {
-    setIsQuestionCollapsed(!isQuestionCollapsed);
-  };
-
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
@@ -144,26 +105,24 @@ const AnswerVerification = () => {
     <div className="min-h-screen bg-[#030712] text-white font-mono p-4 md:p-6 flex flex-col">
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-2xl md:text-3xl font-bold border-b-2 border-[#73E600] pb-2">
-          Verify Sample Answer
+          Verify Code
         </h1>
         <button
           onClick={handleClose}
-          className="group relative p-2 text-gray-400 hover:text-[#73E600] transition-colors"
+          className="group relative p-2 text-gray-400 hover:bg-gray-300 hover:text-black-600 rounded-lg transition-colors"
           aria-label="Close"
         >
           <X className="w-6 h-6" />
-          <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
+          <span className="absolute hidden group-hover:block bg-gray-700 text-white text-xs px-2 py-1 rounded-full -top-8 left-2/2 transform -translate-x-1/2">
             Close
           </span>
         </button>
       </header>
 
-      {loadingVerify && (
-        <div className="text-center text-gray-400 py-10">Loading question...</div>
-      )}
+      {loadingVerify && <div className="text-center text-gray-400 py-4">Loading question...</div>}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-400 rounded-lg flex items-center">
+        <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg flex items-center">
           <span className="w-5 h-5 mr-2">⚠️</span>
           {error}
         </div>
@@ -190,15 +149,11 @@ const AnswerVerification = () => {
                 />
               </div>
               <button
-                onClick={toggleQuestionCollapse}
+                onClick={() => setIsQuestionCollapsed(!isQuestionCollapsed)}
                 className="group relative p-2 text-gray-400 hover:text-[#73E600]"
                 aria-label={isQuestionCollapsed ? 'Expand' : 'Collapse'}
               >
-                {isQuestionCollapsed ? (
-                  <ChevronDown className="w-6 h-6" />
-                ) : (
-                  <ChevronUp className="w-6 h-6" />
-                )}
+                {isQuestionCollapsed ? <ChevronDown className="w-6 h-6" /> : <ChevronUp className="w-6 h-6" />}
                 <span className="absolute hidden group-hover:block bg-gray-800 text-xs px-2 py-1 rounded -top-8 left-1/2 transform -translate-x-1/2">
                   {isQuestionCollapsed ? 'Expand' : 'Collapse'}
                 </span>
@@ -227,7 +182,6 @@ const AnswerVerification = () => {
                   >
                     Results
                   </button>
-
                 </div>
                 {activeTab === 'description' && (
                   <div className="space-y-4 text-sm text-gray-300">
@@ -348,12 +302,12 @@ const AnswerVerification = () => {
                             <li key={index} className="bg-gray-800/50 p-2 rounded-lg text-sm">
                               <div className="flex items-center gap-2">
                                 {result.passed ? (
-                                  <CheckCircle className="w-5 h-5 text-green-400" />
+                                  <Check className="w-5 h-5 text-green-400" />
                                 ) : (
                                   <X className="w-5 h-5 text-red-400" />
                                 )}
                                 <span className="text-white">
-                                  Test Case {index + 1}: {result.passed ? 'Passed' : `Failed`}
+                                  Test Case {index + 1}: {result.passed ? 'Passed' : 'Failed'}
                                 </span>
                               </div>
                               {!result.passed && (
@@ -375,7 +329,7 @@ const AnswerVerification = () => {
                         </ul>
                       </div>
                     ) : testCases.length > 0 ? (
-                      <p className="text-gray-400">Verify the sample answer to see test case results.</p>
+                      <p className="text-gray-400">Verify the code to see test case results.</p>
                     ) : (
                       <p className="text-gray-400">No test cases available for this question.</p>
                     )}
@@ -387,9 +341,7 @@ const AnswerVerification = () => {
                             <Code className="w-4 h-4 text-[#73E600]" />
                             <span className="text-white capitalize">{language || 'Unknown'}</span>
                           </div>
-                          <pre className="mt-2 text-gray-300 font-mono text-xs">
-                            {solvedCodes[language].solution_code}
-                          </pre>
+                          <pre className="mt-2 text-gray-300 font-mono text-xs">{solvedCodes[language].solution_code}</pre>
                         </div>
                       ) : (
                         <p className="text-gray-400">No code for {language}</p>
@@ -397,55 +349,20 @@ const AnswerVerification = () => {
                     </div>
                   </div>
                 )}
-
               </div>
             )}
           </div>
-          <div className="lg:w-[65%] flex flex-col gap-6 flex-1">
-            <div className="bg-gray-900/80 p-6 rounded-lg border border-gray-800 flex-1 flex flex-col">
-<div className="flex justify-between items-center mb-4">
-  <h3 className="text-lg font-semibold text-[#73E600]">Sample Answer</h3>
-  <div className="flex items-center gap-4">
-    <select
-      value={language}
-      onChange={handleLanguageChange}
-      className="bg-gray-800 text-white rounded px-3 py-2 text-sm focus:outline-none"
-    >
-      <option value="javascript">JavaScript</option>
-      <option value="python">Python</option>
-      <option value="java">Java</option>
-      <option value="cpp">C++</option>
-    </select>
-
-    <button
-      onClick={handleVerifyCode}
-      disabled={loadingVerify || testCases.length === 0}
-      className={`group relative flex items-center justify-center gap-2 px-4 py-2 rounded-md border text-sm font-medium transition
-        ${
-          loadingVerify || testCases.length === 0
-            ? 'bg-transparent border border-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-[#18181B] border-[#2D2D2D] text-gray-300 hover:text-[#73E600] hover:border-[#73E600]'
-        }`}
-      aria-label="Verify Code"
-    >
-      <Check className="w-5 h-5" />
-      <span>Verify</span>
-      <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-md -top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap z-10">
-        Verify code
-      </span>
-    </button>
-  </div>
-</div>
-
-              <div className="flex-1">
-                <CodeEditor
-                  code={code}
-                  setCode={setCode}
-                  language={language}
-                />
-              </div>
-            </div>
-          </div>
+          <CodeVerificationForm
+            questionId={questionId}
+            code={code}
+            setCode={setCode}
+            language={language}
+            onLanguageChange={handleLanguageChange}
+            testCases={testCases}
+            onVerifyCode={handleVerifyCode}
+            loadingRun={loadingRun}
+            loadingVerify={loadingVerify}
+          />
         </div>
       )}
     </div>

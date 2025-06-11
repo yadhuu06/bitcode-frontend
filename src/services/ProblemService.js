@@ -76,3 +76,12 @@ export const deleteTestCase = async (questionId, testCaseId) => {
     throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to delete test case' }));
   }
 };
+
+export const contributeQuestion = async (data) => {
+  try {
+    const response = await api.post('/questions/contribute/', data);
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to contribute question' }));
+  }
+};

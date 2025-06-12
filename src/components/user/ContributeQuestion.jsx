@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import CommonQuestionForm from '../common/CommonQuestionForm';
-import { contributeQuestion } from '../../services/ProblemService';
+import { contributeQuestion } from '../../services/ContributeService';
 import { ROUTES } from '../../routes/paths';
 
 const ContributeQuestion = () => {
@@ -47,7 +47,7 @@ const ContributeQuestion = () => {
           explanation: ex.explanation || null,
           order: idx + 1,
         })),
-        test_cases: [], // Test cases to be added later
+        
       });
       setErrors({});
       toast.success('Question submitted! Now submit a solution.');

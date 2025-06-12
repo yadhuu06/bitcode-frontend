@@ -48,12 +48,8 @@ const Contribute = () => {
   ];
 
   const handleQuestionSubmit = async (formData) => {
-    if (!formData.test_cases || formData.test_cases.length === 0) {
-      setErrors({ test_cases: 'At least one test case is required' });
-      toast.error('Please add at least one test case');
-      return;
-    }
-    setLoadingForm(true);
+    
+    
     try {
       const response = await contributeQuestion({
         title: formData.title,

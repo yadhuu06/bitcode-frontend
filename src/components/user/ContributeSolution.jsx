@@ -14,7 +14,7 @@ const ContributeSolution = () => {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [loadingVerify, setLoadingVerify] = useState(false);
-  const [testCases] = useState([]); // Empty until CommonQuestionForm updated
+
 
   const handleVerifyCode = async () => {
     if (!code || !language) {

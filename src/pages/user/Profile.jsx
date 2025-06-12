@@ -62,11 +62,12 @@ const Profile = () => {
     const fetchUserData = async () => {
       dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
       try {
-        await new Promise((resolve) => setTimeout(resolve, 0.001)); // 2-second delay
+        await new Promise((resolve) => setTimeout(resolve, 0.001));
         const userData = await fetchProfile();
-        console.log('Fetched user data:', userData); // Debug log
+        console.log('Fetched user data:', userData); 
         setUser(userData);
         setUsername(userData.username || '');
+        localStorage.setItem('username'=username)
       } catch (error) {
         console.error('Error fetching user data:', error);
         toast.error(error.message || 'Failed to load profile data');

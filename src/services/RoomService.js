@@ -23,18 +23,28 @@ export const createRoom = async (payload) => {
   }
 };
 
-export const getRoomDetails = async (roomId) => {
+export const getRoomDetails = async (roomId, accessToken) => {
   try {
-    const response = await api.get(`/rooms/${roomId}/`);
-    return response.data;
+    const response = await api.get(`/rooms/${roomId}/`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return {
+      room: response.data.room,
+      participants: response.data.participants,
+      current_user: response.data.current_user,
+      
+    };
   } catch (error) {
     const errMsg = error.response?.data?.error || error.message;
 
-    if (error.response?.status === 403 && errMsg === 'You are not authorised person') {
-      toast.error('You are not authorised person');
+    if (error.response?.status === 403 && errMsg.includes('not authorised')) {
+      toast.error('You are not authorised to view this room');
+    } else {
+      toast.error('Failed to load room details');
     }
 
     throw errMsg;
   }
 };
-

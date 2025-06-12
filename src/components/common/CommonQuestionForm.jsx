@@ -1,12 +1,94 @@
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
+import { ArrowLeft, HelpCircle, PlusSquare, X } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
-import { X, PlusSquare } from 'lucide-react';
+import CustomButton from '../ui/CustomButton';
+
+const editorStyles = `
+  .w-md-editor {
+    background-color: #1a1a1a;
+    border-radius: 0.5rem;
+    border: 1px solid #2d2d2d;
+    font-family: 'Fira Code', 'Roboto Mono', monospace;
+    color: #e0e0e0;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+  .w-md-editor-text textarea::placeholder {
+    color: #6b7280 !important;
+    font-style: italic;
+    opacity: 0.8;
+  }
+  .w-md-editor-toolbar {
+    background-color: #252525 !important;
+    border-bottom: 1px solid #2d2d2d !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    padding: 0.75rem;
+  }
+  .w-md-editor-toolbar button {
+    color: #9ca3af !important;
+    transition: color 0.2s ease, background-color 0.2s ease;
+  }
+  .w-md-editor-toolbar button:hover {
+    color: #10b981 !important;
+    background-color: rgba(16, 185, 129, 0.1) !important;
+  }
+  .w-md-editor-text {
+    background-color: #1a1a1a !important;
+  }
+  .w-md-editor-text-container textarea {
+    background-color: #1a1a1a !important;
+    color: #f3f4f6 !important;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 1rem;
+    min-height: 320px;
+    border-radius: 0 0 0.5rem 0.5rem;
+  }
+  .wmde-markdown {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+    font-family: 'Fira Code', 'Roboto Mono', monospace !important;
+    font-size: 14px;
+    padding: 1.25rem;
+    line-height: 1.75;
+  }
+  .wmde-markdown h1, .wmde-markdown h2, .wmde-markdown h3 {
+    color: #10b981;
+    font-weight: 600;
+  }
+  .wmde-markdown code {
+    background-color: #2d2d2d;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  .wmde-markdown pre code {
+    background-color: #1a1a1a;
+    padding: 1.25rem;
+    display: block;
+    overflow-x: auto;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  .w-md-editor-fullscreen {
+    background-color: #1a1a1a !important;
+    z-index: 9999;
+  }
+  .w-md-editor:focus-within {
+    outline: 1px solid #10b981 !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+  }
+  .w-md-editor-text-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+`;
 
 const CommonQuestionForm = ({
   initialData,
   examples: initialExamples,
-  testCases: initialTestCases,
   isEditMode,
   onSubmit,
   onCancel,
@@ -17,15 +99,14 @@ const CommonQuestionForm = ({
 }) => {
   const [formData, setFormData] = useState(initialData);
   const [examples, setExamples] = useState(initialExamples);
-  const [testCases, setTestCases] = useState(initialTestCases);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleDescriptionChange = (value) => {
-    setFormData((prev) => ({ ...prev, description: value }));
+    setFormData((prev) => ({ ...prev, description: value || '' }));
   };
 
   const handleExampleChange = (index, field, value) => {
@@ -44,254 +125,218 @@ const CommonQuestionForm = ({
     setExamples((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleTestCaseChange = (index, field, value) => {
-    setTestCases((prev) => {
-      const newTestCases = [...prev];
-      newTestCases[index] = { ...newTestCases[index], [field]: value };
-      return newTestCases;
-    });
-  };
-
-  const addTestCase = () => {
-    setTestCases((prev) => [...prev, { input_data: '', expected_output: '', is_sample: false, order: prev.length }]);
-  };
-
-  const removeTestCase = (index) => {
-    setTestCases((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (testCases.length === 0) {
-      return;
-    }
-    onSubmit({ ...formData, examples, test_cases: testCases });
+  const handleFormSubmit = () => {
+    onSubmit({ ...formData, examples });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 font-mono text-gray-100">
-      {/* Title */}
-      <div>
-        <label className="block text-sm text-gray-300 mb-2">Title</label>
-        <input
-          type="text"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          placeholder="Enter question title"
-          className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-          disabled={loading}
-        />
-        {errors.title && <p className="text-red-400 text-xs mt-1">{errors.title}</p>}
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm text-gray-300 mb-2">Description</label>
-        <MDEditor
-          value={formData.description}
-          onChange={handleDescriptionChange}
-          preview="edit"
-          height={200}
-          className="bg-[#252525] rounded-lg"
-          disabled={loading}
-        />
-        {errors.description && <p className="text-red-400 text-xs mt-1">{errors.description}</p>}
-      </div>
-
-      {/* Tags and Difficulty in a Single Row */}
-      <div className="flex flex-col md:flex-row md:justify-between gap-4">
-        {/* Tags (Left) */}
-        <div className="flex-1">
-          <label className="block text-sm text-gray-300 mb-2">Tags</label>
-          <select
-            name="tags"
-            value={formData.tags}
-            onChange={handleChange}
-            className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-            disabled={loading}
-          >
-            {tags.map((tag) => (
-              <option key={tag.value} value={tag.value}>
-                {tag.label}
-              </option>
-            ))}
-          </select>
-          {errors.tags && <p className="text-red-400 text-xs mt-1">{errors.tags}</p>}
-        </div>
-
-        {/* Difficulty (Right) */}
-        <div className="flex-1">
-          <label className="block text-sm text-gray-300 mb-2">Difficulty</label>
-          <select
-            name="difficulty"
-            value={formData.difficulty}
-            onChange={handleChange}
-            className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-            disabled={loading}
-          >
-            {difficultyOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.difficulty && <p className="text-red-400 text-xs mt-1">{errors.difficulty}</p>}
-        </div>
-      </div>
-
-      {/* Examples */}
-      <div>
-        <label className="block text-sm text-gray-300 mb-2">Examples</label>
-        {examples.map((example, index) => (
-          <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Input</label>
-                <input
-                  type="text"
-                  value={example.input_example}
-                  onChange={(e) => handleExampleChange(index, 'input_example', e.target.value)}
-                  placeholder="Enter input example"
-                  className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-                  disabled={loading}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Output</label>
-                <input
-                  type="text"
-                  value={example.output_example}
-                  onChange={(e) => handleExampleChange(index, 'output_example', e.target.value)}
-                  placeholder="Enter output example"
-                  className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-            <div className="mt-2">
-              <label className="block text-xs text-gray-300 mb-1">Explanation</label>
-              <textarea
-                value={example.explanation}
-                onChange={(e) => handleExampleChange(index, 'explanation', e.target.value)}
-                placeholder="Enter explanation"
-                className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-                disabled={loading}
-              />
-            </div>
-            <button
-              onClick={() => removeExample(index)}
-              disabled={loading || examples.length === 1}
-              className={`absolute top-2 right-2 text-gray-300 hover:text-red-400 ${loading || examples.length === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        ))}
+    <div className="p-6 md:p-8 lg:p-10 bg-black min-h-screen">
+      <header className="mb-8 flex items-center gap-4">
         <button
-          onClick={addExample}
-          disabled={loading}
-          className={`text-gray-300 hover:text-green-400 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <PlusSquare className="w-6 h-6" />
-        </button>
-        {errors.examples && <p className="text-red-400 text-xs mt-1">{errors.examples}</p>}
-      </div>
-
-      {/* Test Cases */}
-      <div>
-        <label className="block text-sm text-gray-300 mb-2">Test Cases (At least one required)</label>
-        {testCases.map((test, index) => (
-          <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Input</label>
-                <input
-                  type="text"
-                  value={test.input_data}
-                  onChange={(e) => handleTestCaseChange(index, 'input_data', e.target.value)}
-                  placeholder="Enter input data"
-                  className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-                  disabled={loading}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Expected Output</label>
-                <input
-                  type="text"
-                  value={test.expected_output}
-                  onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
-                  placeholder="Enter expected output"
-                  className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] px-4 py-2"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-            <div className="mt-2">
-              <label className="flex items-center text-xs text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={test.is_sample}
-                  onChange={(e) => handleTestCaseChange(index, 'is_sample', e.target.checked)}
-                  className="mr-2"
-                  disabled={loading}
-                />
-                Sample Test Case
-              </label>
-            </div>
-            <button
-              onClick={() => removeTestCase(index)}
-              disabled={loading || testCases.length === 1}
-              className={`absolute top-2 right-2 text-gray-300 hover:text-red-400 ${loading || testCases.length === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={addTestCase}
-          disabled={loading}
-          className={`text-gray-300 hover:text-green-400 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <PlusSquare className="w-6 h-6" />
-        </button>
-        {errors.test_cases && <p className="text-red-400 text-xs mt-1">{errors.test_cases}</p>}
-      </div>
-
-      {/* Buttons */}
-      <div className="flex space-x-4">
-        <button
-          type="submit"
-          disabled={loading}
-          className={`flex-1 bg-green-500 text-black py-2 rounded-lg hover:bg-green-400 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {loading ? 'Submitting...' : isEditMode ? 'Update Question' : 'Next: Submit Solution'}
-        </button>
-        <button
-          type="button"
           onClick={onCancel}
-          disabled={loading}
-          className={`flex-1 border border-green-500 text-green-500 py-2 rounded-lg hover:bg-green-500 hover:text-black ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className="text-gray-300 hover:text-green-400 transition-colors duration-200"
+          aria-label="Go back"
         >
-          Cancel
+          <ArrowLeft className="w-6 h-6" />
         </button>
-      </div>
-      {errors.general && <p className="text-red-400 text-xs mt-1">{errors.general}</p>}
-    </form>
-  );
-};
+        <h1 className="text-2xl font-semibold text-green-400 font-['Roboto_Mono'] flex items-center gap-2">
+          <span className="text-gray-200">{'<'}</span>
+          {isEditMode ? 'Edit Question' : 'Create New Question'}
+          <span className="text-gray-200">{'/>'}</span>
+        </h1>
+      </header>
 
-CommonQuestionForm.propTypes = {
-  initialData: PropTypes.object.isRequired,
-  examples: PropTypes.array.isRequired,
-  testCases: PropTypes.array,
-  isEditMode: PropTypes.bool.isRequired,
-  onSubmit: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-  errors: PropTypes.object,
-  loading: PropTypes.bool,
-  tags: PropTypes.array.isRequired,
-  difficultyOptions: PropTypes.array.isRequired,
+      <div className="bg-[#1a1a1a] p-6 rounded-xl border border-[#2d2d2d] shadow-lg">
+        <div className="mb-6">
+          <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Question Title</label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
+            placeholder="Enter question title"
+            className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+              errors.title ? 'border-red-500' : 'border-[#2d2d2d]'
+            } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-3 font-['Roboto_Mono'] transition-all duration-200`}
+            disabled={loading}
+          />
+          {errors.title && <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.title}</p>}
+        </div>
+
+        <div className="mb-6" data-color-mode="dark">
+          <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Description</label>
+          <style>{editorStyles}</style>
+          <MDEditor
+            value={formData.description}
+            onChange={handleDescriptionChange}
+            height={320}
+            placeholder="Write the question description in Markdown..."
+            preview="live"
+            className={`rounded-lg ${errors.description ? 'border border-red-500' : ''}`}
+            data-color-mode="dark"
+            textareaProps={{
+              style: {
+                backgroundColor: '#1a1a1a',
+                color: '#f3f4f6',
+                caretColor: '#10b981',
+                fontFamily: "'Fira Code', 'Roboto Mono', monospace",
+                fontSize: '14px',
+                lineHeight: '1.6',
+              },
+              disabled: loading,
+            }}
+            previewOptions={{
+              style: {
+                backgroundColor: '#1a1a1a',
+                color: '#e0e0e0',
+                fontFamily: "'Fira Code', 'Roboto Mono', monospace",
+              },
+            }}
+          />
+          {errors.description && <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.description}</p>}
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Examples</label>
+          {examples.map((example, index) => (
+            <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Input</label>
+                  <input
+                    type="text"
+                    value={example.input_example}
+                    onChange={(e) => handleExampleChange(index, 'input_example', e.target.value)}
+                    placeholder="Enter input example"
+                    className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Output</label>
+                  <input
+                    type="text"
+                    value={example.output_example}
+                    onChange={(e) => handleExampleChange(index, 'output_example', e.target.value)}
+                    placeholder="Enter output example"
+                    className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Explanation</label>
+                  <textarea
+                    value={example.explanation}
+                    onChange={(e) => handleExampleChange(index, 'explanation', e.target.value)}
+                    placeholder="Enter explanation (optional)"
+                    className="w-full bg-[#252525] text-gray-100 text-sm rounded-lg border border-[#2d2d2d] focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200"
+                    rows="3"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="flex items-end justify-end">
+                  <button
+                    onClick={() => removeExample(index)}
+                    disabled={loading || examples.length === 1}
+                    className={`text-gray-300 hover:text-red-400 transition-colors duration-200 relative ${loading || examples.length === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    aria-label="Close example"
+                  >
+                    <X className="w-5 h-5" />
+                    <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-[#252525] text-gray-100 text-xs px-2 py-1 rounded shadow-md opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none font-['Roboto_Mono']">
+                      Close
+                    </span>
+                  </button>
+                </div>
+              </div>
+              {errors[`example_${index}`] && (
+                <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors[`example_${index}`]}</p>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={addExample}
+            disabled={loading}
+            className={`text-gray-300 hover:text-green-400 transition-colors duration-200 relative ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            aria-label="Add Example"
+          >
+            <PlusSquare className="w-6 h-6" />
+            <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 bg-[#252525] text-gray-100 text-xs px-2 py-1 rounded shadow-md opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none font-['Roboto_Mono']">
+              Add Example
+            </span>
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Test Cases</label>
+          {!isEditMode && (
+            <p className="text-gray-400 text-xs mt-1 font-['Roboto_Mono']">
+              Save the question first to manage test cases.
+            </p>
+          )}
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Difficulty</label>
+            <select
+              name="difficulty"
+              value={formData.difficulty}
+              onChange={handleInputChange}
+              className={`w-full bg-[#252525] text-sm rounded-lg border ${
+                errors.difficulty ? 'border-red-500' : 'border-[#2d2d2d]'
+              } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-3 capitalize font-['Roboto_Mono'] transition-all duration-200 ${
+                formData.difficulty === 'EASY'
+                  ? 'text-green-400 border-green-400/50'
+                  : formData.difficulty === 'MEDIUM'
+                  ? 'text-yellow-400 border-yellow-400/50'
+                  : 'text-red-400 border-red-400/50'
+              }`}
+              disabled={loading}
+            >
+              {difficultyOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className={`bg-[#252525] text-${opt.color}`}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {errors.difficulty && <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.difficulty}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Topic</label>
+            <select
+              name="tags"
+              value={formData.tags}
+              onChange={handleInputChange}
+              className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+                errors.tags ? 'border-red-500' : 'border-[#2d2d2d]'
+              } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-3 font-['Roboto_Mono'] transition-all duration-200`}
+              disabled={loading}
+            >
+              {tags.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#252525]">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {errors.tags && <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.tags}</p>}
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <CustomButton onClick={onCancel} variant="cancel" disabled={loading}>
+            Cancel
+          </CustomButton>
+          <CustomButton onClick={handleFormSubmit} variant="create" disabled={loading}>
+            <span className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5" />
+              {isEditMode ? 'Update' : 'Create'}
+            </span>
+          </CustomButton>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default CommonQuestionForm;

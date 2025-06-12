@@ -1,6 +1,6 @@
 import React from 'react';
-import { Shield, Clock, Users, ClipboardCopy ,ArrowLeft} from 'lucide-react';
-import ChatPanel from '../../pages/user/ChatPannel'
+import { Shield, Clock, Users, ClipboardCopy, ArrowLeft, CheckCircle, Swords, XCircle } from 'lucide-react';
+import ChatPanel from '../../pages/user/ChatPannel';
 
 const LobbySidebar = ({
   roomDetails,
@@ -15,9 +15,12 @@ const LobbySidebar = ({
   initiateCountdown,
   handleCloseRoom,
   handleLeaveRoom,
+  handleReadyToggle,
+  readyStatus,
   getDifficultyStyles,
 }) => {
-  console.log('LobbySidebar - Username:', username); // Debug log
+  console.log('LobbySidebar - Username:', username);
+  console.log('LobbySidebar - Ready Status:', readyStatus);
 
   return (
     <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
@@ -84,7 +87,9 @@ const LobbySidebar = ({
             </div>
           </div>
         )}
-        {activeTab === 'chat' && <ChatPanel roomId={roomDetails?.roomId} username={username} isActiveTab={activeTab === 'chat'} />}
+        {activeTab === 'chat' && (
+          <ChatPanel roomId={roomDetails?.roomId} username={username} isActiveTab={activeTab === 'chat'} />
+        )}
         {activeTab === 'rules' && (
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-[#00FF40] flex items-center gap-2">
@@ -140,15 +145,34 @@ const LobbySidebar = ({
               </button>
             </>
           ) : (
-            <button
-              onClick={handleLeaveRoom}
-              disabled={isLoading}
-              className="w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black transition-colors duration-300"
-              aria-label="Leave room"
-            >
-              <ArrowLeft size={16} />
-              Leave Room
-            </button>
+            <>
+             <button
+  onClick={handleReadyToggle}
+  disabled={isLoading}
+  className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300 ${
+    readyStatus[username]
+      ?  'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
+      :'border-[#00FF40] bg-[#00FF40]/20 text-[#00FF40] hover:bg-[#00FF40]/30'
+  }`}
+  aria-label={readyStatus[username] ? 'Mark as not ready' : 'Mark as ready'}
+>
+  <CheckCircle
+    size={16}
+    className={readyStatus[username] ?  'text-yellow-400':'text-[#00FF40]' }
+  />
+  {readyStatus[username] ? 'Not Ready' : ' Ready'}
+</button>
+
+              <button
+                onClick={handleLeaveRoom}
+                disabled={isLoading}
+                className="w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border border-[#00FF40] text-[#00FF40] hover:bg-[#00FF40] hover:text-black transition-colors duration-300"
+                aria-label="Leave room"
+              >
+                <ArrowLeft size={16} />
+                Leave Room
+              </button>
+            </>
           )}
         </div>
       </div>

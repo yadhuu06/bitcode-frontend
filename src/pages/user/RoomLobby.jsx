@@ -383,6 +383,8 @@ const BattleWaitingLobby = () => {
                 initiateCountdown={initiateCountdown}
                 handleCloseRoom={handleCloseRoom}
                 handleLeaveRoom={handleLeaveRoom}
+                handleReadyToggle={handleReadyToggle} // Added
+                readyStatus={readyStatus} // Added
                 getDifficultyStyles={getDifficultyStyles}
               />
             </main>

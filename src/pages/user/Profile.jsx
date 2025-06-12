@@ -67,7 +67,7 @@ const Profile = () => {
         console.log('Fetched user data:', userData); 
         setUser(userData);
         setUsername(userData.username || '');
-        localStorage.setItem('username'=username)
+        
       } catch (error) {
         console.error('Error fetching user data:', error);
         toast.error(error.message || 'Failed to load profile data');

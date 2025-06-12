@@ -25,11 +25,8 @@ export const createRoom = async (payload) => {
 
 export const getRoomDetails = async (roomId, accessToken) => {
   try {
-    const response = await api.get(`/rooms/${roomId}/`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    const response = await api.get(`/rooms/${roomId}/`)
+    console.log("the response:",response)
     return {
       room: response.data.room,
       participants: response.data.participants,

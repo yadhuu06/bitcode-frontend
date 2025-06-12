@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getRoomDetails } from '../../services/RoomService';
 import WebSocketService from '../../services/WebSocketService';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,6 +10,7 @@ import ParticipantsPanel from '../../components/battle-room/ParticipantsPanel';
 import LobbySidebar from '../../components/battle-room/LobbySidebar';
 import LobbyFooter from '../../components/battle-room/LobbyFooter';
 import LobbyModals from '../../components/battle-room/LobbyModals';
+import { Code } from 'lucide-react';
 
 const BitCodeProgressLoading = memo(({ message }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
@@ -95,7 +96,6 @@ const MatrixBackground = memo(() => {
 
 const BattleWaitingLobby = () => {
   const { roomId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const accessToken = useSelector((state) => state.auth.accessToken);
   const reduxUsername = useSelector((state) => state.auth.username);
@@ -114,75 +114,55 @@ const BattleWaitingLobby = () => {
   const [lobbyMessages, setLobbyMessages] = useState([]);
   const [isKicked, setIsKicked] = useState(false);
   const wsListenerId = useRef(`lobby-${roomId}`);
-  const [username, setUsername] = useState(reduxUsername || null);
+  const [username, setUsername] = useState(localStorage.getItem('current_user') || null);
 
-  console.log('BattleWaitingLobby - Initial Username:', username); // Debug log
-  console.log('BattleWaitingLobby - Redux Username:', reduxUsername); // Debug log
-  console.log('BattleWaitingLobby - Access Token:', accessToken); // Debug log
-
-  const rules = [
-    'Complete challenges within the time limit.',
-    'Points awarded for accuracy and speed.',
-    'No external resources during the battle.',
-    'Maintain respect and fair play.',
-  ];
+  console.log('BattleWaitingLobby - Initial Username:', username);
+  console.log('BattleWaitingLobby - Redux Username:', reduxUsername);
+  console.log('BattleWaitingLobby - Access Token:', accessToken ? 'Present' : 'Missing');
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
       setIsLoading(true);
       try {
-        console.log('fetchRoomDetails - Starting with roomId:', roomId); // Debug log
-        console.log('fetchRoomDetails - Location State:', location.state); // Debug log
+        console.log('fetchRoomDetails - Starting with roomId:', roomId);
+        console.log('fetchRoomDetails - Access Token:', accessToken ? 'Present' : 'Missing');
 
-        let roomData;
-        let apiUsername;
+        const response = await getRoomDetails(roomId, accessToken);
+        console.log('fetchRoomDetails - API Response:', response);
 
-        if (location.state && location.state.roomName) {
-          console.log('fetchRoomDetails - Using location.state'); // Debug log
-          roomData = {
-            roomId,
-            roomName: location.state.roomName,
-            isPrivate: location.state.isPrivate,
-            join_code: location.state.joinCode,
-            difficulty: location.state.difficulty,
-            timeLimit: location.state.timeLimit,
-            capacity: location.state.capacity,
-            participantCount: location.state.participantCount || 1,
-            status: 'active',
-          };
-          setParticipants(location.state.participants || []);
-          apiUsername = location.state.current_user || reduxUsername;
-          setRole(location.state.role || 'participant');
-        } else {
-          console.log('fetchRoomDetails - Calling getRoomDetails'); // Debug log
-          const response = await getRoomDetails(roomId, accessToken);
-          console.log('fetchRoomDetails - API Response:', response); // Debug log
-          roomData = {
-            roomId,
-            roomName: response.room.name,
-            isPrivate: response.room.visibility === 'private',
-            join_code: response.room.join_code,
-            difficulty: response.room.difficulty,
-            timeLimit: response.room.time_limit,
-            capacity: response.room.capacity,
-            participantCount: response.room.participant_count,
-            status: response.room.status,
-          };
-          setParticipants(response.participants || []);
-          apiUsername = response.current_user || reduxUsername;
-          setRole(
-            response.participants.find((p) => p.user__username === response.current_user)?.role || 'participant'
-          );
+        if (!response.current_user) {
+          console.warn('fetchRoomDetails - No current_user in response');
+          throw new Error('User not authenticated');
         }
 
+        const roomData = {
+          roomId,
+          roomName: response.room.name,
+          isPrivate: response.room.visibility === 'private',
+          join_code: response.room.join_code,
+          difficulty: response.room.difficulty,
+          timeLimit: response.room.time_limit,
+          capacity: response.room.capacity,
+          participantCount: response.room.participant_count,
+          status: response.room.status,
+        };
+
         setRoomDetails(roomData);
-        setUsername(apiUsername);
-        console.log('fetchRoomDetails - Set Username:', apiUsername); // Debug log
+        setParticipants(response.participants || []);
+        setUsername(response.current_user);
+        localStorage.setItem('current_user', response.current_user);
+        setRole(
+          response.participants.find((p) => p.user__username === response.current_user)?.role || 'participant'
+        );
+
+        console.log('fetchRoomDetails - Set Username:', response.current_user);
+        console.log('fetchRoomDetails - Set Role:', response.participants.find((p) => p.user__username === response.current_user)?.role || 'participant');
       } catch (err) {
-        console.error('Error fetching room details:', err);
-        console.log('fetchRoomDetails - Error:', err); // Debug log
-        toast.error(err.includes('not authorised') ? 'You are not authorised to view this room' : 'Failed to load room details');
-        navigate('/user/rooms');
+        console.error('fetchRoomDetails - Error:', err);
+        toast.error(err.message.includes('not authorised') || err.message.includes('authenticated')
+          ? 'You are not authorised to view this room'
+          : 'Failed to load room details');
+        navigate('/login');
       } finally {
         setIsLoading(false);
       }
@@ -191,11 +171,11 @@ const BattleWaitingLobby = () => {
     if (accessToken && roomId) {
       fetchRoomDetails();
     } else {
-      console.log('fetchRoomDetails - Missing accessToken or roomId'); // Debug log
+      console.log('fetchRoomDetails - Missing accessToken or roomId');
       toast.error('Invalid room or session');
       navigate('/login');
     }
-  }, [location, navigate, roomId, accessToken, reduxUsername]);
+  }, [roomId, accessToken, navigate]);
 
   useEffect(() => {
     if (!roomId || !accessToken) return;
@@ -213,7 +193,7 @@ const BattleWaitingLobby = () => {
         case 'participant_update':
           const activeParticipants = (data.participants || []).filter((p) => p.status === 'joined');
           setParticipants(activeParticipants);
-          setRoomDetails((prev) => (prev ? { ...prev, participantCount: activeParticipants.length } : prev));
+          setRoomDetails((prev) => prev ? { ...prev, participantCount: activeParticipants.length } : prev);
           const currentUser = activeParticipants.find((p) => p.user__username === username);
           if (currentUser?.role) {
             setRole(currentUser.role);
@@ -245,10 +225,10 @@ const BattleWaitingLobby = () => {
           toast.error(data.message);
           if (
             data.message.includes('401') ||
-            data.message.includes('localhost') ||
+            data.message.includes('4001') ||
             data.message.includes('4002') ||
             data.message.includes('Not authorized') ||
-            data.code === 5
+            data.code === 4005
           ) {
             navigate('/login');
           }
@@ -271,17 +251,15 @@ const BattleWaitingLobby = () => {
       toast.error('At least one participant required');
       return;
     }
-    
     WebSocketService.sendMessage({ type: 'start_countdown', countdown: 5 });
   };
 
   useEffect(() => {
-  const timer = setInterval(() => {
-    setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  }, 1000);
-  return () => clearInterval(timer);
-}, []);
-
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -296,6 +274,10 @@ const BattleWaitingLobby = () => {
   }, [countdown]);
 
   const handleReadyToggle = () => {
+    if (!username) {
+      toast.error('User not authenticated');
+      return;
+    }
     const newReadyState = !readyStatus[username];
     WebSocketService.sendMessage({ type: 'ready_toggle', ready: newReadyState });
     setReadyStatus((prev) => ({ ...prev, [username]: newReadyState }));
@@ -357,7 +339,7 @@ const BattleWaitingLobby = () => {
   console.log('BattleWaitingLobby - Rendered Username:', username);
 
   return (
-    <div className="min-h-screen bg-black text-center font-mono flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
       <MatrixBackground />
       <div className="relative z-10 flex flex-col min-h-screen">
         <LobbyModals

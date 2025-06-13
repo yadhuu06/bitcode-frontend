@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Code, CheckCircle, UserX } from 'lucide-react';
+import { Users, Code, CheckCircle, UserX, Shield } from 'lucide-react';
 
 const ParticipantsPanel = ({
   participants,
@@ -54,7 +54,7 @@ const ParticipantsPanel = ({
                           readyStatus[participant.user__username] ? 'text-[#00FF40]' : 'text-yellow-400'
                         }`}
                       >
-                        
+                        {readyStatus[participant.user__username] ? 'Ready' : 'Not Ready'}
                       </span>
                     )}
                   </div>
@@ -72,18 +72,22 @@ const ParticipantsPanel = ({
                     <UserX size={16} />
                   </button>
                 )}
-{participant.user__username === username && role !== 'host' && participant.status === 'joined' && (
-  <div className="px-2 py-1 rounded-lg font-mono text-sm font-semibold flex items-center gap-2">
-    <CheckCircle
-      size={16}
-      className={readyStatus[username] ? 'text-[#00FF40]' : 'text-yellow-400'}
-    />
-    <span className={readyStatus[username] ? 'text-[#00FF40]' : 'text-yellow-400'}>
-      {readyStatus[username] ? 'Ready' : 'Not Ready'}
-    </span>
-  </div>
-)}
-
+                {participant.user__username === username && role !== 'host' && participant.status === 'joined' && (
+                  <button
+                    onClick={handleReadyToggle}
+                    disabled={isLoading}
+                    className={`p-2 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300 ${
+                      readyStatus[username]
+                        ? 'border-[#00FF40] bg-[#00FF40]/20 text-[#00FF40] hover:bg-[#00FF40]/30'
+                        : 'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
+                    }`}
+                    aria-label={readyStatus[username] ? 'Mark as not ready' : 'Mark as ready'}
+                    title={readyStatus[username] ? 'Mark as not ready' : 'Mark as ready'}
+                  >
+                    <CheckCircle size={16} className={readyStatus[username] ? 'animate-pulse' : ''} />
+                    {readyStatus[username] ? 'Unready' : 'Ready'}
+                  </button>
+                )}
               </div>
             </div>
           ))

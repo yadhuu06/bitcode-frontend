@@ -1,7 +1,11 @@
-import axios from 'axios';
-import store from '../store';
+
 import api from '../api';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { toast } from 'react-toastify';
+import WebSocketService from './WebSocketService';
+
+import { useNavigate } from 'react-router-dom';
+
 
 export const fetchRooms = async () => {
   try {
@@ -43,5 +47,53 @@ export const getRoomDetails = async (roomId, accessToken) => {
     }
 
     throw errMsg;
+  }
+};
+
+
+
+export const handleStartBattle = async ({ room, participants, currentUser }) => {
+  const navigate = useNavigate(); // ✅ required if used inside React component. Else pass navigate as param
+
+  const capacity = room.capacity;
+  const nonHostParticipants = participants.filter(p => p.role !== 'host');
+  const readyNonHosts = nonHostParticipants.filter(p => p.ready);
+
+  // ✅ Participant count validation
+  let minRequired = 2;
+  if (capacity === 5) minRequired = 3;
+  else if (capacity === 10) minRequired = 6;
+
+  if (participants.length < minRequired) {
+    toast.error(`At least ${minRequired} participants required to start`);
+    return;
+  }
+
+  // ✅ Non-host readiness check
+  if (readyNonHosts.length < nonHostParticipants.length) {
+    toast.error('All non-host participants must be ready');
+    return;
+  }
+
+  try {
+
+    await api.patch(`/rooms/${room.id}/status/`, { status: 'Playing' });
+
+
+    const questionRes = await api.get(`/rooms/${room.id}/question/`);
+    const question = questionRes.data;
+
+
+    WebSocketService.sendMessage({
+      type: 'start_battle',
+      question: question,
+      room_id: room.id,
+    });
+
+
+    navigate(`/battle/${room.id}`);
+  } catch (error) {
+    console.error('Start battle error:', error);
+    toast.error('Failed to start battle');
   }
 };

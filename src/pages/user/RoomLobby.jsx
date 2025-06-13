@@ -305,7 +305,7 @@ const BattleWaitingLobby = () => {
   };
 
   const handleStartBattle = () => {
-    toast.info('Battle starting soon!');
+    
     navigate(`/battle/${roomId}`);
   };
 
@@ -383,8 +383,8 @@ const BattleWaitingLobby = () => {
                 initiateCountdown={initiateCountdown}
                 handleCloseRoom={handleCloseRoom}
                 handleLeaveRoom={handleLeaveRoom}
-                handleReadyToggle={handleReadyToggle} // Added
-                readyStatus={readyStatus} // Added
+                handleReadyToggle={handleReadyToggle} 
+                readyStatus={readyStatus} 
                 getDifficultyStyles={getDifficultyStyles}
               />
             </main>

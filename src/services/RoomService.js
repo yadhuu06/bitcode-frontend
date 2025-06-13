@@ -53,13 +53,12 @@ export const getRoomDetails = async (roomId, accessToken) => {
 
 
 export const handleStartBattle = async ({ room, participants, currentUser }) => {
-  const navigate = useNavigate(); // ✅ required if used inside React component. Else pass navigate as param
+  const navigate = useNavigate();
 
   const capacity = room.capacity;
   const nonHostParticipants = participants.filter(p => p.role !== 'host');
   const readyNonHosts = nonHostParticipants.filter(p => p.ready);
 
-  // ✅ Participant count validation
   let minRequired = 2;
   if (capacity === 5) minRequired = 3;
   else if (capacity === 10) minRequired = 6;
@@ -69,7 +68,7 @@ export const handleStartBattle = async ({ room, participants, currentUser }) => 
     return;
   }
 
-  // ✅ Non-host readiness check
+
   if (readyNonHosts.length < nonHostParticipants.length) {
     toast.error('All non-host participants must be ready');
     return;

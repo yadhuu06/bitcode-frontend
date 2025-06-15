@@ -82,6 +82,14 @@ export const contributeQuestion = async (data) => {
     const response = await api.post('/questions/contribute/', data);
     return response.data;
   } catch (error) {
-    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to contribute question' }));
+    throw error.response?.data || { error: 'Failed to contribute question' };
+  }
+};
+export const contributeTestCases = async (questionId, data) => {
+  try {
+    const response = await api.post(`/questions/${questionId}/contribute-test-cases/`, data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to contribute test cases' };
   }
 };

@@ -147,19 +147,6 @@ const Table = ({ data, columns, onToggleBlock, onViewDetails, isLoading = false,
                             {item[column.key] ? 'Unblock' : 'Block'}
                           </span>
                         </div>
-                      ) : column.key === 'actions' ? (
-                        <div className="flex items-center space-x-1">
-                          <button
-                            onClick={() => onViewDetails(item.id)}
-                            className="p-1 sm:p-1 md:p-2 rounded-full bg-gray-800/60 hover:bg-gray-700/80 hover:shadow-[0_0_10px_rgba(16,185,129,0.5)] hover:scale-105 transition-all duration-300 text-gray-200 hover:text-green-400 group relative"
-                            aria-label="View user details"
-                          >
-                            <Eye size={14} className="group-hover:animate-pulse sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                            <span className="absolute -top-7 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-[10px] sm:text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-sans">
-                              View Details
-                            </span>
-                          </button>
-                        </div>
                       ) : (
                         <span className="text-gray-100">{item[column.key] || 'N/A'}</span>
                       )}
@@ -184,7 +171,7 @@ Table.propTypes = {
     })
   ).isRequired,
   onToggleBlock: PropTypes.func.isRequired,
-  onViewDetails: PropTypes.func.isRequired,
+  
   isLoading: PropTypes.bool,
   statusFilter: PropTypes.string.isRequired,
   setStatusFilter: PropTypes.func.isRequired,

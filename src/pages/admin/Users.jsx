@@ -13,7 +13,7 @@ const Users = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [emailSearch, setEmailSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // Lifted from Table.jsx
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
   const maxPageButtons = 5;
@@ -53,7 +53,7 @@ const Users = () => {
           const formattedDate = createdAt.toLocaleString('en-US', options);
           return {
             ...user,
-            joined: formattedDate, // Removed "Joined" prefix
+            joined: formattedDate, 
           };
         });
 
@@ -73,11 +73,10 @@ const Users = () => {
     fetchUsers();
   }, [dispatch]);
 
-  // Filter users by date range, email search, and status
+
   useEffect(() => {
     let filtered = users;
 
-    // Date range filter
     if (dateRange.start || dateRange.end) {
       const startDate = dateRange.start ? new Date(`${dateRange.start}T00:00:00Z`) : null;
       const endDate = dateRange.end ? new Date(`${dateRange.end}T23:59:59Z`) : null;
@@ -94,14 +93,12 @@ const Users = () => {
       });
     }
 
-    // Email search filter
     if (emailSearch) {
       filtered = filtered.filter((user) =>
         user.email.toLowerCase().includes(emailSearch.toLowerCase())
       );
     }
 
-    // Status filter (blocked/active)
     if (statusFilter === 'blocked') {
       filtered = filtered.filter((user) => user.is_blocked);
     } else if (statusFilter === 'active') {
@@ -204,7 +201,7 @@ const Users = () => {
     { key: 'email', label: 'Email' },
     { key: 'is_blocked', label: 'Blocked' },
     { key: 'joined', label: 'Joined' },
-    { key: 'actions', label: 'Actions' },
+    
   ];
 
   return (

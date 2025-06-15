@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Clock, Users, ClipboardCopy, ArrowLeft, CheckCircle, Swords, XCircle } from 'lucide-react';
+import { Shield, Clock, Users, ClipboardCopy, ArrowLeft, CheckCircle, Swords, XCircle, Medal } from 'lucide-react';
 import ChatPanel from '../../pages/user/ChatPannel';
 
 const LobbySidebar = ({
@@ -19,11 +19,9 @@ const LobbySidebar = ({
   readyStatus,
   getDifficultyStyles,
 }) => {
-  console.log('LobbySidebar - Username:', username);
-  console.log('LobbySidebar - Ready Status:', readyStatus);
-
   return (
     <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
+      {/* Tab Navigation */}
       <div className="flex border-b border-[#00FF40]/30 bg-gray-950/50 rounded-t-2xl">
         {['details', 'chat', 'rules'].map((tab) => (
           <button
@@ -34,21 +32,24 @@ const LobbySidebar = ({
                 ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
                 : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
             }`}
+            aria-label={`Switch to ${tab} tab`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
+
+      {/* Content Area */}
       <div className="flex-1 p-6 overflow-y-auto text-sm scrollbar-thin scrollbar-thumb-[#00FF40]/50 scrollbar-track-gray-900">
         {activeTab === 'details' && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400 min-w-[100px] font-medium">Room Name:</span>
+          <div className="space-y-4">
+            <div className="grid grid-cols-[120px_1fr] items-center gap-4">
+              <span className="text-gray-400 font-medium">Room Name:</span>
               <span className="text-white font-semibold">{roomDetails?.roomName}</span>
             </div>
             {role === 'host' && (
-              <div className="flex items-center gap-4">
-                <span className="text-gray-400 min-w-[100px] font-medium">Access Code:</span>
+              <div className="grid grid-cols-[120px_1fr] items-center gap-4">
+                <span className="text-gray-400 font-medium">Access Code:</span>
                 <div className="flex items-center gap-2">
                   <span className="text-[#00FF40] font-mono bg-gray-800/50 px-2 py-1 rounded">
                     {roomDetails?.join_code}
@@ -61,34 +62,53 @@ const LobbySidebar = ({
                   >
                     <ClipboardCopy size={16} />
                   </button>
-                  {copied && <span className="text-xs text-[#00FF40] ml-2 animate-fade-in">Copied!</span>}
+                  {copied && <span className="text-xs text-[#00FF40] animate-fade-in">Copied!</span>}
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-4">
-              <Clock className="w-5 h-5 text-[#00FF40]" />
-              <span className="text-gray-400 min-w-[100px] font-medium">Duration:</span>
-              <span className="text-white">{roomDetails?.timeLimit} min</span>
+            <div className="grid grid-cols-[120px_1fr] items-center gap-4">
+              <span className="flex items-center gap-2 text-gray-400 font-medium">
+                {roomDetails?.ranked ? <Medal className="w-5 h-5 text-[#00FF40]" /> : <Clock className="w-5 h-5 text-[#00FF40]" />}
+                {roomDetails?.ranked ? 'Mode:' : 'Duration:'}
+              </span>
+<span className={roomDetails?.ranked ? 'text-red-500 font-semibold' : 'text-white'}>
+  {roomDetails?.ranked ? 'Ranked' : `${roomDetails?.timeLimit} min`}
+</span>
+
             </div>
-            <div className="flex items-center gap-4">
-              <Users className="w-5 h-5 text-[#00FF40]" />
-              <span className="text-gray-400 min-w-[100px] font-medium">Capacity:</span>
+            <div className="grid grid-cols-[120px_1fr] items-center gap-4">
+              <span className="flex items-center gap-2 text-gray-400 font-medium">
+                <Users className="w-5 h-5 text-[#00FF40]" />
+                Capacity:
+              </span>
               <span className="text-white">{roomDetails?.participantCount}/{roomDetails?.capacity}</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400 min-w-[100px] font-medium">Privacy:</span>
+            <div className="grid grid-cols-[120px_1fr] items-center gap-4">
+              <span className="text-gray-400 font-medium">Privacy:</span>
               <span className="text-white capitalize">{roomDetails?.isPrivate ? 'Private' : 'Public'}</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400 min-w-[100px] font-medium">Difficulty:</span>
-              <span className={`capitalize px-2 py-1 rounded ${getDifficultyStyles(roomDetails?.difficulty)}`}>
-                {roomDetails?.difficulty}
-              </span>
-            </div>
+<div className="grid grid-cols-[120px_1fr] items-center gap-4">
+  <span className="text-gray-400 font-medium">Difficulty:</span>
+  <span
+    className={`capitalize font-semibold ${
+      roomDetails?.difficulty === 'EASY'
+        ? 'text-green-500'
+        : roomDetails?.difficulty === 'MEDIUM'
+        ? 'text-yellow-500'
+        : roomDetails?.difficulty === 'HARD'
+        ? 'text-red-500'
+        : 'text-white'
+    }`}
+  >
+    {roomDetails?.difficulty}
+  </span>
+</div>
+
+
           </div>
         )}
         {activeTab === 'chat' && (
-          <ChatPanel roomId={roomDetails?.roomId} username={username} isActiveTab={activeTab === 'chat'} />
+          <ChatPanel roomId={roomDetails?.room_id} username={username} isActiveTab={activeTab === 'chat'} />
         )}
         {activeTab === 'rules' && (
           <div className="space-y-4">
@@ -113,6 +133,8 @@ const LobbySidebar = ({
           </div>
         )}
       </div>
+
+      {/* Control Panel */}
       <div className="p-6 border-t border-[#00FF40]/30 bg-gray-950/50 rounded-b-2xl">
         <h3 className="text-sm font-medium text-[#00FF40] mb-4 flex items-center gap-2">
           <Shield className="w-5 h-5" />
@@ -146,23 +168,19 @@ const LobbySidebar = ({
             </>
           ) : (
             <>
-             <button
-  onClick={handleReadyToggle}
-  disabled={isLoading}
-  className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300 ${
-    readyStatus[username]
-      ?  'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
-      :'border-[#00FF40] bg-[#00FF40]/20 text-[#00FF40] hover:bg-[#00FF40]/30'
-  }`}
-  aria-label={readyStatus[username] ? 'Mark as not ready' : 'Mark as ready'}
->
-  <CheckCircle
-    size={16}
-    className={readyStatus[username] ?  'text-yellow-400':'text-[#00FF40]' }
-  />
-  {readyStatus[username] ? 'Not Ready' : ' Ready'}
-</button>
-
+              <button
+                onClick={handleReadyToggle}
+                disabled={isLoading}
+                className={`w-full py-3 rounded-lg font-mono text-sm font-semibold flex items-center justify-center gap-2 border transition-colors duration-300 ${
+                  readyStatus[username]
+                    ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30'
+                    : 'border-[#00FF40] bg-[#00FF40]/20 text-[#00FF40] hover:bg-[#00FF40]/30'
+                }`}
+                aria-label={readyStatus[username] ? 'Mark as not ready' : 'Mark as ready'}
+              >
+                <CheckCircle size={16} className={readyStatus[username] ? 'text-yellow-400' : 'text-[#00FF40]'} />
+                {readyStatus[username] ? 'Not Ready' : 'Ready'}
+              </button>
               <button
                 onClick={handleLeaveRoom}
                 disabled={isLoading}

@@ -18,14 +18,13 @@ export const useTimer = () => {
     return () => clearInterval(timerRef.current);
   }, [otpExpiration, resendCooldown]);
 
-  // Format time for display
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  // Reset timers
+
   const resetTimers = () => {
     setOtpExpiration(600);
     setResendCooldown(120);

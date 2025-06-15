@@ -10,11 +10,11 @@ class WebSocketService {
 
     // Reconnect settings
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 3000;
+    this.maxReconnectAttempts = 1;
+    this.reconnectDelay = 1000;
 
     // Heartbeat settings
-    this.heartbeatInterval = 10000;
+    this.heartbeatInterval = 1000;
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
   }
@@ -52,7 +52,7 @@ class WebSocketService {
       console.warn('⚠️ WebSocket disconnected:', event.code, event.reason);
       this.socket = null;
       this._stopHeartbeat();
-      // Retry for private room authorization failure (4005) or if attempts remain
+   
       if (event.code !== 1000 && (event.code === 4005 || this.reconnectAttempts < this.maxReconnectAttempts)) {
         this._tryReconnect();
       }

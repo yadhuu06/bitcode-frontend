@@ -28,10 +28,11 @@ const Profile = lazy(() => import('./pages/user/Profile'));
 const Compiler = lazy(() => import('./pages/user/Compiler'));
 const Rooms = lazy(() => import('./pages/user/Rooms'));
 const RoomLobby = lazy(() => import('./pages/user/RoomLobby'));
+const Battle = lazy(() => import('./pages/user/Battle')); // Add Battle component
 const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
 const AdminRoute = lazy(() => import('./routes/AdminRoute'));
 const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification'));
-const Contribute = lazy(() => import('./pages/user/Contribute'));  // New component
+const Contribute = lazy(() => import('./pages/user/Contribute'));
 
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
@@ -68,7 +69,7 @@ ErrorBoundary.propTypes = {
 
 const UserLayout = ({ children }) => {
   const { pathname } = useLocation();
-  const hideNavbar = pathname === ROUTES.USER_COMPILER || pathname.startsWith('/user/room/') || pathname === ROUTES.USER_CONTRIBUTE;
+  const hideNavbar = pathname === ROUTES.USER_COMPILER || pathname.startsWith('/user/room/') || pathname === ROUTES.USER_CONTRIBUTE || pathname.startsWith('/battle/');
 
   return (
     <div role="main" aria-label="User Dashboard">
@@ -110,6 +111,7 @@ const AppWrapper = () => {
               <Route path={ROUTES.USER_COMPILER} element={<Compiler />} />
               <Route path={ROUTES.USER_ROOMS} element={<Rooms />} />
               <Route path={ROUTES.USER_ROOM} element={<RoomLobby />} />
+              <Route path={ROUTES.USER_BATTLE} element={<Battle />} /> {/* Add Battle route */}
               <Route path={ROUTES.USER_CONTRIBUTE} element={<Contribute />} />
             </Route>
           </Route>

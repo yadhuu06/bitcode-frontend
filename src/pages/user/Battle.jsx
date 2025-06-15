@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { Play, Maximize, Minimize, Check, Save, Copy, Trash } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { toast } from 'react-toastify';
 import CodeEditor from '../../components/ui/CodeEditor';
-import ChatPanel from '../../components/ui/ChatPanel';
+import ChatPanel from './ChatPannel';
 import WebSocketService from '../../services/WebSocketService';
 import api from '../../api';
-import { getRoomDetails } from '../../services/api';
+import { getRoomDetails } from '../../services/RoomService';
 
 const Battle = () => {
-  const { roomId, questionId } = useParams();
+  const { roomId } = useParams(); 
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.loading);
   const { user } = useSelector((state) => state.auth);
@@ -46,60 +46,63 @@ const Battle = () => {
   ];
 
   useEffect(() => {
-    // Fetch question details
+    if (!roomId) {
+      console.error('Invalid roomId:', roomId);
+      toast.error('Invalid room ID');
+      return;
+    }
+
+    // Fetch question details from room
     const fetchQuestion = async () => {
       try {
-        const response = await api.get(`/questions/${questionId}/`);
+        const response = await api.get(`/rooms/${roomId}/question/`);
         setQuestion(response.data);
+        setTestCases(response.data.test_cases.filter((tc) => tc.is_sample).slice(0, 3)); // Limit to 3 sample test cases
         setCode(languages.find((l) => l.name === language).placeholder);
       } catch (error) {
         toast.error('Failed to load question');
       }
     };
 
-    // Fetch test cases
-    const fetchTestCases = async () => {
-      try {
-        const response = await api.get(`/questions/${questionId}/test-cases/`, {
-          params: { is_sample: true },
-        });
-        setTestCases(response.data.results.slice(0, 3)); // Limit to 3 test cases
-      } catch (error) {
-        toast.error('Failed to load test cases');
-      }
-    };
-
     // Fetch room details
     const fetchRoom = async () => {
       try {
-        await getRoomDetails(roomId);
+        const token = localStorage.getItem('token');
+        await getRoomDetails(roomId, token);
       } catch (error) {
-        toast.error(error);
+        toast.error(error.message || 'Failed to load room details');
       }
     };
 
     fetchQuestion();
-    fetchTestCases();
     fetchRoom();
 
     // Connect WebSocket
     const token = localStorage.getItem('token');
-    WebSocketService.connect(token, roomId);
+    if (token) {
+      WebSocketService.connect(token, roomId);
+    } else {
+      console.error('No token found for WebSocket connection');
+      toast.error('Authentication required');
+    }
 
     return () => {
       WebSocketService.disconnect();
     };
-  }, [roomId, questionId, language]);
+  }, [roomId, language]);
 
   useEffect(() => {
-    const savedCode = localStorage.getItem(`battle_${questionId}_${language}`) || languages.find((l) => l.name === language).placeholder;
-    setCode(savedCode);
-  }, [language, questionId]);
+    if (question) {
+      const savedCode = localStorage.getItem(`battle_${question.question_id}_${language}`) || languages.find((l) => l.name === language).placeholder;
+      setCode(savedCode);
+    }
+  }, [language, question]);
 
   const runCode = async () => {
+    if (!question) return;
     dispatch(setLoading({ isLoading: true, message: `Verifying ${language} code...`, style: 'terminal', progress: 0 }));
     try {
-      const response = await api.post(`/questions/${questionId}/verify/`, {
+      const response = await api.post(`/questions/${question.id}/verify/`, {
         code,
         language,
       });
@@ -115,7 +118,8 @@ const Battle = () => {
   };
 
   const saveCode = () => {
-    localStorage.setItem(`battle_${questionId}_${language}`, code);
+    if (!question) return;
+    localStorage.setItem(`battle_${question.question_id}_${language}`, code);
     toast.success('Code saved');
   };
 
@@ -127,7 +131,9 @@ const Battle = () => {
   const clearCode = () => {
     const placeholder = languages.find((l) => l.name === language).placeholder;
     setCode(placeholder);
-    localStorage.setItem(`battle_${questionId}_${language}`, placeholder);
+    if (question) {
+      localStorage.setItem(`battle_${question.question_id}_${language}`, placeholder);
+    }
     setResults([]);
     setAllPassed(false);
   };
@@ -176,10 +182,25 @@ const Battle = () => {
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold">{question.title}</h2>
                 <p className="text-sm text-gray-200">{question.description}</p>
-                {question.example && (
+                <div>
+                  <h3 className="text-sm font-semibold">Difficulty</h3>
+                  <p className="text-sm text-gray-200">{question.difficulty}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Tag</h3>
+                  <p className="text-sm text-gray-200">{question.tags}</p>
+                </div>
+                {question.examples && question.examples.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold">Example</h3>
-                    <pre className="bg-gray-950 p-3 rounded-lg text-sm">{question.example}</pre>
+                    <h3 className="text-sm font-semibold">Examples</h3>
+                    {question.examples.map((example, index) => (
+                      <div key={index} className="bg-gray-950 p-3 rounded-lg text-sm mb-2">
+                        <p><strong>Example {index + 1}</strong></p>
+                        <p>Input: {example.input_example}</p>
+                        <p>Output: {example.output_example}</p>
+                        {example.explanation && <p>Explanation: {example.explanation}</p>}
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div>
@@ -256,9 +277,9 @@ const Battle = () => {
             <div className="flex gap-2 sm:gap-3 flex-wrap justify-center sm:justify-end">
               <button
                 onClick={runCode}
-                disabled={isLoading}
+                disabled={isLoading || !question}
                 className={`p-2 rounded-lg border border-green-500 transition-all duration-200 ${
-                  isLoading ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-green-500 hover:bg-gray-800'
+                  isLoading || !question ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-green-500 hover:bg-gray-800'
                 }`}
                 title="Run (Ctrl+Enter)"
               >
@@ -266,7 +287,10 @@ const Battle = () => {
               </button>
               <button
                 onClick={saveCode}
-                className="p-2 rounded-lg text-white hover:text-green-500 hover:bg-gray-800 transition-all duration-200 border border-green-500"
+                disabled={!question}
+                className={`p-2 rounded-lg border border-green-500 transition-all duration-200 ${
+                  !question ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-green-500 hover:bg-gray-800'
+                }`}
                 title="Save (Ctrl+S)"
               >
                 <Save className="w-5 h-5" />

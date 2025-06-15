@@ -8,6 +8,8 @@ export const ROUTES = {
   USER_COMPILER: '/user/compiler',
   USER_ROOMS: '/user/rooms',
   USER_ROOM: '/user/room/:roomId',
+  USER_BATTLE: '/battle/:roomId/:questionId', 
+  USER_CONTRIBUTE: '/contribute',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_USERS: '/admin/users',
   ADMIN_BATTLES: '/admin/battles',
@@ -16,6 +18,5 @@ export const ROUTES = {
   ADMIN_QUESTION_EDIT: '/admin/questions/edit/:questionId',
   ADMIN_QUESTION_VERIFY: '/admin/questions/verify/:questionId',
   ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
-  USER_CONTRIBUTE: '/contribute',  
   NOT_FOUND: '*',
 };

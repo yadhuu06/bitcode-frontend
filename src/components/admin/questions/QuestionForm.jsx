@@ -113,6 +113,7 @@ const QuestionForm = () => {
       loading={loading}
       tags={tagsOptions}
       difficultyOptions={difficultyOptions}
+      showTestCases={false}
     />
   );
 };

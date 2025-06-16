@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import CustomButton from '../../components/ui/CustomButton';
 import { toast } from 'react-toastify';
-import { fetchQuestions } from '../../services/ProblemService';
-import { FileText, CheckCircle, Edit, Code, BookOpen, X } from 'lucide-react';
+import { fetchQuestions, contributionStatusChange } from '../../services/ProblemService';
+import { FileText, CheckCircle, Edit, Code, BookOpen, X, Calendar } from 'lucide-react';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
-// Centralized route paths (define here or import from App.jsx)
 const ROUTES = {
   ADMIN_QUESTION_ADD: '/admin/questions/add',
   ADMIN_QUESTION_EDIT: '/admin/questions/edit/:questionId',
@@ -16,12 +17,19 @@ const ROUTES = {
   ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
 };
 
+const QUESTIONS_PER_PAGE = 9;
+
 const Questions = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [error, setError] = useState(null);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('verified');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchQuestionsList = useCallback(async () => {
     try {
@@ -40,6 +48,19 @@ const Questions = () => {
   useEffect(() => {
     fetchQuestionsList();
   }, [fetchQuestionsList]);
+
+  const handleContributionStatus = useCallback(
+    async (questionId, status) => {
+      try {
+        await contributionStatusChange(questionId, { status });
+        toast.success(`Contribution ${status.toLowerCase()} successfully`);
+        fetchQuestionsList();
+      } catch (err) {
+        toast.error(err.error || 'Failed to update contribution status');
+      }
+    },
+    [fetchQuestionsList]
+  );
 
   const handleEdit = useCallback(
     (questionId, e) => {
@@ -82,8 +103,37 @@ const Questions = () => {
     [closeModal]
   );
 
+  const filteredQuestions = useMemo(() => {
+    return questions.filter((question) => {
+      const matchesSearch = question.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDate =
+        (!startDate || new Date(question.created_at) >= startDate) &&
+        (!endDate || new Date(question.created_at) <= endDate);
+
+      switch (filterType) {
+        case 'all':
+          return matchesSearch && matchesDate;
+        case 'verified':
+          return matchesSearch && matchesDate && question.is_validate;
+        case 'contributed':
+          return matchesSearch && matchesDate && question.is_contributed;
+        case 'non-contributed':
+          return matchesSearch && matchesDate && !question.is_contributed;
+        default:
+          return matchesSearch && matchesDate && question.is_validate;
+      }
+    });
+  }, [questions, searchTerm, filterType, startDate, endDate]);
+
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
+    return filteredQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
+  }, [filteredQuestions, currentPage]);
+
+  const totalPages = Math.ceil(filteredQuestions.length / QUESTIONS_PER_PAGE);
+
   const questionList = useMemo(() => {
-    return questions.map((question) => (
+    return paginatedQuestions.map((question) => (
       <div
         key={question.question_id}
         onClick={() => openModal(question)}
@@ -158,22 +208,59 @@ const Questions = () => {
         </div>
       </div>
     ));
-  }, [questions, openModal, handleAnswers, handleEdit, handleTestCases]);
+  }, [paginatedQuestions, openModal, handleAnswers, handleEdit, handleTestCases]);
 
   return (
     <div className="min-h-screen text-white">
       <header className="mb-8 px-4 md:px-6">
         <h1 className="text-3xl font-bold border-b-2 border-[#73E600] pb-2 mb-4">Questions</h1>
-        <div className="flex justify-end">
-          <CustomButton
-            variant="create"
-            onClick={() => {
-              navigate(ROUTES.ADMIN_QUESTION_ADD);
-            }}
-          >
-            <span className="hidden sm:inline">Add Question</span>
-            <span className="inline sm:hidden">Add Qn</span>
-          </CustomButton>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search by title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-[#73E600] focus:outline-none w-full sm:w-96"
+            />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-[#73E600] focus:outline-none"
+            >
+              <option value="all">All Questions</option>
+              <option value="verified">Verified</option>
+              <option value="contributed">Contributed</option>
+              <option value="non-contributed">Non-Contributed</option>
+            </select>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-40">
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                placeholderText="From Date"
+                className="px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-[#73E600] focus:outline-none w-full"
+              />
+              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            </div>
+            <div className="relative w-full sm:w-40">
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => setEndDate(date)}
+                placeholderText="To Date"
+                className="px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-[#73E600] focus:outline-none w-full"
+              />
+              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            </div>
+            <CustomButton
+              variant="create"
+              onClick={() => navigate(ROUTES.ADMIN_QUESTION_ADD)}
+            >
+              <span className="hidden sm:inline">Add Question</span>
+              <span className="inline sm:hidden">Add Qn</span>
+            </CustomButton>
+          </div>
         </div>
       </header>
 
@@ -187,12 +274,34 @@ const Questions = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:px-6">
-        {questions.length > 0 ? (
+        {paginatedQuestions.length > 0 ? (
           questionList
         ) : (
           <p className="col-span-full text-center text-gray-500 text-lg">No questions found.</p>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-8">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-800 text-[#73E600] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="text-gray-300">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-800 text-[#73E600] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {selectedQuestion && (
         <div
@@ -265,6 +374,10 @@ const Questions = () => {
                   <span className="text-gray-400">Updated At:</span>
                   <span className="text-white ml-2">{new Date(selectedQuestion.updated_at).toLocaleString()}</span>
                 </div>
+                <div>
+                  <span className="text-gray-400">Contribution Status:</span>
+                  <span className="text-white ml-2">{selectedQuestion.contribution_status || 'N/A'}</span>
+                </div>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-[#73E600] mb-3">Description</h3>
@@ -281,7 +394,7 @@ const Questions = () => {
                 className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 font-medium"
                 title="Test Cases"
               >
-                <Code className="w-5 h-5 mr-2" />
+                <Code className="w-5 h-5 mr-2 text-[#73E600]" />
                 Test Cases
               </button>
               <button
@@ -289,7 +402,7 @@ const Questions = () => {
                 className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 font-medium"
                 title="Answers"
               >
-                <BookOpen className="w-5 h-5 mr-2" />
+                <BookOpen className="w-5 h-5 mr-2 text-[#73E600]" />
                 Answers
               </button>
               <button
@@ -297,9 +410,31 @@ const Questions = () => {
                 className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 font-medium"
                 title="Edit"
               >
-                <Edit className="w-5 h-5 mr-2" />
+                <Edit className="w-5 h-5 mr-2 text-[#73E600]" />
                 Edit
               </button>
+              {selectedQuestion.is_contributed &&
+                selectedQuestion.contribution_status !== 'Accepted' &&
+                selectedQuestion.contribution_status !== 'Rejected' && (
+                  <>
+                    <button
+                      onClick={() => handleContributionStatus(selectedQuestion.question_id, 'Accepted')}
+                      className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] border border-green-500/50 rounded hover:bg-gray-700 transition-all duration-300 font-medium"
+                      title="Accept Contribution"
+                    >
+                      <CheckCircle className="w-5 h-5 mr-2 text-[#73E600]" />
+                      Accept 
+                    </button>
+                    <button
+                      onClick={() => handleContributionStatus(selectedQuestion.question_id, 'Rejected')}
+                      className="flex items-center px-4 py-2 bg-gray-800 text-[#73E600] border border-red-500/50 rounded hover:bg-gray-700 transition-all duration-300 font-medium"
+                      title="Reject Contribution"
+                    >
+                      <X className="w-5 h-5 mr-2 text-[#73E600]" />
+                      Reject 
+                    </button>
+                  </>
+                )}
             </div>
           </div>
         </div>

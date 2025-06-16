@@ -93,3 +93,13 @@ export const contributeTestCases = async (questionId, data) => {
     throw error.response?.data || { error: 'Failed to contribute test cases' };
   }
 };
+
+
+export const contributionStatusChange = async (questionId, data) => {
+  try {
+    const response = await api.patch(`/questions/${questionId}/verify/`, data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: "Failed to change the contribution status" };
+  }
+};

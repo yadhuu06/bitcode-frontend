@@ -32,9 +32,9 @@ const isTokenExpiringSoon = (token) => {
   try {
     const { exp } = jwtDecode(token);
     const now = Date.now() / 1000;
-    return exp - now < 600; // 10-minute buffer for smoother refresh
+    return exp - now < 600; 
   } catch {
-    return true; // Assume expired if token is invalid
+    return true; 
   }
 };
 
@@ -50,15 +50,15 @@ const refreshAccessToken = async () => {
     });
     const { access, refresh } = response.data;
 
-    // Always use new refresh token if provided, otherwise keep the old one
+
     const newRefreshToken = refresh || refreshToken;
     store.dispatch(updateTokens({ accessToken: access, refreshToken: newRefreshToken }));
-    Cookies.set('access_token', access, { secure: true, sameSite: 'Strict', expires: 30 / (24 * 60) });
+    Cookies.set('access_token', access, { secure: true, sameSite: 'Strict', expires: 1});
     Cookies.set('refresh_token', newRefreshToken, { secure: true, sameSite: 'Strict', expires: 7 });
 
     return access;
   } catch (error) {
-    // Log the error for debugging
+
     console.error('Token refresh failed:', error.message);
     throw new Error('Unable to refresh token');
   }
@@ -69,7 +69,7 @@ export const setupInterceptors = () => {
     async (config) => {
       let accessToken = store.getState().auth.accessToken || Cookies.get('access_token');
 
-      // Skip token check for refresh endpoint to avoid infinite loop
+ 
       if (config.url.includes('/api/auth/token/refresh/')) {
         return config;
       }
@@ -89,7 +89,7 @@ export const setupInterceptors = () => {
             isRefreshing = false;
           }
         } else {
-          // Queue the request until refresh is complete
+
           return new Promise((resolve, reject) => {
             failedQueue.push({
               resolve: (token) => {
@@ -115,7 +115,7 @@ export const setupInterceptors = () => {
     async (error) => {
       const originalRequest = error.config;
 
-      // Skip retry for refresh endpoint to avoid infinite loop
+
       if (originalRequest.url.includes('/api/auth/token/refresh/')) {
         return Promise.reject(error);
       }
@@ -139,7 +139,7 @@ export const setupInterceptors = () => {
             isRefreshing = false;
           }
         } else {
-          // Queue the request until refresh is complete
+
           return new Promise((resolve, reject) => {
             failedQueue.push({
               resolve: (token) => {

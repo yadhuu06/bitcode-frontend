@@ -110,8 +110,8 @@ const BattleWaitingLobby = () => {
   const [readyStatus, setReadyStatus] = useState({});
   const [copied, setCopied] = useState(false);
   const [isRoomClosed, setIsRoomClosed] = useState(false);
-  const [lobbyMessages, setLobbyMessages] = useState([]);
   const [isKicked, setIsKicked] = useState(false);
+  const [lobbyMessages, setLobbyMessages] = useState([]);
   const wsListenerId = useRef(`lobby-${roomId}`);
   const [username, setUsername] = useState(null);
 
@@ -134,7 +134,7 @@ const BattleWaitingLobby = () => {
         }
 
         const roomData = {
-          room_id: roomId, 
+          room_id: roomId,
           roomName: response.room.name,
           isPrivate: response.room.visibility === 'private',
           join_code: response.room.join_code,
@@ -142,7 +142,7 @@ const BattleWaitingLobby = () => {
           timeLimit: response.room.time_limit,
           capacity: response.room.capacity,
           participantCount: response.room.participant_count,
-          ranked:response.room.is_ranked,
+          ranked: response.room.is_ranked,
           status: response.room.status,
         };
 
@@ -151,17 +151,24 @@ const BattleWaitingLobby = () => {
         setUsername(response.current_user);
         localStorage.setItem('current_user', response.current_user);
         setRole(
-          response.participants.find((p) => p.user__username === response.current_user)?.role || 'participant'
+          response.participants.find((p) => p.user__username === response.current_user)?.role ||
+            'participant'
         );
 
         console.log('fetchRoomDetails - Set RoomDetails:', roomData);
         console.log('fetchRoomDetails - Set Username:', response.current_user);
-        console.log('fetchRoomDetails - Set Role:', response.participants.find((p) => p.user__username === response.current_user)?.role || 'participant');
+        console.log(
+          'fetchRoomDetails - Set Role:',
+          response.participants.find((p) => p.user__username === response.current_user)?.role ||
+            'participant'
+        );
       } catch (err) {
         console.error('fetchRoomDetails - Error:', err);
-        toast.error(err.message.includes('not authorised') || err.message.includes('authenticated')
-          ? 'You are not authorised to view this room'
-          : 'Failed to load room details');
+        toast.error(
+          err.message.includes('not authorised') || err.message.includes('authenticated')
+            ? 'You are not authorised to view this room'
+            : 'Failed to load room details'
+        );
         navigate('/login');
       } finally {
         setIsLoading(false);
@@ -177,90 +184,78 @@ const BattleWaitingLobby = () => {
     }
   }, [roomId, accessToken, navigate]);
 
-useEffect(() => {
-  if (!roomId || !accessToken) return;
+  useEffect(() => {
+    if (!roomId || !accessToken) return;
 
-  WebSocketService.connect(accessToken, roomId, () => {
-    console.warn('Redirecting due to WebSocket initial failure...');
-    toast.error('Failed to connect to room');
-    navigate('/error');
-  });
+    WebSocketService.connect(accessToken, roomId);
 
-  const handleMessage = (data) => {
-    console.log('WebSocket message received:', data);
-    switch (data.type) {
-      case 'participant_list':
-      case 'participant_update': {
-        const activeParticipants = (data.participants || []).filter((p) => p.status === 'joined');
-        setParticipants(activeParticipants);
-        setRoomDetails((prev) =>
-          prev ? { ...prev, participantCount: activeParticipants.length } : prev
-        );
-        const currentUser = activeParticipants.find((p) => p.user__username === username);
-        if (currentUser?.role) {
-          setRole(currentUser.role);
+    const handleMessage = (data) => {
+      console.log('WebSocket message received:', data);
+      switch (data.type) {
+        case 'participant_list':
+        case 'participant_update': {
+          const activeParticipants = (data.participants || []).filter((p) => p.status === 'joined');
+          setParticipants(activeParticipants);
+          setRoomDetails((prev) =>
+            prev ? { ...prev, participantCount: activeParticipants.length } : prev
+          );
+          const currentUser = activeParticipants.find((p) => p.user__username === username);
+          if (currentUser?.role) {
+            setRole(currentUser.role);
+          }
+          break;
         }
-        break;
+        case 'countdown':
+          setCountdown(data.countdown);
+          break;
+        case 'ready_status':
+          setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
+          break;
+        case 'room_closed':
+          setIsRoomClosed(true);
+          setTimeout(() => navigate('/user/rooms'), 4000);
+          break;
+        case 'kicked':
+          if (data.username === username) {
+            setIsKicked(true);
+            toast.error('You have been kicked from the room');
+            WebSocketService.disconnect();
+            setTimeout(() => navigate('/user/rooms'), 2000);
+          }
+          break;
+        case 'participant_left':
+          setLobbyMessages((prev) => {
+            const updated = [...prev, `${data.username} left the lobby`];
+            return updated.slice(-5);
+          });
+          break;
+        case 'start_battle':
+          navigate(`/battle/${roomId}/${data.question.id}`);
+          break;
+        case 'error':
+          toast.error(data.message);
+          if (
+            data.message.includes('401') ||
+            data.message.includes('4001') ||
+            data.message.includes('4002') ||
+            data.message.includes('Not authorized') ||
+            data.code === 4005
+          ) {
+            navigate('/login');
+          }
+          break;
+        default:
+          console.warn('Unknown WebSocket message type:', data.type);
       }
+    };
 
-      case 'countdown':
-        setCountdown(data.countdown);
-        break;
+    WebSocketService.addListener(wsListenerId.current, handleMessage);
 
-      case 'ready_status':
-        setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
-        break;
-
-      case 'room_closed':
-        setIsRoomClosed(true);
-        setTimeout(() => navigate('/user/rooms'), 4000);
-        break;
-
-      case 'kicked':
-        if (data.username === username) {
-          setIsKicked(true);
-          toast.error('You have been kicked from the room');
-          WebSocketService.disconnect();
-          setTimeout(() => navigate('/user/rooms'), 2000);
-        }
-        break;
-
-      case 'participant_left':
-        setLobbyMessages((prev) => {
-          const updated = [...prev, `${data.username} left the lobby`];
-          return updated.slice(-5); // ✅ Trim immediately to avoid duplicates
-        });
-        break;
-
-      case 'start_battle':
-        navigate(`/battle/${roomId}/${data.question.id}`);
-        break;
-
-      case 'error':
-        toast.error(data.message);
-        if (
-          data.message.includes('401') ||
-          data.message.includes('4001') ||
-          data.message.includes('4002') ||
-          data.message.includes('Not authorized') ||
-          data.code === 4005
-        ) {
-          navigate('/login');
-        }
-        break;
-
-      default:
-        console.warn('Unknown WebSocket message type:', data.type);
-    }
-  };
-
-  WebSocketService.addListener(wsListenerId.current, handleMessage);
-
-  return () => {
-    WebSocketService.removeListener(wsListenerId.current);
-    WebSocketService.disconnect();
-  };
-}, [roomId, accessToken, navigate, username]);
+    return () => {
+      WebSocketService.removeListener(wsListenerId.current);
+      WebSocketService.disconnect();
+    };
+  }, [roomId, accessToken, navigate, username]);
 
   const initiateCountdown = () => {
     if (participants.length < 1) {
@@ -272,7 +267,9 @@ useEffect(() => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+      setCurrentTime(
+        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+      );
     }, 1000);
     return () => clearInterval(timer);
   }, []);

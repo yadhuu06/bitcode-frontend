@@ -217,12 +217,7 @@ const Rooms = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono pt-16 overflow-y-auto relative">
-      {wsError && (
-        <div className="bg-red-500/20 border border-red-500 p-4 rounded-md flex items-center mb-6 mx-auto max-w-6xl">
-          <AlertTriangle className="text-red-500 mr-2" size={20} />
-          <p className="text-red-500">{wsError}</p>
-        </div>
-      )}
+      
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 60 }, (_, i) => (
           <span

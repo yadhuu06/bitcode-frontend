@@ -19,36 +19,58 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
   useEffect(() => {
     const listenerId = `chat-${roomId}`;
     console.log(`Registering WebSocket listener: ${listenerId}`);
+
+    // Request chat history when joining the room
+    WebSocketService.sendMessage({ type: 'request_chat_history', room_id: roomId });
+
     const handleMessage = (data) => {
       console.log(`Received message: ${JSON.stringify(data)}`);
       if (data.type === 'chat_message') {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: prev.length + 1,
-            user: data.sender,
-            message: data.message,
-            time: data.timestamp || new Date().toLocaleTimeString([],{ hour: '2-digit', minute: '2-digit' }),
-            isSystem: data.is_system || false,
-          },
-        ]);
+        setMessages((prev) => {
+          // Skip if message is from current user and already exists
+          if (
+            data.sender === username &&
+            prev.some((msg) => msg.message === data.message && msg.user === data.sender)
+          ) {
+            return prev;
+          }
+          // Skip if message ID already exists
+          if (!prev.some((msg) => msg.id === data.id)) {
+            return [
+              ...prev,
+              {
+                id: data.id || prev.length + 1,
+                user: data.sender,
+                message: data.message,
+                time: data.timestamp
+                  ? new Date(data.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isSystem: data.is_system || false,
+              },
+            ];
+          }
+          return prev;
+        });
       } else if (data.type === 'chat_history') {
-        setMessages([
-          {
-            id: 1,
-            user: 'System',
-            message: 'Welcome to the battle lobby!',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isSystem: true,
-          },
-          ...data.messages.map((msg, index) => ({
-            id: index + 2,
-            user: msg.sender,
-            message: msg.message,
-            time: msg.timestamp,
-            isSystem: msg.is_system,
-          })),
-        ]);
+        const historyMessages = data.messages.map((msg, index) => ({
+          id: msg.id || index + 2,
+          user: msg.sender,
+          message: msg.message,
+          time: msg.timestamp
+            ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSystem: msg.is_system,
+        }));
+        setMessages((prev) => {
+          const existingMessages = prev.slice(1); // Keep initial system message
+          const newMessages = historyMessages.filter(
+            (msg) => !existingMessages.some((existing) => existing.id === msg.id)
+          );
+          return [prev[0], ...newMessages];
+        });
       } else if (data.type === 'room_closed') {
         setMessages([
           {
@@ -70,7 +92,7 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
       console.log(`Removing WebSocket listener: ${listenerId}`);
       WebSocketService.removeListener(listenerId);
     };
-  }, [roomId]);
+  }, [roomId, username]);
 
   useEffect(() => {
     if (messagesEndRef.current && isActiveTab) {
@@ -85,6 +107,8 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
       type: 'chat_message',
       message: chatMessage,
       sender: username,
+      room_id: roomId,
+      timestamp: new Date().toISOString(),
     };
 
     WebSocketService.sendMessage(payload);
@@ -101,16 +125,33 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.isSystem ? 'justify-center' : 'justify-start'}`}>
+          <div
+            key={msg.id}
+            className={`flex ${
+              msg.isSystem
+                ? 'justify-center'
+                : msg.user === username
+                ? 'justify-end'
+                : 'justify-start'
+            }`}
+          >
             {msg.isSystem ? (
-              <div className="bg-gray-800/50 px-3 py-1 rounded-full text-sm text-gray-400">{msg.message}</div>
+              <div className="bg-gray-800/50 px-3 py-1 rounded-full text-sm text-gray-400">
+                {msg.message}
+              </div>
             ) : (
-              <div className="w-full max-w-[70%]">
+              <div className={`w-full max-w-[70%] ${msg.user === username ? 'ml-auto' : ''}`}>
                 <div className="flex items-center mb-1">
                   <span className="font-medium text-sm text-[#00FF40]">{msg.user}</span>
                   <span className="text-gray-500 text-xs ml-2">{msg.time}</span>
                 </div>
-                <div className="bg-gray-800 p-3 rounded-lg text-sm text-white border border-[#00FF40]/20">
+                <div
+                  className={`p-3 rounded-lg text-sm text-white border ${
+                    msg.user === username
+                      ? 'bg-[#00FF40]/20 border-[#00FF40]/40'
+                      : 'bg-gray-800 border-[#00FF40]/20'
+                  }`}
+                >
                   {msg.message}
                 </div>
               </div>
@@ -119,7 +160,6 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
         ))}
         <div ref={messagesEndRef} />
       </div>
-
       <div className="flex">
         <input
           type="text"

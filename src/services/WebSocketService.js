@@ -1,5 +1,6 @@
-// src/services/WebSocketService.js
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const WS_ROOMS_PATH = import.meta.env.VITE_WS_ROOMS_PATH || '/ws/rooms/';
+const WS_ROOM_PATH = import.meta.env.VITE_WS_ROOM_PATH || '/ws/room/';
 
 class WebSocketService {
   constructor() {
@@ -8,15 +9,17 @@ class WebSocketService {
     this.token = null;
     this.roomId = null;
 
-    // Reconnect settings
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 1;
-    this.reconnectDelay = 1000;
 
-    // Heartbeat settings
-    this.heartbeatInterval = 1000;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5; 
+    this.reconnectDelay = 3000; 
+
+    this.heartbeatInterval = 15000; 
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
+    this.lastPongReceived = null;
+    this.pongTimeout = 5000; 
+    this.pongTimeoutId = null;
   }
 
   connect(token, roomId = null) {
@@ -24,8 +27,10 @@ class WebSocketService {
 
     this.token = token;
     this.roomId = roomId;
-    const baseWsUrl = `${API_BASE_URL.replace('http', 'ws')}/ws/rooms/`;
-    const wsUrl = roomId ? `${baseWsUrl}${roomId}/?token=${token}` : `${baseWsUrl}?token=${token}`;
+    const baseWsUrl = API_BASE_URL.replace(/^http/, 'ws');
+    const wsPath = roomId ? `${WS_ROOM_PATH}${roomId}/` : WS_ROOMS_PATH;
+    const wsUrl = `${baseWsUrl}${wsPath}?token=${token}`;
+    console.log(`Connecting to WebSocket: ${wsUrl}`);
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
@@ -40,9 +45,11 @@ class WebSocketService {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type !== 'pong') {
-          Object.values(this.listeners).forEach((listener) => listener(data));
+        if (data.type === 'pong') {
+          this.lastPongReceived = Date.now();
+          return;
         }
+        Object.values(this.listeners).forEach((listener) => listener(data));
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
       }
@@ -52,9 +59,10 @@ class WebSocketService {
       console.warn('⚠️ WebSocket disconnected:', event.code, event.reason);
       this.socket = null;
       this._stopHeartbeat();
-   
-      if (event.code !== 1000 && (event.code === 4005 || this.reconnectAttempts < this.maxReconnectAttempts)) {
+      if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
         this._tryReconnect();
+      } else {
+        console.error('🛑 WebSocket closed permanently:', event.code, event.reason);
       }
     };
 
@@ -70,6 +78,7 @@ class WebSocketService {
     }
     this._stopHeartbeat();
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
+    if (this.pongTimeoutId) clearTimeout(this.pongTimeoutId);
   }
 
   isConnected() {
@@ -93,21 +102,27 @@ class WebSocketService {
   }
 
   _tryReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('🛑 Max reconnect attempts reached');
-      return;
-    }
-
     this.reconnectAttempts += 1;
+    console.log(`🔁 Reconnecting... attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
     this.reconnectTimeoutId = setTimeout(() => {
-      console.log(`🔁 Reconnecting... attempt ${this.reconnectAttempts}`);
       this.connect(this.token, this.roomId);
     }, this.reconnectDelay);
   }
 
   _startHeartbeat() {
+    this.lastPongReceived = Date.now();
     this.pingIntervalId = setInterval(() => {
+      if (!this.isConnected()) {
+        this._stopHeartbeat();
+        return;
+      }
       this.sendMessage({ type: 'ping' });
+      this.pongTimeoutId = setTimeout(() => {
+        if (Date.now() - this.lastPongReceived > this.pongTimeout) {
+          console.warn('⚠️ No pong received, closing connection');
+          this.disconnect();
+        }
+      }, this.pongTimeout);
     }, this.heartbeatInterval);
   }
 
@@ -115,6 +130,10 @@ class WebSocketService {
     if (this.pingIntervalId) {
       clearInterval(this.pingIntervalId);
       this.pingIntervalId = null;
+    }
+    if (this.pongTimeoutId) {
+      clearTimeout(this.pongTimeoutId);
+      this.pongTimeoutId = null;
     }
   }
 }

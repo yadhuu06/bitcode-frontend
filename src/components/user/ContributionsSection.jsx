@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../routes/paths';
 import { toast } from 'react-toastify';
 import { fetchUserContributions } from '../../services/ProfileService';
+import { CheckCircle, XCircle ,Plus} from 'lucide-react';
 
 const ContributionsSection = () => {
   const navigate = useNavigate();
@@ -31,40 +33,69 @@ const ContributionsSection = () => {
   }, []);
 
   return (
-    <div className="bg-black bg-opacity-20 backdrop-blur-md p-4 rounded-md border border-blue-900 shadow-lg">
-      <h2 className="text-xl font-mono text-[#73ff00] mb-4">Contributions</h2>
+    <div className="bg-black bg-opacity-30 backdrop-blur-lg p-6 rounded-lg border border-green-500 max-w-3xl mx-auto">
+      <h2 className="text-2xl font-mono text-green-500 mb-6 animate-glitch">Contributions</h2>
       {loading ? (
-        <p className="text-gray-300">Loading contributions...</p>
+        <p className="text-white font-mono animate-pulse">Initializing Data...</p>
       ) : (
-        <div className="space-y-4 text-gray-300 font-mono">
-          <div className="flex items-center justify-between">
-            <span>Problems Submitted</span>
-            <span>{contributions.problems_submitted}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Solutions Accepted</span>
-            <span>{contributions.solutions_accepted}</span>
-          </div>
-          {contributions.recent_contributions.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-blue-600 mb-2">Recent Contributions</h3>
-              <ul className="list-disc pl-4">
-                {contributions.recent_contributions.map((contrib, index) => (
-                  <li key={index}>
-                    {contrib.type} "{contrib.title}" - {contrib.date}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+        <div className="space-y-6">
+          <table className="w-full text-white font-mono text-sm">
+            <tbody>
+              <tr className="border-b border-gray-700 hover:bg-green-500/10 transition duration-200">
+                <td className="py-2 px-4 text-white">Problems Submitted</td>
+                <td className="py-2 px-4 text-green-500 text-right">{contributions.problems_submitted}</td>
+              </tr>
+              <tr className="border-b border-gray-700 hover:bg-green-500/10 transition duration-200">
+                <td className="py-2 px-4 text-white">Solutions Accepted</td>
+                <td className="py-2 px-4 text-green-500 text-right">{contributions.solutions_accepted}</td>
+              </tr>
+              {contributions.recent_contributions.length > 0 && (
+                <tr>
+                  <td colSpan="2" className="py-2 px-4">
+                    <h3 className="text-green-500 mb-2">Recent Contributions</h3>
+                    <ul className="list-none space-y-2">
+                      {contributions.recent_contributions.map((contrib, index) => (
+                        <li
+                          key={index}
+                          className={`flex justify-between items-center p-2 bg-gray-900 rounded-md border border-green-500 hover:bg-green-500/10 transition duration-200 relative ${
+                            contrib.status === 'Accepted' || contrib.status === 'Rejected' ? 'group' : ''
+                          }`}
+                        >
+                          <span className="t">
+                            name: "{contrib.title}"
+                          </span>
+                          <span className="flex items-center text-white text-xs">
+                            {contrib.date} - {contrib.status}
+                            {contrib.status === 'Accepted' && (
+                              <CheckCircle className="ml-2 h-4 w-4 text-green-500" />
+                            )}
+                            {contrib.status === 'Rejected' && (
+                              <XCircle className="ml-2 h-4 w-4 text-red-500" />
+                            )}
+                          </span>
+                          {(contrib.status === 'Accepted' || contrib.status === 'Rejected') && (
+                            <span className="absolute hidden group-hover:block bg-gray-800 text-green-500 text-xs px-2 py-1 rounded top-[-1.5rem] left-1/2 transform -translate-x-1/2">
+                              {contrib.status}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
           <button
-            onClick={() => navigate(ROUTES.USER_CONTRIBUTE)}
-            className="mt-2 px-4 py-2 bg-blue-600 text-black font-mono rounded hover:bg-blue-700 transition duration-200"
-          >
-            Contribute New Question
-          </button>
+  onClick={() => navigate(ROUTES.USER_CONTRIBUTE)}
+className="mt-4 px-6 py-2 bg-transparent border-2 border-green-500 text-green-500 font-mono rounded-lg flex items-center gap-2 transition duration-300 hover:bg-black hover:text-white"
+>
+  <Plus size={18} /> Contribute
+</button>
+
         </div>
       )}
+     
     </div>
   );
 };

@@ -1,9 +1,17 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, memo,useRef  } from 'react';
 import { useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import { useNavigate, useParams } from 'react-router-dom';
-import { getRoomDetails, handleStartBattle } from '../../services/RoomService';
-import WebSocketService from '../../services/WebSocketService';
+import { useParams } from 'react-router-dom';
+import { handleStartBattle } from '../../services/RoomService';
+import useWebSocketLobby from '../../hooks/useWebSocketLobby';
+import useRoomDetails from '../../hooks/useRoomDetails';
+import {
+  initiateCountdown,
+  handleReadyToggle,
+  handleKickParticipant,
+  handleCopy,
+  handleLeaveRoom,
+  handleCloseRoom,
+} from '../../utils/lobbyActions';
 import 'react-toastify/dist/ReactToastify.css';
 import LobbyHeader from '../../components/battle-room/LobbyHeader';
 import ParticipantsPanel from '../../components/battle-room/ParticipantsPanel';
@@ -96,174 +104,27 @@ const MatrixBackground = memo(() => {
 
 const BattleWaitingLobby = () => {
   const { roomId } = useParams();
-  const navigate = useNavigate();
   const accessToken = useSelector((state) => state.auth.accessToken);
   const [activeTab, setActiveTab] = useState('details');
   const [currentTime, setCurrentTime] = useState(
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
   );
-  const [role, setRole] = useState('participant');
-  const [roomDetails, setRoomDetails] = useState(null);
-  const [participants, setParticipants] = useState([]);
-  const [countdown, setCountdown] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [readyStatus, setReadyStatus] = useState({});
   const [copied, setCopied] = useState(false);
-  const [isRoomClosed, setIsRoomClosed] = useState(false);
-  const [isKicked, setIsKicked] = useState(false);
-  const [lobbyMessages, setLobbyMessages] = useState([]);
-  const wsListenerId = useRef(`lobby-${roomId}`);
-  const [username, setUsername] = useState(null);
 
-  console.log('BattleWaitingLobby - Initial Username:', username);
-  console.log('BattleWaitingLobby - Access Token:', accessToken ? 'Present' : 'Missing');
-
-  useEffect(() => {
-    const fetchRoomDetails = async () => {
-      setIsLoading(true);
-      try {
-        console.log('fetchRoomDetails - Starting with roomId:', roomId);
-        console.log('fetchRoomDetails - Access Token:', accessToken ? 'Present' : 'Missing');
-
-        const response = await getRoomDetails(roomId, accessToken);
-        console.log('fetchRoomDetails - API Response:', response);
-
-        if (!response.current_user) {
-          console.warn('fetchRoomDetails - No current_user in response');
-          throw new Error('User not authenticated');
-        }
-
-        const roomData = {
-          room_id: roomId,
-          roomName: response.room.name,
-          isPrivate: response.room.visibility === 'private',
-          join_code: response.room.join_code,
-          difficulty: response.room.difficulty,
-          timeLimit: response.room.time_limit,
-          capacity: response.room.capacity,
-          participantCount: response.room.participant_count,
-          ranked: response.room.is_ranked,
-          status: response.room.status,
-        };
-
-        setRoomDetails(roomData);
-        setParticipants(response.participants || []);
-        setUsername(response.current_user);
-        localStorage.setItem('current_user', response.current_user);
-        setRole(
-          response.participants.find((p) => p.user__username === response.current_user)?.role ||
-            'participant'
-        );
-
-        console.log('fetchRoomDetails - Set RoomDetails:', roomData);
-        console.log('fetchRoomDetails - Set Username:', response.current_user);
-        console.log(
-          'fetchRoomDetails - Set Role:',
-          response.participants.find((p) => p.user__username === response.current_user)?.role ||
-            'participant'
-        );
-      } catch (err) {
-        console.error('fetchRoomDetails - Error:', err);
-        toast.error(
-          err.message.includes('not authorised') || err.message.includes('authenticated')
-            ? 'You are not authorised to view this room'
-            : 'Failed to load room details'
-        );
-        navigate('/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (accessToken && roomId) {
-      fetchRoomDetails();
-    } else {
-      console.log('fetchRoomDetails - Missing accessToken or roomId');
-      toast.error('Invalid room or session');
-      navigate('/login');
-    }
-  }, [roomId, accessToken, navigate]);
-
-  useEffect(() => {
-    if (!roomId || !accessToken) return;
-
-    WebSocketService.connect(accessToken, roomId);
-
-    const handleMessage = (data) => {
-      console.log('WebSocket message received:', data);
-      switch (data.type) {
-        case 'participant_list':
-        case 'participant_update': {
-          const activeParticipants = (data.participants || []).filter((p) => p.status === 'joined');
-          setParticipants(activeParticipants);
-          setRoomDetails((prev) =>
-            prev ? { ...prev, participantCount: activeParticipants.length } : prev
-          );
-          const currentUser = activeParticipants.find((p) => p.user__username === username);
-          if (currentUser?.role) {
-            setRole(currentUser.role);
-          }
-          break;
-        }
-        case 'countdown':
-          setCountdown(data.countdown);
-          break;
-        case 'ready_status':
-          setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
-          break;
-        case 'room_closed':
-          setIsRoomClosed(true);
-          setTimeout(() => navigate('/user/rooms'), 4000);
-          break;
-        case 'kicked':
-          if (data.username === username) {
-            setIsKicked(true);
-            toast.error('You have been kicked from the room');
-            WebSocketService.disconnect();
-            setTimeout(() => navigate('/user/rooms'), 2000);
-          }
-          break;
-        case 'participant_left':
-          setLobbyMessages((prev) => {
-            const updated = [...prev, `${data.username} left the lobby`];
-            return updated.slice(-5);
-          });
-          break;
-        case 'start_battle':
-          navigate(`/battle/${roomId}/${data.question.id}`);
-          break;
-        case 'error':
-          toast.error(data.message);
-          if (
-            data.message.includes('401') ||
-            data.message.includes('4001') ||
-            data.message.includes('4002') ||
-            data.message.includes('Not authorized') ||
-            data.code === 4005
-          ) {
-            navigate('/login');
-          }
-          break;
-        default:
-          console.warn('Unknown WebSocket message type:', data.type);
-      }
-    };
-
-    WebSocketService.addListener(wsListenerId.current, handleMessage);
-
-    return () => {
-      WebSocketService.removeListener(wsListenerId.current);
-      WebSocketService.disconnect();
-    };
-  }, [roomId, accessToken, navigate, username]);
-
-  const initiateCountdown = () => {
-    if (participants.length < 1) {
-      toast.error('At least one participant required');
-      return;
-    }
-    WebSocketService.sendMessage({ type: 'start_countdown', countdown: 5 });
-  };
+  const { roomDetails, username, isLoading, setRoomDetails } = useRoomDetails(roomId, accessToken);
+  const {
+    participants,
+    setParticipants,
+    countdown,
+    setCountdown,
+    readyStatus,
+    setReadyStatus,
+    isRoomClosed,
+    isKicked,
+    lobbyMessages,
+    role,
+    setRole,
+  } = useWebSocketLobby(roomId, accessToken, username);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -283,57 +144,13 @@ const BattleWaitingLobby = () => {
     setTimeout(() => {
       setCountdown(null);
       if (roomDetails.room_id) {
-        handleStartBattle({ room: roomDetails, participants, currentUser: username, navigate });
+        handleStartBattle({ room: roomDetails, participants, currentUser: username });
       } else {
         console.error('RoomDetails missing room_id:', roomDetails);
         toast.error('Cannot start battle: Invalid room ID');
       }
     }, 1000);
-  }, [countdown, roomDetails, participants, username, navigate]);
-
-  const handleReadyToggle = () => {
-    if (!username) {
-      toast.error('User not authenticated');
-      return;
-    }
-    const newReadyState = !readyStatus[username];
-    WebSocketService.sendMessage({ type: 'ready_toggle', ready: newReadyState });
-    setReadyStatus((prev) => ({ ...prev, [username]: newReadyState }));
-  };
-
-  const handleKickParticipant = (targetUsername) => {
-    if (role !== 'host') {
-      toast.error('Only the host can kick participants');
-      return;
-    }
-    WebSocketService.sendMessage({ type: 'kick_participant', username: targetUsername });
-    toast.info(`Requested to kick ${targetUsername}`);
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(roomDetails?.join_code);
-      setCopied(true);
-      toast.success('Join code copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy join code:', err);
-      toast.error('Failed to copy join code');
-    }
-  };
-
-  const handleLeaveRoom = () => {
-    WebSocketService.sendMessage({ type: 'leave_room' });
-    navigate('/user/rooms');
-  };
-
-  const handleCloseRoom = () => {
-    if (role !== 'host') {
-      toast.error('Only the host can close the room');
-      return;
-    }
-    WebSocketService.sendMessage({ type: 'close_room' });
-  };
+  }, [countdown, roomDetails, participants, username]);
 
   const getDifficultyStyles = (difficulty) => {
     switch (difficulty?.toLowerCase()) {
@@ -348,10 +165,6 @@ const BattleWaitingLobby = () => {
     }
   };
 
-  console.log('BattleWaitingLobby - Rendered Participants:', participants);
-  console.log('BattleWaitingLobby - Rendered Username:', username);
-  console.log('BattleWaitingLobby - Rendered RoomDetails:', roomDetails);
-
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
       <MatrixBackground />
@@ -361,7 +174,6 @@ const BattleWaitingLobby = () => {
           isRoomClosed={isRoomClosed}
           isLoading={isLoading}
           countdown={countdown}
-          navigate={navigate}
         />
         {!isKicked && !isRoomClosed && !isLoading && roomDetails && (
           <>
@@ -379,8 +191,10 @@ const BattleWaitingLobby = () => {
                 role={role}
                 readyStatus={readyStatus}
                 isLoading={isLoading}
-                handleReadyToggle={handleReadyToggle}
-                handleKickParticipant={handleKickParticipant}
+                handleReadyToggle={() => handleReadyToggle(username, readyStatus, setReadyStatus)}
+                handleKickParticipant={(targetUsername) =>
+                  handleKickParticipant(role, targetUsername)
+                }
                 lobbyMessages={lobbyMessages}
                 roomDetails={roomDetails}
               />
@@ -390,14 +204,14 @@ const BattleWaitingLobby = () => {
                 username={username}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                handleCopy={handleCopy}
+                handleCopy={() => handleCopy(roomDetails?.join_code, setCopied)}
                 copied={copied}
                 isLoading={isLoading}
                 participants={participants}
-                initiateCountdown={initiateCountdown}
-                handleCloseRoom={handleCloseRoom}
+                initiateCountdown={() => initiateCountdown(participants)}
+                handleCloseRoom={() => handleCloseRoom(role)}
                 handleLeaveRoom={handleLeaveRoom}
-                handleReadyToggle={handleReadyToggle}
+                handleReadyToggle={() => handleReadyToggle(username, readyStatus, setReadyStatus)}
                 readyStatus={readyStatus}
                 getDifficultyStyles={getDifficultyStyles}
               />

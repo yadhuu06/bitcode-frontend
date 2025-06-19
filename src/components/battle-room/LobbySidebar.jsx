@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Shield, Clock, Users, ClipboardCopy, ArrowLeft, CheckCircle, Swords, XCircle, Medal } from 'lucide-react';
 import ChatPanel from '../../pages/user/ChatPannel';
 

@@ -52,17 +52,8 @@ const Battle = () => {
       return;
     }
 
-    // Fetch question details from room
-    const fetchQuestion = async () => {
-      try {
-        const response = await api.get(`/rooms/${roomId}/question/`);
-        setQuestion(response.data);
-        setTestCases(response.data.test_cases.filter((tc) => tc.is_sample).slice(0, 3)); // Limit to 3 sample test cases
-        setCode(languages.find((l) => l.name === language).placeholder);
-      } catch (error) {
-        toast.error('Failed to load question');
-      }
-    };
+
+   
 
     // Fetch room details
     const fetchRoom = async () => {

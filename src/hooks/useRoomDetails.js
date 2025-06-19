@@ -7,6 +7,7 @@ const useRoomDetails = (roomId, accessToken) => {
   const navigate = useNavigate();
   const [roomDetails, setRoomDetails] = useState(null);
   const [username, setUsername] = useState(null);
+  const [role, setRole] = useState('participant'); 
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -40,6 +41,24 @@ const useRoomDetails = (roomId, accessToken) => {
         setRoomDetails(roomData);
         setUsername(response.current_user);
         localStorage.setItem('current_user', response.current_user);
+
+        if (response.role) {
+          console.log(`Setting initial role to ${response.role} for user ${response.current_user}`);
+          setRole(response.role);
+        } else {
+          console.warn(`No role provided in response for user ${response.current_user}`);
+
+          const currentParticipant = (response.participants || []).find(
+            (p) => p.user__username === response.current_user
+          );
+          if (currentParticipant?.role) {
+            console.log(`Setting fallback role to ${currentParticipant.role} from participants`);
+            setRole(currentParticipant.role);
+          } else if (response.room.owner === response.current_user) {
+            console.log(`Setting fallback role to host as user is owner`);
+            setRole('host');
+          }
+        }
       } catch (err) {
         console.error('fetchRoomDetails - Error:', err);
         toast.error(
@@ -56,7 +75,7 @@ const useRoomDetails = (roomId, accessToken) => {
     fetchRoomDetails();
   }, [roomId, accessToken, navigate]);
 
-  return { roomDetails, setRoomDetails, username, isLoading };
+  return { roomDetails, setRoomDetails, username, role, setRole, isLoading };
 };
 
 export default useRoomDetails;

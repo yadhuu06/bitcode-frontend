@@ -2,6 +2,9 @@ import api from '../api';
 import { toast } from 'react-toastify';
 import WebSocketService from './WebSocketService';
 
+
+
+
 export const fetchRooms = async () => {
   try {
     const response = await api.get('/rooms/');
@@ -54,7 +57,6 @@ export const handleStartBattle = async ({ room, participants, currentUser, navig
   const capacity = room.capacity;
   const nonHostParticipants = participants.filter(p => p.role !== 'host');
   const readyNonHosts = nonHostParticipants.filter(p => p.ready);
-
   let minRequired = 2;
   if (capacity === 5) minRequired = 3;
   else if (capacity === 10) minRequired = 6;
@@ -78,10 +80,8 @@ export const handleStartBattle = async ({ room, participants, currentUser, navig
 
     await api.get(`/rooms/${room.room_id}/`);
 
-    await api.patch(`/rooms/${room.room_id}/status/`, { status: 'Playing' });
 
-    const questionRes = await api.get(`/rooms/${room.room_id}/question/`);
-    const question = questionRes.data;
+    await api.post(`/rooms/${room.room_id}/start/`);
 
     if (!WebSocketService.isConnected()) {
       toast.error('WebSocket connection lost. Please reconnect.');
@@ -90,13 +90,15 @@ export const handleStartBattle = async ({ room, participants, currentUser, navig
 
 
     WebSocketService.sendMessage({
-      type: 'start_battle',
-      question: question,
+      type: 'battle_started',
       room_id: room.room_id,
     });
-
-    navigate(`/battle/${room.room_id}/${question.id}`);
+    console.log("the room id is ",room.room_id)
+    console.log("the question id is ",room.room_id)
     
+    
+
+
 
   } catch (error) {
     console.error('Start battle error:', error);
@@ -104,8 +106,8 @@ export const handleStartBattle = async ({ room, participants, currentUser, navig
       toast.error('Room not found or inactive. It may have been closed.');
     } else if (error.response?.status === 403) {
       toast.error('Only the host can start the battle.');
-    } else if (error.response?.status === 500 && error.response?.data?.error?.includes('constraints')) {
-      toast.error('Question configuration error. Please contact support.');
+    } else if (error.response?.status === 400) {
+      toast.error(error.response?.data?.error || 'Failed to start battle due to insufficient participants or readiness.');
     } else {
       toast.error(error.response?.data?.error || 'Failed to start battle');
     }

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, memo,useRef  } from 'react';
+import React, { useState, useEffect, memo, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useParams,useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify'; 
 import { handleStartBattle } from '../../services/RoomService';
 import useWebSocketLobby from '../../hooks/useWebSocketLobby';
 import useRoomDetails from '../../hooks/useRoomDetails';
@@ -12,6 +13,7 @@ import {
   handleLeaveRoom,
   handleCloseRoom,
 } from '../../utils/lobbyActions';
+
 import 'react-toastify/dist/ReactToastify.css';
 import LobbyHeader from '../../components/battle-room/LobbyHeader';
 import ParticipantsPanel from '../../components/battle-room/ParticipantsPanel';
@@ -20,19 +22,33 @@ import LobbyFooter from '../../components/battle-room/LobbyFooter';
 import LobbyModals from '../../components/battle-room/LobbyModals';
 import { Code } from 'lucide-react';
 
-const BitCodeProgressLoading = memo(({ message }) => (
-  <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-    <div className="text-center">
-      <div className="w-20 h-20 bg-[#00FF40] rounded-full flex items-center justify-center animate-spin border-2 border-white/20">
-        <Code className="text-black" size={24} />
-      </div>
-      <p className="mt-4 text-[#00FF40] font-mono text-lg">{message}</p>
-    </div>
-  </div>
-));
 
-const MatrixBackground = memo(() => {
+
+const BattleWaitingLobby = () => {
+  const { roomId } = useParams();
+  const navigate = useNavigate();
+  const accessToken = useSelector((state) => state.auth.accessToken);
+  const [activeTab, setActiveTab] = useState('details');
+  const [currentTime, setCurrentTime] = useState(
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+  );
+  const [copied, setCopied] = useState(false);
+
+  const { roomDetails, username, role, setRole, isLoading, setRoomDetails } = useRoomDetails(roomId, accessToken);
+  const {
+    participants,
+    setParticipants,
+    countdown,
+    setCountdown,
+    readyStatus,
+    setReadyStatus,
+    isRoomClosed,
+    isKicked,
+    lobbyMessages,
+  } = useWebSocketLobby(roomId, accessToken, username, setRole); 
+  const MatrixBackground = memo(() => {
   const canvasRef = useRef(null);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -102,29 +118,6 @@ const MatrixBackground = memo(() => {
   return <canvas ref={canvasRef} className="fixed top-0 left-0 z-0 opacity-30" />;
 });
 
-const BattleWaitingLobby = () => {
-  const { roomId } = useParams();
-  const accessToken = useSelector((state) => state.auth.accessToken);
-  const [activeTab, setActiveTab] = useState('details');
-  const [currentTime, setCurrentTime] = useState(
-    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-  );
-  const [copied, setCopied] = useState(false);
-
-  const { roomDetails, username, isLoading, setRoomDetails } = useRoomDetails(roomId, accessToken);
-  const {
-    participants,
-    setParticipants,
-    countdown,
-    setCountdown,
-    readyStatus,
-    setReadyStatus,
-    isRoomClosed,
-    isKicked,
-    lobbyMessages,
-    role,
-    setRole,
-  } = useWebSocketLobby(roomId, accessToken, username);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -144,7 +137,7 @@ const BattleWaitingLobby = () => {
     setTimeout(() => {
       setCountdown(null);
       if (roomDetails.room_id) {
-        handleStartBattle({ room: roomDetails, participants, currentUser: username });
+        handleStartBattle({ room: roomDetails, participants, currentUser: username,navigate });
       } else {
         console.error('RoomDetails missing room_id:', roomDetails);
         toast.error('Cannot start battle: Invalid room ID');

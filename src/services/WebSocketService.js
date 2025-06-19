@@ -1,3 +1,5 @@
+import { toast } from 'react-toastify';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const WS_ROOMS_PATH = import.meta.env.VITE_WS_ROOMS_PATH || '/ws/rooms/';
 const WS_ROOM_PATH = import.meta.env.VITE_WS_ROOM_PATH || '/ws/room/';
@@ -9,20 +11,19 @@ class WebSocketService {
     this.token = null;
     this.roomId = null;
 
-
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5; 
-    this.reconnectDelay = 3000; 
+    this.maxReconnectAttempts = 5;
+    this.reconnectDelay = 3000;
 
-    this.heartbeatInterval = 15000; 
+    this.heartbeatInterval = 15000;
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
     this.lastPongReceived = null;
-    this.pongTimeout = 5000; 
+    this.pongTimeout = 5000;
     this.pongTimeoutId = null;
   }
 
-  connect(token, roomId = null) {
+  connect(token, roomId = null, navigate = null) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
     this.token = token;
@@ -39,6 +40,7 @@ class WebSocketService {
       this._startHeartbeat();
       if (roomId) {
         this.sendMessage({ type: 'request_participants' });
+        this.sendMessage({ type: 'request_chat_history' }); 
       }
     };
 
@@ -49,9 +51,17 @@ class WebSocketService {
           this.lastPongReceived = Date.now();
           return;
         }
+        if (data.type === 'error') {
+          toast.error(data.message || 'An error occurred');
+        }
+        if (data.type === 'battle_started' && navigate) {
+          const { question, room_id } = data;
+          navigate(`/battle/${room.room_id}/${room.question_id}`);
+        }
         Object.values(this.listeners).forEach((listener) => listener(data));
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
+        toast.error('Invalid message received from server');
       }
     };
 
@@ -60,14 +70,16 @@ class WebSocketService {
       this.socket = null;
       this._stopHeartbeat();
       if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-        this._tryReconnect();
+        this._tryReconnect(navigate);
       } else {
         console.error('🛑 WebSocket closed permanently:', event.code, event.reason);
+       
       }
     };
 
     this.socket.onerror = (error) => {
       console.error('❌ WebSocket error:', error);
+      toast.error('WebSocket error occurred.');
     };
   }
 
@@ -79,6 +91,9 @@ class WebSocketService {
     this._stopHeartbeat();
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
     if (this.pongTimeoutId) clearTimeout(this.pongTimeoutId);
+    this.listeners = {};
+    this.token = null;
+    this.roomId = null;
   }
 
   isConnected() {
@@ -98,14 +113,15 @@ class WebSocketService {
       this.socket.send(JSON.stringify(message));
     } else {
       console.warn('🕳️ Cannot send message, socket not open');
+      toast.warn('Cannot send message: WebSocket not connected');
     }
   }
 
-  _tryReconnect() {
+  _tryReconnect(navigate) {
     this.reconnectAttempts += 1;
     console.log(`🔁 Reconnecting... attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
     this.reconnectTimeoutId = setTimeout(() => {
-      this.connect(this.token, this.roomId);
+      this.connect(this.token, this.roomId, navigate);
     }, this.reconnectDelay);
   }
 

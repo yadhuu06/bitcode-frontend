@@ -28,7 +28,7 @@ const Profile = lazy(() => import('./pages/user/Profile'));
 const Compiler = lazy(() => import('./pages/user/Compiler'));
 const Rooms = lazy(() => import('./pages/user/Rooms'));
 const RoomLobby = lazy(() => import('./pages/user/RoomLobby'));
-const Battle = lazy(() => import('./pages/user/Battle')); // Add Battle component
+const Battle = lazy(() => import('./pages/user/Battle')); 
 const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
 const AdminRoute = lazy(() => import('./routes/AdminRoute'));
 const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification'));
@@ -111,7 +111,7 @@ const AppWrapper = () => {
               <Route path={ROUTES.USER_COMPILER} element={<Compiler />} />
               <Route path={ROUTES.USER_ROOMS} element={<Rooms />} />
               <Route path={ROUTES.USER_ROOM} element={<RoomLobby />} />
-              <Route path={ROUTES.USER_BATTLE} element={<Battle />} /> {/* Add Battle route */}
+              <Route path={ROUTES.USER_BATTLE} element={<Battle />} /> 
               <Route path={ROUTES.USER_CONTRIBUTE} element={<Contribute />} />
             </Route>
           </Route>

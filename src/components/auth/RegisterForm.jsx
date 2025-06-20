@@ -53,7 +53,7 @@ const RegisterForm = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              disabled={false} // Loading state managed by Redux
+              disabled={false} 
             />
           </div>
           <button

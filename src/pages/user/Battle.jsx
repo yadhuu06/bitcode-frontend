@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
-import { Play, Maximize, Minimize, Check, Save, Copy, Trash } from 'lucide-react';
+import React, { useState, useEffect, memo, useRef } from 'react';
+import { NavLink, useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Play, Maximize, Minimize, Save, Copy, Trash } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { toast } from 'react-toastify';
@@ -11,7 +11,9 @@ import api from '../../api';
 import { getRoomDetails } from '../../services/RoomService';
 
 const Battle = () => {
-  const { roomId } = useParams(); 
+  const { roomId, questionId } = useParams();
+  const { state } = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.loading);
   const { user } = useSelector((state) => state.auth);
@@ -19,10 +21,12 @@ const Battle = () => {
   const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState('');
   const [isEditorFull, setIsEditorFull] = useState(false);
-  const [question, setQuestion] = useState(null);
-  const [testCases, setTestCases] = useState([]);
+  const [question, setQuestion] = useState(state?.question || null);
+  const [testCases, setTestCases] = useState(state?.question?.testcases || []);
   const [results, setResults] = useState([]);
   const [allPassed, setAllPassed] = useState(false);
+  const [roomDetails, setRoomDetails] = useState(null);
+  const wsListenerId = useRef(`battle-${roomId}`);
 
   const languages = [
     {
@@ -46,61 +50,124 @@ const Battle = () => {
   ];
 
   useEffect(() => {
-    if (!roomId) {
-      console.error('Invalid roomId:', roomId);
-      toast.error('Invalid room ID');
+    if (!roomId || !questionId) {
+      console.error('Invalid roomId or questionId:', { roomId, questionId });
+      toast.error('Invalid room or question ID');
+      navigate('/user/rooms');
       return;
     }
 
-
-   
-
-    // Fetch room details
     const fetchRoom = async () => {
       try {
         const token = localStorage.getItem('token');
-        await getRoomDetails(roomId, token);
+        const response = await getRoomDetails(roomId, token);
+        setRoomDetails(response);
       } catch (error) {
         toast.error(error.message || 'Failed to load room details');
       }
     };
 
-    fetchQuestion();
-    fetchRoom();
+    const fetchQuestion = async () => {
+      if (question) return;
+      try {
+        const token = localStorage.getItem('token');
+        const response = await api.get(`/battle/${questionId}/`);
+        setQuestion(response.data);
+        setTestCases(response.data.testcases || []);
+      } catch (error) {
+        toast.error(error.message || 'Failed to load question details');
+        navigate('/user/rooms');
+      }
+    };
 
-    // Connect WebSocket
+    fetchRoom();
+    fetchQuestion();
+
     const token = localStorage.getItem('token');
     if (token) {
-      WebSocketService.connect(token, roomId);
+      WebSocketService.connect(token, roomId, navigate, 'battle');
+      const handleMessage = (data) => {
+        console.log('WebSocket message received:', data);
+        switch (data.type) {
+          case 'submission_result':
+            toast.info(`Submission by ${data.username}: ${data.status}`);
+            if (data.username === user?.username) {
+              setResults(data.results || []);
+              setAllPassed(data.all_passed || false);
+              setActiveTab('results');
+            }
+            break;
+          case 'battle_ended':
+            toast.success('Battle ended!');
+            navigate('/user/rooms');
+            break;
+          case 'room_closed':
+            toast.error('Room has been closed');
+            navigate('/user/rooms');
+            break;
+          case 'error':
+            toast.error(data.message || 'WebSocket error');
+            if (
+              data.message.includes('401') ||
+              data.message.includes('4001') ||
+              data.message.includes('4002') ||
+              data.message.includes('Not authorized') ||
+              data.code === 4005
+            ) {
+              navigate('/login');
+            }
+            break;
+          default:
+            console.warn('Unknown WebSocket message type:', data.type);
+        }
+      };
+      WebSocketService.addListener(wsListenerId.current, handleMessage);
     } else {
       console.error('No token found for WebSocket connection');
       toast.error('Authentication required');
+      navigate('/login');
     }
 
     return () => {
+      console.log('Cleaning up WebSocket listener in Battle');
+      WebSocketService.removeListener(wsListenerId.current);
       WebSocketService.disconnect();
     };
-  }, [roomId, language]);
+  }, [roomId, questionId, question, user, navigate]);
 
   useEffect(() => {
     if (question) {
-      const savedCode = localStorage.getItem(`battle_${question.question_id}_${language}`) || languages.find((l) => l.name === language).placeholder;
+      const savedCode = localStorage.getItem(`battle_${question.id}_${language}`) || languages.find((l) => l.name === language).placeholder;
       setCode(savedCode);
     }
   }, [language, question]);
 
   const runCode = async () => {
-    if (!question) return;
+    if (!question) {
+      toast.error('No question loaded');
+      return;
+    }
     dispatch(setLoading({ isLoading: true, message: `Verifying ${language} code...`, style: 'terminal', progress: 0 }));
     try {
       const response = await api.post(`/questions/${question.id}/verify/`, {
         code,
         language,
+        room_id: roomId,
       });
       setResults(response.data.results);
       setAllPassed(response.data.all_passed);
       setActiveTab('results');
       toast.success('Code verification completed');
+      // Broadcast submission result via WebSocket
+      WebSocketService.sendMessage({
+        type: 'submission',
+        room_id: roomId,
+        username: user?.username,
+        question_id: questionId,
+        results: response.data.results,
+        all_passed: response.data.all_passed,
+        status: response.data.all_passed ? 'Passed' : 'Failed',
+      });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Verification failed');
     } finally {
@@ -109,8 +176,11 @@ const Battle = () => {
   };
 
   const saveCode = () => {
-    if (!question) return;
-    localStorage.setItem(`battle_${question.question_id}_${language}`, code);
+    if (!question) {
+      toast.error('No question loaded');
+      return;
+    }
+    localStorage.setItem(`battle_${question.id}_${language}`, code);
     toast.success('Code saved');
   };
 
@@ -123,7 +193,7 @@ const Battle = () => {
     const placeholder = languages.find((l) => l.name === language).placeholder;
     setCode(placeholder);
     if (question) {
-      localStorage.setItem(`battle_${question.question_id}_${language}`, placeholder);
+      localStorage.setItem(`battle_${question.id}_${language}`, placeholder);
     }
     setResults([]);
     setAllPassed(false);
@@ -145,11 +215,15 @@ const Battle = () => {
             <span>BitCode Battle</span>
             <span className="text-green-500">{'/>'}</span>
           </NavLink>
+          {roomDetails && (
+            <div className="text-sm text-gray-400">
+              Room: {roomDetails.name} | {roomDetails.is_ranked ? 'Ranked' : `${roomDetails.time_limit} min`}
+            </div>
+          )}
         </div>
       </nav>
 
       <div className="container mx-auto px-4 sm:px-6 pt-20 pb-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
-        {/* Left Panel (35%) */}
         <div
           className={`transition-all duration-300 ${
             isEditorFull ? 'hidden' : 'w-full lg:w-[35%]'
@@ -169,17 +243,17 @@ const Battle = () => {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto">
-            {activeTab === 'question' && question && (
+            {activeTab === 'question' && question ? (
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold">{question.title}</h2>
-                <p className="text-sm text-gray-200">{question.description}</p>
+                <p className="text-sm text-gray-200">{question.description || 'No description available'}</p>
                 <div>
                   <h3 className="text-sm font-semibold">Difficulty</h3>
-                  <p className="text-sm text-gray-200">{question.difficulty}</p>
+                  <p className="text-sm text-gray-200">{question.difficulty?.toLowerCase() || 'Unknown'}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">Tag</h3>
-                  <p className="text-sm text-gray-200">{question.tags}</p>
+                  <p className="text-sm text-gray-200">{question.tags || 'None'}</p>
                 </div>
                 {question.examples && question.examples.length > 0 && (
                   <div>
@@ -187,8 +261,8 @@ const Battle = () => {
                     {question.examples.map((example, index) => (
                       <div key={index} className="bg-gray-950 p-3 rounded-lg text-sm mb-2">
                         <p><strong>Example {index + 1}</strong></p>
-                        <p>Input: {example.input_example}</p>
-                        <p>Output: {example.output_example}</p>
+                        <p>Input: {example.input_example || 'N/A'}</p>
+                        <p>Output: {example.output_example || 'N/A'}</p>
                         {example.explanation && <p>Explanation: {example.explanation}</p>}
                       </div>
                     ))}
@@ -196,16 +270,22 @@ const Battle = () => {
                 )}
                 <div>
                   <h3 className="text-sm font-semibold">Test Cases</h3>
-                  {testCases.map((tc, index) => (
-                    <div key={tc.id} className="bg-gray-950 p-3 rounded-lg text-sm mb-2">
-                      <p><strong>Test Case {index + 1}</strong></p>
-                      <p>Input: {tc.input_data}</p>
-                      <p>Expected Output: {tc.expected_output}</p>
-                    </div>
-                  ))}
+                  {testCases.length > 0 ? (
+                    testCases.map((tc, index) => (
+                      <div key={index} className="bg-gray-950 p-3 rounded-lg text-sm mb-2">
+                        <p><strong>Test Case {index + 1}</strong></p>
+                        <p>Input: {tc.input_data || 'N/A'}</p>
+                        <p>Expected Output: {tc.expected_output || 'N/A'}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">No test cases available</p>
+                  )}
                 </div>
               </div>
-            )}
+            ) : activeTab === 'question' ? (
+              <p className="text-sm text-gray-400">Loading question or no question available</p>
+            ) : null}
             {activeTab === 'chat' && (
               <ChatPanel roomId={roomId} username={user?.username || 'Guest'} isActiveTab={activeTab === 'chat'} />
             )}
@@ -224,9 +304,9 @@ const Battle = () => {
                           </span>
                           <span>Test Case {index + 1}</span>
                         </p>
-                        <p>Input: {result.input}</p>
-                        <p>Expected: {result.expected}</p>
-                        <p>Actual: {result.actual}</p>
+                        <p>Input: {result.input || 'N/A'}</p>
+                        <p>Expected: {result.expected || 'N/A'}</p>
+                        <p>Actual: {result.actual || 'N/A'}</p>
                         {result.error && <p className="text-red-500">Error: {result.error}</p>}
                       </div>
                     ))}
@@ -240,7 +320,6 @@ const Battle = () => {
           </div>
         </div>
 
-        {/* Right Panel (65%) */}
         <div
           className={`transition-all duration-300 ${
             isEditorFull ? 'w-full h-[80vh]' : 'w-full lg:w-[65%]'
@@ -320,4 +399,4 @@ const Battle = () => {
   );
 };
 
-export default Battle;
+export default memo(Battle);

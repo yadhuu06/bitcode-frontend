@@ -1,7 +1,9 @@
+// hooks/useWebSocketLobby.js
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import WebSocketService from '../services/WebSocketService';
+import api from '../api';
 
 const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
   const navigate = useNavigate();
@@ -12,12 +14,13 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
   const [isRoomClosed, setIsRoomClosed] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
   const [lobbyMessages, setLobbyMessages] = useState([]);
+  const [assignedQuestion, setAssignedQuestion] = useState(null);
 
   useEffect(() => {
     if (!roomId || !accessToken || !username) return;
 
     console.log('Initiating WebSocket connection in useWebSocketLobby', { roomId, accessToken, username });
-    WebSocketService.connect(accessToken, roomId);
+    WebSocketService.connect(accessToken, roomId, navigate);
 
     const handleMessage = (data) => {
       console.log('WebSocket message received:', JSON.stringify(data, null, 2));
@@ -37,17 +40,38 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
           }
           break;
         }
-        case 'countdown':
+
+        case 'battle_ready': {
+          console.log('Battle ready received with question:', data.question);
+          setAssignedQuestion(data.question); // Store question
+          break;
+        }
+
+        case 'countdown': {
           setCountdown(data.countdown);
           break;
-        case 'ready_status':
+        }
+
+        case 'ready_status': {
           setReadyStatus((prev) => ({ ...prev, [data.username]: data.ready }));
           break;
-        case 'room_closed':
+        }
+
+        case 'battle_started': {
+          console.log('Battle started navigating to battle page...', data);
+          navigate(`/battle/${data.room_id}/${data.question.id}`);
+          toast.success("Battle Started!");
+          break;
+        }
+
+        case 'room_closed': {
           setIsRoomClosed(true);
+          toast.error('Room has been closed');
           setTimeout(() => navigate('/user/rooms'), 4000);
           break;
-        case 'kicked':
+        }
+
+        case 'kicked': {
           if (data.username === username) {
             setIsKicked(true);
             toast.error('You have been kicked from the room');
@@ -55,18 +79,19 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
             setTimeout(() => navigate('/user/rooms'), 2000);
           }
           break;
-        case 'participant_left':
+        }
+
+        case 'participant_left': {
           setLobbyMessages((prev) => {
             const message = `${data.username} left the lobby`;
-            if (prev.includes(message)) return prev; // Deduplicate
+            if (prev.includes(message)) return prev;
             const updated = [...prev, message];
             return updated.slice(-5);
           });
           break;
-        case 'start_battle':
-          navigate(`/battle/${roomId}/${data.question.id}`);
-          break;
-        case 'error':
+        }
+
+        case 'error': {
           toast.error(data.message);
           if (
             data.message.includes('401') ||
@@ -78,8 +103,11 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
             navigate('/login');
           }
           break;
-        default:
+        }
+
+        default: {
           console.warn('Unknown WebSocket message type:', data.type);
+        }
       }
     };
 
@@ -89,7 +117,6 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
       console.log('Requesting participant list on WebSocket connect');
       WebSocketService.sendMessage({ type: 'request_participants' });
     } else {
-
       const listenerId = `connect-${roomId}`;
       const onConnect = () => {
         console.log('WebSocket connected, requesting participant list');
@@ -115,6 +142,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
     isRoomClosed,
     isKicked,
     lobbyMessages,
+    assignedQuestion,
   };
 };
 

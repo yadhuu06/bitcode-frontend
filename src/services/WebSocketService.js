@@ -19,7 +19,7 @@ class WebSocketService {
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
     this.lastPongReceived = null;
-    this.pongTimeout = 5000;
+    this.pongTimeout = 10000;
     this.pongTimeoutId = null;
   }
 
@@ -54,10 +54,7 @@ class WebSocketService {
         if (data.type === 'error') {
           toast.error(data.message || 'An error occurred');
         }
-        if (data.type === 'battle_started' && navigate) {
-          const { question, room_id } = data;
-          navigate(`/battle/${room.room_id}/${room.question_id}`);
-        }
+        
         Object.values(this.listeners).forEach((listener) => listener(data));
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);

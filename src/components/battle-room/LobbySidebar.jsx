@@ -1,4 +1,3 @@
-
 import { Shield, Clock, Users, ClipboardCopy, ArrowLeft, CheckCircle, Swords, XCircle, Medal } from 'lucide-react';
 import ChatPanel from '../../pages/user/ChatPannel';
 
@@ -71,10 +70,9 @@ const LobbySidebar = ({
                 {roomDetails?.ranked ? <Medal className="w-5 h-5 text-[#00FF40]" /> : <Clock className="w-5 h-5 text-[#00FF40]" />}
                 {roomDetails?.ranked ? 'Mode:' : 'Duration:'}
               </span>
-<span className={roomDetails?.ranked ? 'text-red-500 font-semibold' : 'text-white'}>
-  {roomDetails?.ranked ? 'Ranked' : `${roomDetails?.timeLimit} min`}
-</span>
-
+              <span className={roomDetails?.ranked ? 'text-red-500 font-semibold' : 'text-white'}>
+                {roomDetails?.ranked ? 'Ranked' : `${roomDetails?.timeLimit} min`}
+              </span>
             </div>
             <div className="grid grid-cols-[120px_1fr] items-center gap-4">
               <span className="flex items-center gap-2 text-gray-400 font-medium">
@@ -87,24 +85,22 @@ const LobbySidebar = ({
               <span className="text-gray-400 font-medium">Privacy:</span>
               <span className="text-white capitalize">{roomDetails?.isPrivate ? 'Private' : 'Public'}</span>
             </div>
-<div className="grid grid-cols-[120px_1fr] items-center gap-4">
-  <span className="text-gray-400 font-medium">Difficulty:</span>
-  <span
-    className={`capitalize font-semibold ${
-      roomDetails?.difficulty === 'EASY'
-        ? 'text-green-500'
-        : roomDetails?.difficulty === 'MEDIUM'
-        ? 'text-yellow-500'
-        : roomDetails?.difficulty === 'HARD'
-        ? 'text-red-500'
-        : 'text-white'
-    }`}
-  >
-    {roomDetails?.difficulty}
-  </span>
-</div>
-
-
+            <div className="grid grid-cols-[120px_1fr] items-center gap-4">
+              <span className="text-gray-400 font-medium">Difficulty:</span>
+              <span
+                className={`capitalize font-semibold ${
+                  roomDetails?.difficulty === 'EASY'
+                    ? 'text-green-500'
+                    : roomDetails?.difficulty === 'MEDIUM'
+                    ? 'text-yellow-500'
+                    : roomDetails?.difficulty === 'HARD'
+                    ? 'text-red-500'
+                    : 'text-white'
+                }`}
+              >
+                {roomDetails?.difficulty}
+              </span>
+            </div>
           </div>
         )}
         {activeTab === 'chat' && (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, memo, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useParams,useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify'; 
-import { handleStartBattle } from '../../services/RoomService';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { handleStartBattle } from '../../services/BattleService';
+import WebSocketService from '../../services/WebSocketService';
 import useWebSocketLobby from '../../hooks/useWebSocketLobby';
 import useRoomDetails from '../../hooks/useRoomDetails';
 import {
@@ -13,16 +14,12 @@ import {
   handleLeaveRoom,
   handleCloseRoom,
 } from '../../utils/lobbyActions';
-
 import 'react-toastify/dist/ReactToastify.css';
 import LobbyHeader from '../../components/battle-room/LobbyHeader';
 import ParticipantsPanel from '../../components/battle-room/ParticipantsPanel';
 import LobbySidebar from '../../components/battle-room/LobbySidebar';
 import LobbyFooter from '../../components/battle-room/LobbyFooter';
 import LobbyModals from '../../components/battle-room/LobbyModals';
-import { Code } from 'lucide-react';
-
-
 
 const BattleWaitingLobby = () => {
   const { roomId } = useParams();
@@ -45,79 +42,79 @@ const BattleWaitingLobby = () => {
     isRoomClosed,
     isKicked,
     lobbyMessages,
-  } = useWebSocketLobby(roomId, accessToken, username, setRole); 
+    assignedQuestion,
+  } = useWebSocketLobby(roomId, accessToken, username, setRole);
+
   const MatrixBackground = memo(() => {
-  const canvasRef = useRef(null);
+    const canvasRef = useRef(null);
 
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    canvas.height = window.innerHeight;
-    canvas.width = window.innerWidth;
-
-    const chars = '01';
-    const fontSize = 14;
-    const numChars = Math.floor(Math.random() * 21) + 10;
-    const particles = [];
-
-    for (let i = 0; i < numChars; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        char: chars.charAt(Math.floor(Math.random() * chars.length)),
-        opacity: 0,
-        phase: 'fadeIn',
-        speed: Math.random() * 0.02 + 0.01,
-      });
-    }
-
-    const draw = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = `${fontSize}px monospace`;
-
-      particles.forEach((p) => {
-        ctx.fillStyle = `rgba(0, 255, 64, ${p.opacity})`;
-        ctx.fillText(p.char, p.x, p.y);
-
-        if (p.phase === 'fadeIn') {
-          p.opacity += p.speed;
-          if (p.opacity >= 0.8) p.phase = 'fadeOut';
-        } else {
-          p.opacity -= p.speed;
-          if (p.opacity <= 0) {
-            p.x = Math.random() * canvas.width;
-            p.y = Math.random() * canvas.height;
-            p.char = chars.charAt(Math.floor(Math.random() * chars.length));
-            p.opacity = 0;
-            p.phase = 'fadeIn';
-            p.speed = Math.random() * 0.02 + 0.01;
-          }
-        }
-      });
-    };
-
-    const interval = setInterval(draw, 50);
-    const handleResize = () => {
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
       canvas.height = window.innerHeight;
       canvas.width = window.innerWidth;
-      particles.forEach((p) => {
-        p.x = Math.min(p.x, canvas.width);
-        p.y = Math.min(p.y, canvas.height);
-      });
-    };
 
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+      const chars = '01';
+      const fontSize = 14;
+      const numChars = Math.floor(Math.random() * 21) + 10;
+      const particles = [];
 
-  return <canvas ref={canvasRef} className="fixed top-0 left-0 z-0 opacity-30" />;
-});
+      for (let i = 0; i < numChars; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          char: chars.charAt(Math.floor(Math.random() * chars.length)),
+          opacity: 0,
+          phase: 'fadeIn',
+          speed: Math.random() * 0.02 + 0.01,
+        });
+      }
 
+      const draw = () => {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = `${fontSize}px monospace`;
+
+        particles.forEach((p) => {
+          ctx.fillStyle = `rgba(0, 255, 64, ${p.opacity})`;
+          ctx.fillText(p.char, p.x, p.y);
+
+          if (p.phase === 'fadeIn') {
+            p.opacity += p.speed;
+            if (p.opacity >= 0.8) p.phase = 'fadeOut';
+          } else {
+            p.opacity -= p.speed;
+            if (p.opacity <= 0) {
+              p.x = Math.random() * canvas.width;
+              y: Math.random() * canvas.height,
+              p.char = chars.charAt(Math.floor(Math.random() * chars.length));
+              p.opacity = 0;
+              p.phase = 'fadeIn';
+              p.speed = Math.random() * 0.02 + 0.01;
+            }
+          }
+        });
+      };
+
+      const interval = setInterval(draw, 50);
+      const handleResize = () => {
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+        particles.forEach((p) => {
+          p.x = Math.min(p.x, canvas.width);
+          p.y = Math.min(p.y, canvas.height);
+        });
+      };
+
+      window.addEventListener('resize', handleResize);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('resize', handleResize);
+      };
+    }, []);
+
+    return <canvas ref={canvasRef} className="fixed top-0 left-0 z-0 opacity-30" />;
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -127,23 +124,6 @@ const BattleWaitingLobby = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (countdown === null || !roomDetails) return;
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-    setTimeout(() => {
-      setCountdown(null);
-      if (roomDetails.room_id) {
-        handleStartBattle({ room: roomDetails, participants, currentUser: username,navigate });
-      } else {
-        console.error('RoomDetails missing room_id:', roomDetails);
-        toast.error('Cannot start battle: Invalid room ID');
-      }
-    }, 1000);
-  }, [countdown, roomDetails, participants, username]);
 
   const getDifficultyStyles = (difficulty) => {
     switch (difficulty?.toLowerCase()) {
@@ -201,7 +181,14 @@ const BattleWaitingLobby = () => {
                 copied={copied}
                 isLoading={isLoading}
                 participants={participants}
-                initiateCountdown={() => initiateCountdown(participants)}
+                initiateCountdown={() =>
+                  handleStartBattle({
+                    room: roomDetails,
+                    participants,
+                    currentUser: username,
+                    navigate,
+                  })
+                }
                 handleCloseRoom={() => handleCloseRoom(role)}
                 handleLeaveRoom={handleLeaveRoom}
                 handleReadyToggle={() => handleReadyToggle(username, readyStatus, setReadyStatus)}

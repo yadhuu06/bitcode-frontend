@@ -59,7 +59,7 @@ const Battle = () => {
 
     const fetchRoom = async () => {
       try {
-        const token = localStorage.getItem('token');
+        
         const response = await getRoomDetails(roomId, token);
         setRoomDetails(response);
       } catch (error) {
@@ -83,55 +83,10 @@ const Battle = () => {
     fetchRoom();
     fetchQuestion();
 
-    const token = localStorage.getItem('token');
-    if (token) {
-      WebSocketService.connect(token, roomId, navigate, 'battle');
-      const handleMessage = (data) => {
-        console.log('WebSocket message received:', data);
-        switch (data.type) {
-          case 'submission_result':
-            toast.info(`Submission by ${data.username}: ${data.status}`);
-            if (data.username === user?.username) {
-              setResults(data.results || []);
-              setAllPassed(data.all_passed || false);
-              setActiveTab('results');
-            }
-            break;
-          case 'battle_ended':
-            toast.success('Battle ended!');
-            navigate('/user/rooms');
-            break;
-          case 'room_closed':
-            toast.error('Room has been closed');
-            navigate('/user/rooms');
-            break;
-          case 'error':
-            toast.error(data.message || 'WebSocket error');
-            if (
-              data.message.includes('401') ||
-              data.message.includes('4001') ||
-              data.message.includes('4002') ||
-              data.message.includes('Not authorized') ||
-              data.code === 4005
-            ) {
-              navigate('/login');
-            }
-            break;
-          default:
-            console.warn('Unknown WebSocket message type:', data.type);
-        }
-      };
-      WebSocketService.addListener(wsListenerId.current, handleMessage);
-    } else {
-      console.error('No token found for WebSocket connection');
-      toast.error('Authentication required');
-      navigate('/login');
-    }
 
     return () => {
       console.log('Cleaning up WebSocket listener in Battle');
-      WebSocketService.removeListener(wsListenerId.current);
-      WebSocketService.disconnect();
+     
     };
   }, [roomId, questionId, question, user, navigate]);
 
@@ -158,7 +113,7 @@ const Battle = () => {
       setAllPassed(response.data.all_passed);
       setActiveTab('results');
       toast.success('Code verification completed');
-      // Broadcast submission result via WebSocket
+
       WebSocketService.sendMessage({
         type: 'submission',
         room_id: roomId,

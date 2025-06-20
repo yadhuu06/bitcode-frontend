@@ -58,11 +58,12 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         }
 
         case 'battle_started': {
-          console.log('Battle started navigating to battle page...', data);
-          navigate(`/battle/${data.room_id}/${data.question.id}`);
-          toast.success("Battle Started!");
-          break;
-        }
+            console.log('Battle started navigating to battle page...', data);
+            navigate(`/battle/${data.room_id}/${data.question.id}`);
+
+            toast.success("Battle Started!");
+            break;
+          }
 
         case 'room_closed': {
           setIsRoomClosed(true);

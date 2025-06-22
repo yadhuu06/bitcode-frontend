@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { handleStartBattle } from '../../services/BattleService';
-import WebSocketService from '../../services/WebSocketService';
+
 import useWebSocketLobby from '../../hooks/useWebSocketLobby';
 import useRoomDetails from '../../hooks/useRoomDetails';
 import {

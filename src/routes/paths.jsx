@@ -19,4 +19,5 @@ export const ROUTES = {
   ADMIN_QUESTION_VERIFY: '/admin/questions/verify/:questionId',
   ADMIN_QUESTION_TEST_CASES: '/admin/questions/:questionId/test-cases',
   NOT_FOUND: '*',
+  FORGOT_PASSWORD:'/forgot_password'
 };

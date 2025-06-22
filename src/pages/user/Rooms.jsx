@@ -381,6 +381,9 @@ const Rooms = () => {
                       <p className="text-gray-300">
                         Topic: <span className="text-white">{room.topic}</span>
                       </p>
+                      <p className="text-gray-300">
+                        Status: <span className="text-white">{room.status}</span>
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mb-5">

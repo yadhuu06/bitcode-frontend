@@ -80,7 +80,7 @@ const Profile = () => {
       fetchUserData();
     } else {
       toast.error('Please log in to view your profile');
-      navigate('/login'); // Adjust to your ROUTES.LOGIN
+      navigate('/login'); 
     }
   }, [dispatch, isAuthenticated, navigate]);
 
@@ -195,7 +195,7 @@ const Profile = () => {
       await logout();
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!');
-      navigate('/'); // Adjust to your ROUTES.HOME
+      navigate('/');
     } catch (error) {
       console.error('Error during logout:', error);
       dispatch(logoutSuccess());

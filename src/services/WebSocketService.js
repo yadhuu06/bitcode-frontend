@@ -35,7 +35,7 @@ class WebSocketService {
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
-      console.log('✅ WebSocket connected');
+      console.log(' WebSocket connected');
       this.reconnectAttempts = 0;
       this._startHeartbeat();
       if (roomId) {
@@ -63,20 +63,20 @@ class WebSocketService {
     };
 
     this.socket.onclose = (event) => {
-      console.warn('⚠️ WebSocket disconnected:', event.code, event.reason);
+      console.warn(' WebSocket disconnected:', event.code, event.reason);
       this.socket = null;
       this._stopHeartbeat();
       if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
         this._tryReconnect(navigate);
       } else {
-        console.error('🛑 WebSocket closed permanently:', event.code, event.reason);
+        console.error(' WebSocket closed permanently:', event.code, event.reason);
        
       }
     };
 
     this.socket.onerror = (error) => {
-      console.error('❌ WebSocket error:', error);
-      toast.error('WebSocket error occurred.');
+      console.error(' WebSocket error:', error);
+     
     };
   }
 
@@ -109,14 +109,14 @@ class WebSocketService {
     if (this.isConnected()) {
       this.socket.send(JSON.stringify(message));
     } else {
-      console.warn('🕳️ Cannot send message, socket not open');
-      toast.warn('Cannot send message: WebSocket not connected');
+      console.warn(' Cannot send message, socket not open');
+      
     }
   }
 
   _tryReconnect(navigate) {
     this.reconnectAttempts += 1;
-    console.log(`🔁 Reconnecting... attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+    console.log(` Reconnecting... attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
     this.reconnectTimeoutId = setTimeout(() => {
       this.connect(this.token, this.roomId, navigate);
     }, this.reconnectDelay);
@@ -132,7 +132,7 @@ class WebSocketService {
       this.sendMessage({ type: 'ping' });
       this.pongTimeoutId = setTimeout(() => {
         if (Date.now() - this.lastPongReceived > this.pongTimeout) {
-          console.warn('⚠️ No pong received, closing connection');
+          console.warn(' No pong received, closing connection');
           this.disconnect();
         }
       }, this.pongTimeout);

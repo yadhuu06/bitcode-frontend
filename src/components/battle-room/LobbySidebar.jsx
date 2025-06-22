@@ -100,6 +100,7 @@ const LobbySidebar = ({
               >
                 {roomDetails?.difficulty}
               </span>
+              
             </div>
           </div>
         )}

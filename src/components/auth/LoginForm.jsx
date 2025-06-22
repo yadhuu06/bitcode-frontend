@@ -54,7 +54,7 @@ const LoginForm = () => {
       );
       setEmail('');
       setPassword('');
-      navigate(data.redirect_url || '/user/dashboard'); // Use redirect_url from backend
+      navigate(data.redirect_url || '/user/dashboard'); 
       toast.success('Logged in successfully!');
     } catch (err) {
       toast.error(err.message || 'Login failed');
@@ -98,8 +98,21 @@ const LoginForm = () => {
         <h5 className="flex-shrink mx-4 text-white">Or Continue With</h5>
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
-      <GoogleAuthButton label="Google" disabled={isLoading} />
+      
+
+      
+      <GoogleAuthButton label="Google"  />
+        <h5 
+  className="flex-shrink mx-4 text-white cursor-pointer" 
+  onClick={() => navigate('/forgot_password')}
+>
+  Forgot password?
+</h5>
+
+     
+
     </form>
+    
   );
 };
 

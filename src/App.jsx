@@ -33,6 +33,7 @@ const PrivateRoute = lazy(() => import('./routes/PrivateRoute'));
 const AdminRoute = lazy(() => import('./routes/AdminRoute'));
 const AnswerVerification = lazy(() => import('./pages/admin/AnswerVerification'));
 const Contribute = lazy(() => import('./pages/user/Contribute'));
+const ForgotPassword =lazy(()=>import('./components/auth/ForgotPassword'))
 
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
@@ -95,6 +96,8 @@ const AppWrapper = () => {
         <Routes>
           <Route path={ROUTES.HOME} element={<AuthPage />} />
           <Route path={ROUTES.LOGIN} element={<AuthPage />} />
+          <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+
           <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallback />} />
           <Route path={ROUTES.ADMIN_LOGIN} element={<BitWarAdminLogin />} />
 

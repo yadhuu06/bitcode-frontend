@@ -41,7 +41,7 @@ export const login = async (credentials) => {
       refresh: response.data.refresh,
       access: response.data.access,
       role: response.data.role,
-      redirect_url: response.data.redirect_url, // Frontend should redirect to this URL
+      redirect_url: response.data.redirect_url,
     };
   } catch (error) {
     console.error('Error during login:', error.message);
@@ -85,7 +85,7 @@ export const refreshToken = async (refreshToken) => {
   }
 };
 
-export const generateOtp = async (email) => {
+export const generateOtp = async (email,type) => {
   if (!email) {
     throw new Error('Email is required');
   }
@@ -96,6 +96,7 @@ export const generateOtp = async (email) => {
   try {
     const response = await api.post('/api/auth/otp/generate/', {
       email: email.trim(),
+      otp_type:type
     });
     return {
       message: response.data.message,

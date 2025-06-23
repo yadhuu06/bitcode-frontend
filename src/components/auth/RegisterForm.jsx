@@ -14,6 +14,7 @@ const RegisterForm = () => {
   const [email, setEmail] = useState(savedState.email || '');
   const dispatch = useDispatch();
   const { resetTimers } = useTimer();
+  const type="forgot_password"
 
   useEffect(() => {
     if (step === 1) {
@@ -29,8 +30,9 @@ const RegisterForm = () => {
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     dispatch(setLoading({ isLoading: true, message: 'Sending OTP...', style: 'default' }));
+    await new Promise(resolve => setTimeout(resolve, 0));
     try {
-      const data = await generateOtp(email);
+      const data = await generateOtp(email,type);
       setStep(2);
       console.log('OTP expires in:', data.expires_in);
     } catch (err) {

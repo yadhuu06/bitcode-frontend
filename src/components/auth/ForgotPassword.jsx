@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
+import { generateOtp } from '../../services/AuthService';
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password Reset
@@ -10,6 +10,18 @@ const ForgotPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showMatrix, setShowMatrix] = useState(true);
+  const type = "forgot_password";
+
+  const otpSubmission = async (email, type) => {
+    try {
+      const data = await generateOtp(email, type);
+      setStep(2);
+      console.log('OTP expires in:', data.expires_in);
+    } catch (err) {
+      toast.error(err.message || 'Failed to send OTP');
+      console.error('OTP generation error:', err);
+    }
+  };
 
   const getRandomMatrixElement = () => {
     const chars = '01';
@@ -23,8 +35,6 @@ const ForgotPassword = () => {
       toast.error('Please enter a valid email address');
       return;
     }
-    toast.success('OTP sent to your email');
-    setStep(2);
   };
 
   // Simulated OTP verification
@@ -121,34 +131,29 @@ const ForgotPassword = () => {
         </h2>
       </div>
       <button
-  onClick={() => setShowMatrix(!showMatrix)}
-  className="fixed top-4 right-4 z-50 w-14 h-7 bg-gray-800 rounded-full p-1 transition-colors duration-300 focus:outline-none relative shadow-lg"
->
-  <span
-    className={`block w-5 h-5 bg-white rounded-full transform transition-transform duration-300 ${
-      showMatrix ? 'translate-x-7' : 'translate-x-0'
-    }`}
-  ></span>
-
-  {/* ON label */}
-  <span
-    className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold transition-opacity duration-300 ${
-      showMatrix ? 'opacity-100 text-green-500' : 'opacity-0'
-    }`}
-  >
-    ON
-  </span>
-
-  {/* OFF label */}
-  <span
-    className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold transition-opacity duration-300 ${
-      !showMatrix ? 'opacity-100 text-red-500' : 'opacity-0'
-    }`}
-  >
-    OFF
-  </span>
-</button>
-
+        onClick={() => setShowMatrix(!showMatrix)}
+        className="fixed top-4 right-4 z-50 w-14 h-7 bg-gray-800 rounded-full p-1 transition-colors duration-300 focus:outline-none relative shadow-lg"
+      >
+        <span
+          className={`block w-5 h-5 bg-white rounded-full transform transition-transform duration-300 ${
+            showMatrix ? 'translate-x-7' : 'translate-x-0'
+          }`}
+        ></span>
+        <span
+          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold transition-opacity duration-300 ${
+            showMatrix ? 'opacity-100 text-green-500' : 'opacity-0'
+          }`}
+        >
+          ON
+        </span>
+        <span
+          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold transition-opacity duration-300 ${
+            !showMatrix ? 'opacity-100 text-red-500' : 'opacity-0'
+          }`}
+        >
+          OFF
+        </span>
+      </button>
       <div className="w-full max-w-sm z-10">
         <h3 className="text-lg text-gray-300 mb-6 text-center">Password Reset</h3>
         <AnimatePresence mode="wait" custom={step}>
@@ -178,13 +183,13 @@ const ForgotPassword = () => {
                 </div>
                 <button
                   type="submit"
+                  onClick={() => otpSubmission(email, type)}
                   className="w-full bg-white text-black font-semibold py-2 rounded-md hover:bg-green-500 transition-colors duration-300 mt-4"
                 >
                   Send OTP
                 </button>
               </form>
             )}
-
             {step === 2 && (
               <form onSubmit={handleVerifyOtp}>
                 <div className="text-sm text-gray-400 mb-2">
@@ -220,7 +225,6 @@ const ForgotPassword = () => {
                 </div>
               </form>
             )}
-
             {step === 3 && (
               <form onSubmit={handleResetPassword}>
                 <div className="flex items-center space-x-2 mb-2">

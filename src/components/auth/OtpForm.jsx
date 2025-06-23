@@ -10,6 +10,7 @@ const OtpForm = ({ email, setStep }) => {
   const dispatch = useDispatch();
   const isLoading = useSelector((state) => state.loading.isLoading);
   const { otpExpiration, resendCooldown, formatTime, resetTimer, setCooldown } = useTimer(600, 60);
+  const otp_type="registeration"
 
   const handleSubmit = async () => {
     if (otp.length !== 6) {
@@ -18,7 +19,7 @@ const OtpForm = ({ email, setStep }) => {
     }
     dispatch(setLoading({ isLoading: true, message: 'Verifying OTP...', style: 'terminal' }));
     try {
-      await verifyOtp(email, otp);
+      await verifyOtp(email, otp,otp_type);
       setOtp('');
       setStep(3);
       toast.success('OTP verified successfully!');

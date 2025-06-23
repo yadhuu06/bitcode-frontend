@@ -15,35 +15,10 @@ import ContributionsSection from '../../components/user/ContributionsSection';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const BitCodeProgressLoading = ({ message, progress, size, showBackground, style, duration }) => {
-  const sizeClasses = {
-    small: 'w-16 h-16',
-    medium: 'w-24 h-24',
-    large: 'w-32 h-32',
-  };
-  const styleClasses = {
-    terminal: 'bg-green-600 animate-pulse',
-    compile: 'bg-blue-600 animate-spin',
-    battle: 'bg-red-600 animate-bounce',
-  };
-
-  return (
-    <div className={`flex flex-col items-center justify-center ${showBackground ? 'bg-black bg-opacity-70' : ''} p-4 rounded-lg`}>
-      <div
-        className={`${sizeClasses[size] || sizeClasses.large} ${styleClasses[style] || styleClasses.terminal} rounded-full flex items-center justify-center`}
-      >
-        <span className="text-white font-mono text-sm">{Math.round(progress)}%</span>
-      </div>
-      <p className="mt-2 text-white font-mono">{message}</p>
-    </div>
-  );
-};
-
 const Profile = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user: reduxUser, isAuthenticated } = useSelector((state) => state.auth);
-  const { isLoading, message, progress, style } = useSelector((state) => state.loading);
   const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token');
   const isAdmin = reduxUser?.is_admin;
 
@@ -62,15 +37,14 @@ const Profile = () => {
     const fetchUserData = async () => {
       dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
       try {
-        await new Promise((resolve) => setTimeout(resolve, 0.001));
         const userData = await fetchProfile();
         console.log('Fetched user data:', userData); 
         setUser(userData);
         setUsername(userData.username || '');
-        
       } catch (error) {
         console.error('Error fetching user data:', error);
         toast.error(error.message || 'Failed to load profile data');
+        navigate('/login'); // Redirect on error
       } finally {
         dispatch(resetLoading());
       }
@@ -98,7 +72,6 @@ const Profile = () => {
       setBinaryElements(newBinary);
     };
     generateBinary();
-    
   }, []);
 
   const handleFileChange = (e) => {
@@ -220,21 +193,6 @@ const Profile = () => {
     setDropdownOpen(false);
   };
 
-  if (!user && !isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <BitCodeProgressLoading
-          message="Loading user data..."
-          size="large"
-          showBackground={true}
-          style="terminal"
-          duration={3000}
-          progress={50}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-24">
       {binaryElements.map((element) => (
@@ -246,18 +204,6 @@ const Profile = () => {
           {element.value}
         </span>
       ))}
-      {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <BitCodeProgressLoading
-            message={message}
-            progress={progress}
-            size="large"
-            showBackground={true}
-            style={style}
-            duration={5000}
-          />
-        </div>
-      )}
       <div className="w-full max-w-7xl flex flex-col lg:flex-row justify-between px-6 py-6 gap-12">
         <div className="w-full lg:w-1/3 lg:order-1">
           <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl relative">
@@ -277,7 +223,7 @@ const Profile = () => {
                   alt="Profile"
                   className="w-24 h-24 rounded-full object-cover border-2 border-green-500 shadow-md transition-all duration-300 hover:shadow-lg"
                   onError={(e) => {
-                    console.error('Image load error:', user?.profile_picture); // Debug log
+                    console.error('Image load error:', user?.profile_picture);
                     e.target.onerror = null;
                     e.target.src = `${BASE_URL}/media/profile_pics/default/coding_hacker.png`;
                   }}

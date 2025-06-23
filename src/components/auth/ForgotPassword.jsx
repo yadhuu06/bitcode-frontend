@@ -1,25 +1,120 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateOtp } from '../../services/AuthService';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
+import { generateOtp, verifyOtp, resetPassword } from '../../services/AuthService';
 
 const ForgotPassword = () => {
-  const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Password Reset
+  const dispatch = useDispatch();
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordStrength, setPasswordStrength] = useState(null);
   const [showMatrix, setShowMatrix] = useState(true);
   const type = "forgot_password";
 
-  const otpSubmission = async (email, type) => {
+  // Password strength checker
+  const checkPasswordStrength = (password) => {
+    const minLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (!minLength || !hasUppercase || !hasSpecialChar) {
+      return { strength: 'weak', message: 'Must be 8+ chars, include 1 uppercase & 1 special char' };
+    } else if (hasNumber) {
+      return { strength: 'strong', message: 'Strong password! Includes numbers' };
+    } else {
+      return { strength: 'medium', message: 'Medium password. Add numbers for strength' };
+    }
+  };
+
+  useEffect(() => {
+    if (newPassword) {
+      const strength = checkPasswordStrength(newPassword);
+      setPasswordStrength(strength);
+    } else {
+      setPasswordStrength(null);
+    }
+  }, [newPassword]);
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    dispatch(setLoading({ isLoading: true, message: 'Sending OTP...', style: 'default' }));
     try {
       const data = await generateOtp(email, type);
       setStep(2);
+      toast.success('OTP sent successfully!');
       console.log('OTP expires in:', data.expires_in);
     } catch (err) {
       toast.error(err.message || 'Failed to send OTP');
       console.error('OTP generation error:', err);
+    } finally {
+      dispatch(resetLoading());
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+    dispatch(setLoading({ isLoading: true, message: 'Verifying OTP...', style: 'terminal' }));
+    try {
+      await verifyOtp(email, otp, type);
+      setOtp('');
+      setStep(3);
+      toast.success('OTP verified successfully!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'OTP verification failed');
+    } finally {
+      dispatch(resetLoading());
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const strength = checkPasswordStrength(newPassword);
+    if (strength.strength === 'weak') {
+      toast.error(strength.message);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    dispatch(setLoading({ isLoading: true, message: 'Resetting password...', style: 'compile' }));
+    try {
+      await resetPassword(email, otp, newPassword);
+      toast.success('Password reset successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordStrength(null);
+      setTimeout(() => window.location.href = '/login', 1000);
+    } catch (err) {
+      toast.error(err.message || 'Password reset failed');
+    } finally {
+      dispatch(resetLoading());
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 2) {
+      setOtp('');
+      setStep(1);
+    } else if (step === 3) {
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordStrength(null);
+      setStep(2);
     }
   };
 
@@ -28,54 +123,6 @@ const ForgotPassword = () => {
     return chars.charAt(Math.floor(Math.random() * chars.length));
   };
 
-  // Simulated email validation
-  const handleSendOtp = (e) => {
-    e.preventDefault();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-  };
-
-  // Simulated OTP verification
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    if (!otp || otp.length !== 6 || !/^\d+$/.test(otp)) {
-      toast.error('Please enter a valid 6-digit OTP');
-      return;
-    }
-    toast.success('OTP verified successfully');
-    setStep(3);
-  };
-
-  // Simulated password reset
-  const handleResetPassword = (e) => {
-    e.preventDefault();
-    if (!newPassword || newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters long');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    toast.success('Password reset successfully');
-    // Add navigation here when integrating with routing
-  };
-
-  // Back button handler
-  const handleBack = () => {
-    if (step === 2) {
-      setOtp('');
-      setStep(1);
-    } else if (step === 3) {
-      setNewPassword('');
-      setConfirmPassword('');
-      setStep(2);
-    }
-  };
-
-  // Animation variants for sliding
   const slideVariants = {
     enter: (direction) => ({
       x: direction > 0 ? 100 : -100,
@@ -114,12 +161,8 @@ const ForgotPassword = () => {
       <style>
         {`
           @keyframes pulse {
-            0%, 100% {
-              opacity: 0.1;
-            }
-            50% {
-              opacity: 0.5;
-            }
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.5; }
           }
         `}
       </style>
@@ -130,30 +173,7 @@ const ForgotPassword = () => {
           <span className="text-green-500">{">"}</span>
         </h2>
       </div>
-      <button
-        onClick={() => setShowMatrix(!showMatrix)}
-        className="fixed top-4 right-4 z-50 w-14 h-7 bg-gray-800 rounded-full p-1 transition-colors duration-300 focus:outline-none relative shadow-lg"
-      >
-        <span
-          className={`block w-5 h-5 bg-white rounded-full transform transition-transform duration-300 ${
-            showMatrix ? 'translate-x-7' : 'translate-x-0'
-          }`}
-        ></span>
-        <span
-          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold transition-opacity duration-300 ${
-            showMatrix ? 'opacity-100 text-green-500' : 'opacity-0'
-          }`}
-        >
-          ON
-        </span>
-        <span
-          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold transition-opacity duration-300 ${
-            !showMatrix ? 'opacity-100 text-red-500' : 'opacity-0'
-          }`}
-        >
-          OFF
-        </span>
-      </button>
+
       <div className="w-full max-w-sm z-10">
         <h3 className="text-lg text-gray-300 mb-6 text-center">Password Reset</h3>
         <AnimatePresence mode="wait" custom={step}>
@@ -176,22 +196,22 @@ const ForgotPassword = () => {
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 bg-transparent text-white border-b border-green-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-600"
-                    placeholder="Enter your email"
+                    className="flex-1 bg-transparent text-white border-b border-gray-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-400"
+                    placeholder="Email address"
                     required
+                    aria-label="Email address"
                   />
                 </div>
                 <button
                   type="submit"
-                  onClick={() => otpSubmission(email, type)}
-                  className="w-full bg-white text-black font-semibold py-2 rounded-md hover:bg-green-500 transition-colors duration-300 mt-4"
+                  className="w-full bg-white text-black font-bold py-2 rounded-lg hover:bg-green-500 hover:text-white transition-colors duration-200 mt-4"
                 >
                   Send OTP
                 </button>
               </form>
             )}
             {step === 2 && (
-              <form onSubmit={handleVerifyOtp}>
+              <form onSubmit={handleOtpSubmit}>
                 <div className="text-sm text-gray-400 mb-2">
                   <span className="text-green-500">Email:</span> {email}
                 </div>
@@ -201,24 +221,25 @@ const ForgotPassword = () => {
                     type="text"
                     id="otp"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="flex-1 bg-transparent text-white border-b border-green-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-600"
-                    placeholder="Enter 6-digit OTP"
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    className="flex-1 bg-transparent text-white border-b border-gray-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-400"
+                    placeholder="6-digit OTP"
                     maxLength={6}
                     required
+                    aria-label="6-digit OTP"
                   />
                 </div>
                 <div className="flex space-x-2 mt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-white text-black font-semibold py-2 rounded-md hover:bg-green-500 transition-colors duration-300"
+                    className="flex-1 bg-white text-black font-bold py-2 rounded-lg hover:bg-green-500 hover:text-white transition-colors duration-200"
                   >
                     Verify OTP
                   </button>
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex-1 bg-white text-black font-semibold py-2 rounded-md hover:bg-green-500 transition-colors duration-300"
+                    className="flex-1 bg-gray-700 text-white font-bold py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200"
                   >
                     Back
                   </button>
@@ -234,11 +255,27 @@ const ForgotPassword = () => {
                     id="newPassword"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="flex-1 bg-transparent text-white border-b border-green-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-600"
-                    placeholder="Enter new password"
+                    className="flex-1 bg-transparent text-white border-b border-gray-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-400"
+                    placeholder="New password"
                     required
+                    aria-label="New password"
                   />
                 </div>
+                {passwordStrength && (
+                  <div className="text-sm mb-2">
+                    <span
+                      className={`font-mono ${
+                        passwordStrength.strength === 'strong'
+                          ? 'text-green-500'
+                          : passwordStrength.strength === 'medium'
+                          ? 'text-yellow-500'
+                          : 'text-red-500'
+                      }`}
+                    >
+                      {passwordStrength.message}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center space-x-2">
                   <span className="text-green-500">{">"}</span>
                   <input
@@ -246,22 +283,23 @@ const ForgotPassword = () => {
                     id="confirmPassword"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="flex-1 bg-transparent text-white border-b border-green-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-600"
-                    placeholder="Confirm new password"
+                    className="flex-1 bg-transparent text-white border-b border-gray-500/50 focus:border-green-500 outline-none py-2 transition-colors duration-300 placeholder-gray-400"
+                    placeholder="Confirm password"
                     required
+                    aria-label="Confirm password"
                   />
                 </div>
                 <div className="flex space-x-2 mt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-white text-black font-semibold py-2 rounded-md hover:bg-green-500 transition-colors duration-300"
+                    className="flex-1 bg-white text-black font-bold py-2 rounded-lg hover:bg-green-500 hover:text-white transition-colors duration-200"
                   >
                     Reset Password
                   </button>
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex-1 bg-white text-black font-semibold py-2 rounded-md hover:bg-green-500 transition-colors duration-300"
+                    className="flex-1 bg-gray-700 text-white font-bold py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200"
                   >
                     Back
                   </button>

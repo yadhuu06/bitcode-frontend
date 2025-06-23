@@ -109,7 +109,7 @@ export const generateOtp = async (email,type) => {
   }
 };
 
-export const verifyOtp = async (email, otp) => {
+export const verifyOtp = async (email, otp,) => {
   if (!email || !otp) {
     throw new Error('Email and OTP are required');
   }
@@ -196,6 +196,21 @@ export const completeRegistration = async (email, password, confirmPassword) => 
     const errorMessage = Object.values(error.response?.data || {})
       .flat()
       .join(', ') || error.message || 'Registration failed';
+    throw new Error(errorMessage);
+  }
+};
+
+export const resetPassword = async (email, otp, newPassword) => {
+  try {
+    const response = await api.post('/api/auth/password/reset/', {
+      email,
+      otp,
+      new_password: newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    const errorMessage = error.response?.data?.error || 'Password reset failed';
+    toast.error(errorMessage);
     throw new Error(errorMessage);
   }
 };

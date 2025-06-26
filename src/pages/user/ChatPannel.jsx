@@ -20,14 +20,14 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
     const listenerId = `chat-${roomId}`;
     console.log(`Registering WebSocket listener: ${listenerId}`);
 
-    // Request chat history when joining the room
+
     WebSocketService.sendMessage({ type: 'request_chat_history', room_id: roomId });
 
     const handleMessage = (data) => {
       console.log(`Received message: ${JSON.stringify(data)}`);
       if (data.type === 'chat_message') {
         setMessages((prev) => {
-          // Skip if message is from current user and already exists
+
           if (
             data.sender === username &&
             prev.some((msg) => msg.message === data.message && msg.user === data.sender)

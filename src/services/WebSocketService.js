@@ -22,63 +22,74 @@ class WebSocketService {
     this.pongTimeout = 10000;
     this.pongTimeoutId = null;
   }
+connect(token, roomId = null, navigate = null, type = 'room') {
+  if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
-  connect(token, roomId = null, navigate = null) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+  this.token = token;
+  this.roomId = roomId;
 
-    this.token = token;
-    this.roomId = roomId;
-    const baseWsUrl = API_BASE_URL.replace(/^http/, 'ws');
-    const wsPath = roomId ? `${WS_ROOM_PATH}${roomId}/` : WS_ROOMS_PATH;
-    const wsUrl = `${baseWsUrl}${wsPath}?token=${token}`;
-    console.log(`Connecting to WebSocket: ${wsUrl}`);
-    this.socket = new WebSocket(wsUrl);
+  const baseWsUrl = API_BASE_URL.replace(/^http/, 'ws');
 
-    this.socket.onopen = () => {
-      console.log(' WebSocket connected');
-      this.reconnectAttempts = 0;
-      this._startHeartbeat();
-      if (roomId) {
-        this.sendMessage({ type: 'request_participants' });
-        this.sendMessage({ type: 'request_chat_history' }); 
-      }
-    };
-
-    this.socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'pong') {
-          this.lastPongReceived = Date.now();
-          return;
-        }
-        if (data.type === 'error') {
-          toast.error(data.message || 'An error occurred');
-        }
-        
-        Object.values(this.listeners).forEach((listener) => listener(data));
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-        toast.error('Invalid message received from server');
-      }
-    };
-
-    this.socket.onclose = (event) => {
-      console.warn(' WebSocket disconnected:', event.code, event.reason);
-      this.socket = null;
-      this._stopHeartbeat();
-      if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-        this._tryReconnect(navigate);
-      } else {
-        console.error(' WebSocket closed permanently:', event.code, event.reason);
-       
-      }
-    };
-
-    this.socket.onerror = (error) => {
-      console.error(' WebSocket error:', error);
-     
-    };
+  let wsPath; 
+  if (type === 'battle') {
+    wsPath = `/ws/battle/${roomId}/`; 
+  } else {
+    wsPath = roomId ? `${WS_ROOM_PATH}${roomId}/` : WS_ROOMS_PATH;
   }
+
+  const wsUrl = `${baseWsUrl}${wsPath}?token=${token}`;
+  console.log(`Connecting to WebSocket: ${wsUrl}`);
+
+  this.socket = new WebSocket(wsUrl);
+
+  this.socket.onopen = () => {
+    console.log(' WebSocket connected');
+    this.reconnectAttempts = 0;
+    this._startHeartbeat();
+
+    if (roomId && type === 'room') {
+      this.sendMessage({ type: 'request_participants' });
+      this.sendMessage({ type: 'request_chat_history' });
+    }
+  };
+
+  this.socket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'pong') {
+        this.lastPongReceived = Date.now();
+        return;
+      }
+
+      if (data.type === 'error') {
+        toast.error(data.message || 'An error occurred');
+      }
+
+      Object.values(this.listeners).forEach((listener) => listener(data));
+    } catch (err) {
+      console.error('Error parsing WebSocket message:', err);
+      toast.error('Invalid message received from server');
+    }
+  };
+
+  this.socket.onclose = (event) => {
+    console.warn(' WebSocket disconnected:', event.code, event.reason);
+    this.socket = null;
+    this._stopHeartbeat();
+
+    if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+      this._tryReconnect(navigate);
+    } else {
+      console.error(' WebSocket closed permanently:', event.code, event.reason);
+    }
+  };
+
+  this.socket.onerror = (error) => {
+    console.error(' WebSocket error:', error);
+  };
+}
+
 
   disconnect() {
     if (this.socket) {

@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const WS_ROOMS_PATH = import.meta.env.VITE_WS_ROOMS_PATH || '/ws/rooms/';
 const WS_ROOM_PATH = import.meta.env.VITE_WS_ROOM_PATH || '/ws/room/';
+const WS_BATTLE_PATH = import.meta.env.VITE_WS_BATTLE_PATH || '/ws/battle/';
 
 class WebSocketService {
   constructor() {
@@ -22,74 +23,86 @@ class WebSocketService {
     this.pongTimeout = 10000;
     this.pongTimeoutId = null;
   }
-connect(token, roomId = null, navigate = null, type = 'room') {
-  if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
-  this.token = token;
-  this.roomId = roomId;
+  connect(token, roomId = null, navigate = null, type = 'room') {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
-  const baseWsUrl = API_BASE_URL.replace(/^http/, 'ws');
+    this.token = token;
+    this.roomId = roomId;
 
-  let wsPath; 
-  if (type === 'battle') {
-    wsPath = `/ws/battle/${roomId}/`; 
-  } else {
-    wsPath = roomId ? `${WS_ROOM_PATH}${roomId}/` : WS_ROOMS_PATH;
-  }
-
-  const wsUrl = `${baseWsUrl}${wsPath}?token=${token}`;
-  console.log(`Connecting to WebSocket: ${wsUrl}`);
-
-  this.socket = new WebSocket(wsUrl);
-
-  this.socket.onopen = () => {
-    console.log(' WebSocket connected');
-    this.reconnectAttempts = 0;
-    this._startHeartbeat();
-
-    if (roomId && type === 'room') {
-      this.sendMessage({ type: 'request_participants' });
-      this.sendMessage({ type: 'request_chat_history' });
-    }
-  };
-
-  this.socket.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-
-      if (data.type === 'pong') {
-        this.lastPongReceived = Date.now();
-        return;
-      }
-
-      if (data.type === 'error') {
-        toast.error(data.message || 'An error occurred');
-      }
-
-      Object.values(this.listeners).forEach((listener) => listener(data));
-    } catch (err) {
-      console.error('Error parsing WebSocket message:', err);
-      toast.error('Invalid message received from server');
-    }
-  };
-
-  this.socket.onclose = (event) => {
-    console.warn(' WebSocket disconnected:', event.code, event.reason);
-    this.socket = null;
-    this._stopHeartbeat();
-
-    if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-      this._tryReconnect(navigate);
+    const baseWsUrl = API_BASE_URL.replace(/^http/, 'ws');
+    let wsPath;
+    if (type === 'battle') {
+      wsPath = `${WS_BATTLE_PATH}${roomId}/`;
     } else {
-      console.error(' WebSocket closed permanently:', event.code, event.reason);
+      wsPath = roomId ? `${WS_ROOM_PATH}${roomId}/` : WS_ROOMS_PATH;
     }
-  };
 
-  this.socket.onerror = (error) => {
-    console.error(' WebSocket error:', error);
-  };
-}
+    const wsUrl = `${baseWsUrl}${wsPath}?token=${token}`;
+    console.log(`Connecting to WebSocket: ${wsUrl}`);
 
+    this.socket = new WebSocket(wsUrl);
+
+    this.socket.onopen = () => {
+      console.log('WebSocket connected');
+      this.reconnectAttempts = 0;
+      this._startHeartbeat();
+
+      if (roomId && type === 'room') {
+        this.sendMessage({ type: 'request_participants' });
+        this.sendMessage({ type: 'request_chat_history' });
+      }
+    };
+
+    this.socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'pong') {
+          this.lastPongReceived = Date.now();
+          return;
+        }
+
+        if (data.type === 'error') {
+          toast.error(data.message || 'An error occurred');
+        } else if (data.type === 'code_verified') {
+          toast.info(data.message || `${data.username} submitted correct code`);
+        } else if (data.type === 'battle_completed') {
+          toast.success(data.message || 'Battle completed!');
+          if (navigate) {
+            navigate(`/battle/${this.roomId}/results`);
+          }
+        } else if (data.type === 'battle_started') {
+          toast.success(data.message || 'Battle started!');
+          this.notifyListeners(data);
+        } else if (data.type === 'time_update') {
+          // Update UI with remaining time
+          this.notifyListeners(data);
+        }
+
+        Object.values(this.listeners).forEach((listener) => listener(data));
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+        toast.error('Invalid message received from server');
+      }
+    };
+
+    this.socket.onclose = (event) => {
+      console.warn('WebSocket disconnected:', event.code, event.reason);
+      this.socket = null;
+      this._stopHeartbeat();
+
+      if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+        this._tryReconnect(navigate);
+      } else {
+        console.error('WebSocket closed permanently:', event.code, event.reason);
+      }
+    };
+
+    this.socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+  }
 
   disconnect() {
     if (this.socket) {
@@ -120,14 +133,17 @@ connect(token, roomId = null, navigate = null, type = 'room') {
     if (this.isConnected()) {
       this.socket.send(JSON.stringify(message));
     } else {
-      console.warn(' Cannot send message, socket not open');
-      
+      console.warn('Cannot send message, socket not open');
     }
+  }
+
+  notifyListeners(data) {
+    Object.values(this.listeners).forEach((listener) => listener(data));
   }
 
   _tryReconnect(navigate) {
     this.reconnectAttempts += 1;
-    console.log(` Reconnecting... attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+    console.log(`Reconnecting... attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
     this.reconnectTimeoutId = setTimeout(() => {
       this.connect(this.token, this.roomId, navigate);
     }, this.reconnectDelay);
@@ -143,7 +159,7 @@ connect(token, roomId = null, navigate = null, type = 'room') {
       this.sendMessage({ type: 'ping' });
       this.pongTimeoutId = setTimeout(() => {
         if (Date.now() - this.lastPongReceived > this.pongTimeout) {
-          console.warn(' No pong received, closing connection');
+          console.warn('No pong received, closing connection');
           this.disconnect();
         }
       }, this.pongTimeout);

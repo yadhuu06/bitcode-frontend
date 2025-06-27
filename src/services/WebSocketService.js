@@ -11,11 +11,9 @@ class WebSocketService {
     this.listeners = {};
     this.token = null;
     this.roomId = null;
-
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
-
     this.heartbeatInterval = 15000;
     this.pingIntervalId = null;
     this.reconnectTimeoutId = null;
@@ -65,22 +63,10 @@ class WebSocketService {
 
         if (data.type === 'error') {
           toast.error(data.message || 'An error occurred');
-        } else if (data.type === 'code_verified') {
-          toast.info(data.message || `${data.username} submitted correct code`);
-        } else if (data.type === 'battle_completed') {
-          toast.success(data.message || 'Battle completed!');
-          if (navigate) {
-            navigate(`/battle/${this.roomId}/results`);
-          }
-        } else if (data.type === 'battle_started') {
-          toast.success(data.message || 'Battle started!');
-          this.notifyListeners(data);
-        } else if (data.type === 'time_update') {
-          // Update UI with remaining time
+        } else {
+          // Delegate all other messages to listeners (e.g., BattleSocketService)
           this.notifyListeners(data);
         }
-
-        Object.values(this.listeners).forEach((listener) => listener(data));
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
         toast.error('Invalid message received from server');

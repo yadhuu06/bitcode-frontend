@@ -3,8 +3,21 @@ import ReactMarkdown from 'react-markdown';
 import BattleLeaderboard from './BattleLeaderboard';
 
 const BattleSidebar = ({ activeTab, setActiveTab, question, testCases, results, allPassed, battleResults, remainingTime }) => {
+  const formatTime = (seconds) => {
+    if (seconds === null || seconds <= 0) return '0 min 0 sec';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes} min ${remainingSeconds} sec`;
+  };
+
   return (
     <div className="w-full lg:w-[35%] bg-gray-900 rounded-xl border border-green-500 p-4 sm:p-6 h-[80vh] flex flex-col">
+      {remainingTime !== null && (
+        <div className="mb-4 text-lg font-semibold text-green-500 flex items-center gap-2 bg-gray-950/50 p-3 rounded-lg border border-green-500/50">
+          <Clock className="w-6 h-6" />
+          Time Remaining: {formatTime(remainingTime)}
+        </div>
+      )}
       <div className="flex border-b border-green-500 mb-4">
         {['question', 'results', 'leaderboard'].map((tab) => (
           <button
@@ -18,12 +31,6 @@ const BattleSidebar = ({ activeTab, setActiveTab, question, testCases, results, 
           </button>
         ))}
       </div>
-      {remainingTime !== null && remainingTime > 0 && (
-        <div className="mb-4 text-sm text-green-500 flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          Time Remaining: {remainingTime.toFixed(2)} minutes
-        </div>
-      )}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500/50 scrollbar-track-gray-900">
         {activeTab === 'question' && question ? (
           <div className="space-y-4">

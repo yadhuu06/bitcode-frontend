@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import api from '../../api';
 import { getRoomDetails } from '../../services/RoomService';
 import { setupBattleWebSocket } from '../../services/BattleSocketService';
+
 import BattleSidebar from '../../components/battle-room/BattleSidebar';
 import BattleEditor from '../../components/battle-room/BattleEditor';
 
@@ -47,28 +48,19 @@ const Battle = () => {
       return;
     }
 
-    const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: user?.username }, (data) => {
-      if (data.type === 'battle_started') {
-        setRemainingTime(data.time_limit);
-      } else if (data.type === 'code_verified') {
-        setBattleResults((prev) => [
-          ...prev.filter((entry) => entry.username !== data.username),
-          { username: data.username, position: data.position, completion_time: data.completion_time },
-        ]);
-      } else if (data.type === 'time_update') {
-        setRemainingTime(data.remaining_minutes);
-      } else if (data.type === 'battle_completed') {
-        setBattleResults(data.winners || []);
-        navigate(`/battle/${roomId}/results`);
-      }
-    });
+    const calculateRemainingTime = (startTime, timeLimit) => {
+      if (!startTime || timeLimit <= 0) return null;
+      const elapsedSeconds = (new Date() - new Date(startTime)) / 1000;
+      return Math.max(0, timeLimit * 60 - elapsedSeconds);
+    };
 
     const fetchRoom = async () => {
       try {
         const response = await getRoomDetails(roomId, accessToken);
         setRoomDetails(response.room);
-        if (!response.room.is_ranked) {
-          setRemainingTime(response.room.time_limit);
+        if (!response.room.is_ranked && response.room.start_time) {
+          const remainingSeconds = calculateRemainingTime(response.room.start_time, response.room.time_limit);
+          setRemainingTime(remainingSeconds);
         }
       } catch (error) {
         toast.error(error.message || 'Failed to load room details');
@@ -98,12 +90,53 @@ const Battle = () => {
       }
     };
 
+    const fetchBattleResults = async () => {
+      try {
+        const response = await api.get(`/battle/results/${roomId}/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setBattleResults(response.data.results || []);
+      } catch (error) {
+        console.error('Failed to fetch battle results:', error);
+        toast.error('Failed to load battle results');
+      }
+    };
+
+    const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: user?.username }, (data) => {
+      console.log('WebSocket message received:', data); // Debug log
+      if (data.type === 'battle_started') {
+        setRemainingTime(data.time_limit * 60); // Convert minutes to seconds
+      } else if (data.type === 'code_verified') {
+        setBattleResults((prev) => [
+          ...prev.filter((entry) => entry.username !== data.username),
+          { username: data.username, position: data.position, completion_time: data.completion_time },
+        ]);
+      } else if (data.type === 'time_update') {
+        setRemainingTime(data.remaining_seconds); // Use seconds from backend
+      } else if (data.type === 'battle_completed') {
+        setBattleResults(data.winners || []);
+        navigate(`/battle/${roomId}/results`);
+      } else if (data.type === 'start_countdown') {
+        // Handle countdown if needed
+      }
+    });
+
     fetchRoom();
     fetchQuestionAndFunction();
+    fetchBattleResults();
+
+    // Client-side countdown for smooth second-by-second updates
+    let intervalId;
+    if (remainingTime !== null) {
+      intervalId = setInterval(() => {
+        setRemainingTime((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
 
     return () => {
-      console.log('Cleaning up WebSocket listener in Battle');
+      console.log('Cleaning up WebSocket listener and timer in Battle');
       cleanup();
+      if (intervalId) clearInterval(intervalId);
     };
   }, [roomId, questionId, user, accessToken, navigate]);
 
@@ -140,6 +173,13 @@ const Battle = () => {
     setIsEditorFull(!isEditorFull);
   };
 
+  const formatTime = (seconds) => {
+    if (seconds === null || seconds <= 0) return '0 min 0 sec';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes} min ${remainingSeconds} sec`;
+  };
+
   return (
     <div className={`min-h-screen bg-black text-white font-mono ${isEditorFull ? 'overflow-hidden' : ''}`}>
       <nav className="bg-black border-b-2 border-green-500 h-16 flex items-center px-4 sm:px-6 fixed top-0 left-0 w-full z-50">
@@ -154,7 +194,7 @@ const Battle = () => {
           </NavLink>
           {roomDetails && (
             <div className="text-sm text-gray-400">
-              Room: {roomDetails.name} | {roomDetails.is_ranked ? 'Ranked' : `${remainingTime !== null ? remainingTime.toFixed(2) : roomDetails.time_limit} min`}
+              Room: {roomDetails.name} | {roomDetails.is_ranked ? 'Ranked' : formatTime(remainingTime)}
             </div>
           )}
         </div>

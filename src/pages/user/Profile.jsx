@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Cookies from 'js-cookie';
-import { fetchProfile, updateProfile, logout } from '../../services/ProfileService';
+import { fetchProfile, updateProfile, logout, getImageKitAuthParams } from '../../services/ProfileService';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 import StatsSection from '../../components/user/StatsSection';
 import RankingSection from '../../components/user/RankingSection';
 import ContributionsSection from '../../components/user/ContributionsSection';
+import imagekit from '../../config/imagekitConfig';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -26,7 +27,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState('');
   const [profilePic, setProfilePic] = useState(null);
-  const [crop, setCrop] = useState({ unit: '%', width: 50, aspect: 1 / 1 });
+  const [crop, setCrop] = useState({ unit: '%', width: 50, height: 50, x: 0, y: 0, aspect: 1 / 1 });
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
   const [binaryElements, setBinaryElements] = useState([]);
@@ -133,22 +134,72 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!username.trim()) {
       toast.error('Username cannot be empty');
       return;
     }
 
     dispatch(setLoading({ isLoading: true, message: 'Updating profile...', style: 'compile', progress: 0 }));
-    try {
-      const formData = new FormData();
-      formData.append('username', username.trim());
 
+    try {
+      let imageUrl = null;
+
+      // 🔄 If a cropped image is present, upload to ImageKit
       if (croppedImage) {
+        const authParams = await getImageKitAuthParams();
+
+        if (!authParams?.token || !authParams?.signature || !authParams?.expire) {
+          throw new Error('Invalid ImageKit authentication parameters');
+        }
+
+        // 👇 Optionally configure authentication parameters (only needed if ImageKit instance needs it explicitly)
+        imagekit.authenticationParameters = {
+          token: authParams.token,
+          signature: authParams.signature,
+          expire: authParams.expire,
+        };
+
+        // 🧠 Convert base64 cropped image to blob
         const blob = await fetch(croppedImage).then((res) => res.blob());
-        formData.append('profile_picture', blob, 'profile.jpg');
+        const file = new File([blob], `profile_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+        // 📤 Upload to ImageKit
+        let uploadResult;
+        try {
+          uploadResult = await imagekit.upload({
+            file,
+            fileName: `profile_${Date.now()}.jpg`,
+            folder: '/bitwar-profiles/',
+            useUniqueFileName: true,
+            token: authParams.token,
+            signature: authParams.signature,
+            expire: authParams.expire,
+          });
+        } catch (uploadError) {
+          console.error('ImageKit upload failed:', uploadError);
+          throw new Error('Failed to upload profile picture');
+        }
+
+        // ✅ Save uploaded image URL
+        if (uploadResult?.url) {
+          imageUrl = uploadResult.url;
+        } else {
+          throw new Error('Upload result does not contain a valid URL');
+        }
       }
 
+      // 📦 Prepare form data
+      const formData = new FormData();
+      formData.append('username', username.trim());
+      if (imageUrl) {
+        formData.append('profile_picture', imageUrl);
+      }
+
+      // 🔄 Update profile via API
       const updatedUser = await updateProfile(formData);
+
+      // 🔁 Update state/UI
       setUser(updatedUser);
       setIsEditing(false);
       setProfilePic(null);
@@ -156,7 +207,7 @@ const Profile = () => {
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error?.message || 'Failed to update profile');
     } finally {
       dispatch(resetLoading());
     }
@@ -302,7 +353,7 @@ const Profile = () => {
                   <div className="mt-4">
                     <ReactCrop
                       crop={crop}
-                      onChange={(_, percentCrop) => setCrop(percentCrop)}
+                      onChange={(newCrop, percentCrop) => setCrop(percentCrop)}
                       onComplete={onCropComplete}
                       aspect={1}
                     >

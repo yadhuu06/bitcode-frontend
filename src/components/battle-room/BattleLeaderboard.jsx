@@ -1,6 +1,6 @@
 import { Trophy } from 'lucide-react';
 
-const BattleLeaderboard = ({ battleResults }) => {
+const BattleLeaderboard = ({ battleResults, currentUser }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-green-500 flex items-center gap-2">
@@ -14,7 +14,12 @@ const BattleLeaderboard = ({ battleResults }) => {
           battleResults
             .sort((a, b) => a.position - b.position)
             .map((result, index) => (
-              <div key={index} className="bg-gray-950 p-3 rounded-lg text-sm border border-green-500/50">
+              <div
+                key={index}
+                className={`bg-gray-950 p-3 rounded-lg text-sm border border-green-500/50 ${
+                  result.username === currentUser ? 'bg-green-900/50' : ''
+                }`}
+              >
                 <p className="flex items-center gap-2">
                   <Trophy className={`w-4 h-4 ${result.position <= 3 ? 'text-yellow-400' : 'text-gray-400'}`} />
                   <span className="text-white">{result.username}</span>

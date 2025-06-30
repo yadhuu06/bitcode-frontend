@@ -143,7 +143,7 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
               <div className={`w-full max-w-[70%] ${msg.user === username ? 'ml-auto' : ''}`}>
                 <div className="flex items-center mb-1">
                   <span className="font-medium text-sm text-[#00FF40]">{msg.user}</span>
-                  <span className="text-gray-500 text-xs ml-2">{msg.time}</span>
+                
                 </div>
                 <div
                   className={`p-3 rounded-lg text-sm text-white border ${

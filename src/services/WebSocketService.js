@@ -62,14 +62,14 @@ class WebSocketService {
         }
 
         if (data.type === 'error') {
-          toast.error(data.message || 'An error occurred');
+
         } else {
           // Delegate all other messages to listeners (e.g., BattleSocketService)
           this.notifyListeners(data);
         }
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
-        toast.error('Invalid message received from server');
+
       }
     };
 

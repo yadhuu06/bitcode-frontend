@@ -57,3 +57,16 @@ export const fetchUserContributions = async () => {
     throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch contributions' }));
   }
 };
+
+export const getImageKitAuthParams = async () => {
+  try {
+    const response = await api.get('/api/auth/imagekit/', {
+      withCredentials: true,
+    });
+    console.log("ImageKit Auth Params:", response.data); 
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching ImageKit auth params:", error);
+    throw new Error('Failed to get ImageKit auth params');
+  }
+};

@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 import api from '../../api';
 import { getRoomDetails } from '../../services/RoomService';
 import { setupBattleWebSocket } from '../../services/BattleSocketService';
-
 import BattleSidebar from '../../components/battle-room/BattleSidebar';
 import BattleEditor from '../../components/battle-room/BattleEditor';
 
@@ -17,7 +16,7 @@ const Battle = () => {
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.loading);
   const { user, accessToken } = useSelector((state) => state.auth);
-  const [activeTab, setActiveTab] = useState('question');
+  const [activeTab, setActiveTab] = useState('description');
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
   const [functionDetails, setFunctionDetails] = useState({ name: '', params: [] });
@@ -29,6 +28,7 @@ const Battle = () => {
   const [roomDetails, setRoomDetails] = useState(null);
   const [battleResults, setBattleResults] = useState([]);
   const [remainingTime, setRemainingTime] = useState(null);
+  const [roomEnded, setRoomEnded] = useState(false);
   const wsListenerId = useRef(`battle-${roomId}`);
 
   const languages = [
@@ -58,12 +58,18 @@ const Battle = () => {
       try {
         const response = await getRoomDetails(roomId, accessToken);
         setRoomDetails(response.room);
-        if (!response.room.is_ranked && response.room.start_time) {
-          const remainingSeconds = calculateRemainingTime(response.room.start_time, response.room.time_limit);
-          setRemainingTime(remainingSeconds);
+        if (response.room.status === 'completed') {
+          setRoomEnded(true);
+          toast.error('This battle has ended.');
+          navigate('/user/rooms');
+          return;
         }
+        const initialTime = calculateRemainingTime(response.room.start_time, response.room.time_limit);
+        setRemainingTime(initialTime);
+        localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime || 0);
       } catch (error) {
         toast.error(error.message || 'Failed to load room details');
+        navigate('/user/rooms');
       }
     };
 
@@ -90,46 +96,44 @@ const Battle = () => {
       }
     };
 
-    const fetchBattleResults = async () => {
-      try {
-        const response = await api.get(`/battle/results/${roomId}/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        setBattleResults(response.data.results || []);
-      } catch (error) {
-        console.error('Failed to fetch battle results:', error);
-        toast.error('Failed to load battle results');
-      }
-    };
-
     const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: user?.username }, (data) => {
-      console.log('WebSocket message received:', data); // Debug log
+      console.log('WebSocket message received:', data);
       if (data.type === 'battle_started') {
-        setRemainingTime(data.time_limit * 60); // Convert minutes to seconds
-      } else if (data.type === 'code_verified') {
+        const initialTime = data.time_limit * 60;
+        setRemainingTime(initialTime);
+        localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime);
+      } else if (data.type === 'code_verified' && !roomEnded) {
         setBattleResults((prev) => [
           ...prev.filter((entry) => entry.username !== data.username),
           { username: data.username, position: data.position, completion_time: data.completion_time },
         ]);
       } else if (data.type === 'time_update') {
-        setRemainingTime(data.remaining_seconds); // Use seconds from backend
+        setRemainingTime(data.remaining_seconds);
+        localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
       } else if (data.type === 'battle_completed') {
         setBattleResults(data.winners || []);
-        navigate(`/battle/${roomId}/results`);
+        setRoomEnded(true);
+        toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
+        localStorage.removeItem(`battle_${roomId}_remainingTime`);
       } else if (data.type === 'start_countdown') {
-        // Handle countdown if needed
+        // Handle countdown
       }
     });
 
     fetchRoom();
     fetchQuestionAndFunction();
-    fetchBattleResults();
 
-    // Client-side countdown for smooth second-by-second updates
+    const savedTime = localStorage.getItem(`battle_${roomId}_remainingTime`);
+    if (savedTime) setRemainingTime(parseInt(savedTime, 10));
+
     let intervalId;
     if (remainingTime !== null) {
       intervalId = setInterval(() => {
-        setRemainingTime((prev) => (prev > 0 ? prev - 1 : 0));
+        setRemainingTime((prev) => {
+          const newTime = prev > 0 ? prev - 1 : 0;
+          localStorage.setItem(`battle_${roomId}_remainingTime`, newTime);
+          return newTime;
+        });
       }, 1000);
     }
 
@@ -137,12 +141,13 @@ const Battle = () => {
       console.log('Cleaning up WebSocket listener and timer in Battle');
       cleanup();
       if (intervalId) clearInterval(intervalId);
+      localStorage.removeItem(`battle_${roomId}_remainingTime`);
     };
-  }, [roomId, questionId, user, accessToken, navigate]);
+  }, [roomId, questionId, user, accessToken, navigate, roomEnded]);
 
   const verifyCode = async () => {
-    if (!question) {
-      toast.error('No question loaded');
+    if (!question || roomEnded) {
+      toast.error(roomEnded ? 'Battle has ended' : 'No question loaded');
       return;
     }
     dispatch(setLoading({ isLoading: true, message: `Verifying ${language} code...`, style: 'terminal', progress: 0 }));
@@ -211,6 +216,7 @@ const Battle = () => {
             allPassed={allPassed}
             battleResults={battleResults}
             remainingTime={roomDetails?.is_ranked ? null : remainingTime}
+            currentUser={user?.username}
           />
         )}
         <BattleEditor

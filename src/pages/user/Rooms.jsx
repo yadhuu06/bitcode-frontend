@@ -369,12 +369,12 @@ const Rooms = () => {
                         Hosted by <span className="text-white">{room.owner__username}</span>
                       </p>
                     </div>
-                    <div className="flex items-center text-sm">
+                 {room.status=='active' &&(   <div className="flex items-center text-sm">
                       <Users className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
                         <span className="text-white">{room.participant_count}</span>/{room.capacity} participants
                       </p>
-                    </div>
+                    </div>)}
                     <div className="flex items-center text-sm">
                       <Clock className="w-5 h-5 mr-2 text-gray-400" />
                       <p className="text-gray-300">
@@ -428,7 +428,7 @@ const Rooms = () => {
                     >
                       <Trophy size={18} className="mr-2 text-yellow-400" /> Leaderboard
                     </button>
-                    {room.status !== 'completed' && (
+                    {room.status == 'active' && (
                       <button
                         onClick={() => handleJoinRoom(room)}
                         className="px-3 py-2 border-2 border-[#00FF40] text-[#00FF40] font-medium rounded-md hover:bg-[#00FF40] hover:text-black transition-colors duration-300 flex items-center text-sm"

@@ -28,7 +28,6 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Client-side validation
     if (!email || !password) {
       toast.error('All fields are required');
       return;

@@ -33,7 +33,7 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
 
   return () => {
     WebSocketService.removeListener(listenerId);
-    // Do not disconnect here to allow multiple listeners; disconnect handled in Battle.jsx cleanup
+
   };
 };
 

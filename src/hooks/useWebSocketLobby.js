@@ -43,7 +43,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
 
         case 'battle_ready': {
           console.log('Battle ready received with question:', data.question);
-          setAssignedQuestion(data.question); // Store question
+          setAssignedQuestion(data.question); 
           break;
         }
 

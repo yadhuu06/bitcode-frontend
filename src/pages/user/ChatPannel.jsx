@@ -4,12 +4,26 @@ import { toast } from 'react-toastify';
 import WebSocketService from '../../services/WebSocketService';
 
 const ChatPanel = ({ roomId, username, isActiveTab }) => {
+  const formatIndianTime = (timestamp) => {
+    try {
+      return new Date(timestamp).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata',
+      });
+    } catch (e) {
+      console.error('Invalid timestamp format:', timestamp);
+      return '';
+    }
+  };
+
   const [messages, setMessages] = useState([
     {
       id: 1,
       user: 'System',
       message: 'Welcome to the battle lobby!',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: formatIndianTime(new Date().toISOString()),
       isSystem: true,
     },
   ]);
@@ -20,21 +34,20 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
     const listenerId = `chat-${roomId}`;
     console.log(`Registering WebSocket listener: ${listenerId}`);
 
-
     WebSocketService.sendMessage({ type: 'request_chat_history', room_id: roomId });
 
     const handleMessage = (data) => {
       console.log(`Received message: ${JSON.stringify(data)}`);
+
       if (data.type === 'chat_message') {
         setMessages((prev) => {
-
           if (
             data.sender === username &&
             prev.some((msg) => msg.message === data.message && msg.user === data.sender)
           ) {
             return prev;
           }
-          // Skip if message ID already exists
+
           if (!prev.some((msg) => msg.id === data.id)) {
             return [
               ...prev,
@@ -42,16 +55,12 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
                 id: data.id || prev.length + 1,
                 user: data.sender,
                 message: data.message,
-                time: data.timestamp
-                  ? new Date(data.timestamp).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                time: formatIndianTime(data.timestamp || new Date().toISOString()),
                 isSystem: data.is_system || false,
               },
             ];
           }
+
           return prev;
         });
       } else if (data.type === 'chat_history') {
@@ -59,13 +68,12 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
           id: msg.id || index + 2,
           user: msg.sender,
           message: msg.message,
-          time: msg.timestamp
-            ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: formatIndianTime(msg.timestamp || new Date().toISOString()),
           isSystem: msg.is_system,
         }));
+
         setMessages((prev) => {
-          const existingMessages = prev.slice(1); // Keep initial system message
+          const existingMessages = prev.slice(1); // Keep welcome message
           const newMessages = historyMessages.filter(
             (msg) => !existingMessages.some((existing) => existing.id === msg.id)
           );
@@ -77,7 +85,7 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
             id: 1,
             user: 'System',
             message: 'Room closed. Chat cleared.',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            time: formatIndianTime(new Date().toISOString()),
             isSystem: true,
           },
         ]);
@@ -143,7 +151,7 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
               <div className={`w-full max-w-[70%] ${msg.user === username ? 'ml-auto' : ''}`}>
                 <div className="flex items-center mb-1">
                   <span className="font-medium text-sm text-[#00FF40]">{msg.user}</span>
-                
+                  <span className="font-medium text-sm text-[#00FF40] ml-2">{msg.time}</span>
                 </div>
                 <div
                   className={`p-3 rounded-lg text-sm text-white border ${

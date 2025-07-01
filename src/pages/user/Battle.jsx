@@ -107,7 +107,7 @@ const Battle = () => {
           ...prev.filter((entry) => entry.username !== data.username),
           { username: data.username, position: data.position, completion_time: data.completion_time },
         ]);
-      } else if (data.type === 'time_update') {
+      } else if (data.type === 'time_update') { 
         setRemainingTime(data.remaining_seconds);
         localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
       } else if (data.type === 'battle_completed') {
@@ -116,7 +116,7 @@ const Battle = () => {
         toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
         localStorage.removeItem(`battle_${roomId}_remainingTime`);
       } else if (data.type === 'start_countdown') {
-        // Handle countdown
+
       }
     });
 

@@ -64,7 +64,7 @@ class WebSocketService {
         if (data.type === 'error') {
 
         } else {
-          // Delegate all other messages to listeners (e.g., BattleSocketService)
+
           this.notifyListeners(data);
         }
       } catch (err) {

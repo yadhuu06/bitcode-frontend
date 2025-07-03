@@ -1,9 +1,8 @@
-import React, { useState, useEffect, memo, useRef } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { handleStartBattle } from '../../services/BattleService';
-
 import useWebSocketLobby from '../../hooks/useWebSocketLobby';
 import useRoomDetails from '../../hooks/useRoomDetails';
 import {
@@ -20,6 +19,7 @@ import ParticipantsPanel from '../../components/battle-room/ParticipantsPanel';
 import LobbySidebar from '../../components/battle-room/LobbySidebar';
 import LobbyFooter from '../../components/battle-room/LobbyFooter';
 import LobbyModals from '../../components/battle-room/LobbyModals';
+import MatrixBackground from '../../components/ui/MatrixBackground';
 
 const BattleWaitingLobby = () => {
   const { roomId } = useParams();
@@ -45,77 +45,6 @@ const BattleWaitingLobby = () => {
     assignedQuestion,
   } = useWebSocketLobby(roomId, accessToken, username, setRole);
 
-  const MatrixBackground = memo(() => {
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      canvas.height = window.innerHeight;
-      canvas.width = window.innerWidth;
-
-      const chars = '01';
-      const fontSize = 14;
-      const numChars = Math.floor(Math.random() * 21) + 10;
-      const particles = [];
-
-      for (let i = 0; i < numChars; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          char: chars.charAt(Math.floor(Math.random() * chars.length)),
-          opacity: 0,
-          phase: 'fadeIn',
-          speed: Math.random() * 0.02 + 0.01,
-        });
-      }
-
-      const draw = () => {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.font = `${fontSize}px monospace`;
-
-        particles.forEach((p) => {
-          ctx.fillStyle = `rgba(0, 255, 64, ${p.opacity})`;
-          ctx.fillText(p.char, p.x, p.y);
-
-          if (p.phase === 'fadeIn') {
-            p.opacity += p.speed;
-            if (p.opacity >= 0.8) p.phase = 'fadeOut';
-          } else {
-            p.opacity -= p.speed;
-            if (p.opacity <= 0) {
-              p.x = Math.random() * canvas.width;
-              y: Math.random() * canvas.height,
-              p.char = chars.charAt(Math.floor(Math.random() * chars.length));
-              p.opacity = 0;
-              p.phase = 'fadeIn';
-              p.speed = Math.random() * 0.02 + 0.01;
-            }
-          }
-        });
-      };
-
-      const interval = setInterval(draw, 50);
-      const handleResize = () => {
-        canvas.height = window.innerHeight;
-        canvas.width = window.innerWidth;
-        particles.forEach((p) => {
-          p.x = Math.min(p.x, canvas.width);
-          p.y = Math.min(p.y, canvas.height);
-        });
-      };
-
-      window.addEventListener('resize', handleResize);
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('resize', handleResize);
-      };
-    }, []);
-
-    return <canvas ref={canvasRef} className="fixed top-0 left-0 z-0 opacity-30" />;
-  });
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(
@@ -140,7 +69,7 @@ const BattleWaitingLobby = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden">
-      <MatrixBackground />
+      <MatrixBackground particleCount={30} color="#00FF40" opacityRange={[0.1, 0.8]} speed={0.01} />
       <div className="relative z-10 flex flex-col min-h-screen">
         <LobbyModals
           isKicked={isKicked}

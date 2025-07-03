@@ -63,7 +63,7 @@ export const getImageKitAuthParams = async () => {
     const response = await api.get('/api/auth/imagekit/', {
       withCredentials: true,
     });
-    console.log("ImageKit Auth Params:", response.data); 
+  
     return response.data;
   } catch (error) {
     console.error("Error fetching ImageKit auth params:", error);

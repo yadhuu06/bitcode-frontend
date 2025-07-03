@@ -29,6 +29,7 @@ const Battle = () => {
   const [battleResults, setBattleResults] = useState([]);
   const [remainingTime, setRemainingTime] = useState(null);
   const [roomEnded, setRoomEnded] = useState(false);
+  const [battleResultModal,setBattleResultModal]=useState(false)
   const wsListenerId = useRef(`battle-${roomId}`);
 
   const languages = [

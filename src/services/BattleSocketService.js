@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 
 export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
   const ensureConnection = () => {
+    console.log('[WS INIT] Setup Battle WebSocket for', roomId);
+
     if (!WebSocketService.isConnected()) {
       console.log('WebSocket not connected, forcing connection for battle:', roomId);
       WebSocketService.connect(currentUser.token, roomId, null, 'battle');

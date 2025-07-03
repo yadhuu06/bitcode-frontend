@@ -13,6 +13,7 @@ import StatsSection from '../../components/user/StatsSection';
 import RankingSection from '../../components/user/RankingSection';
 import ContributionsSection from '../../components/user/ContributionsSection';
 import imagekit from '../../config/imagekitConfig';
+import MatrixBackground from '../../components/ui/MatrixBackground';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -30,22 +31,21 @@ const Profile = () => {
   const [crop, setCrop] = useState({ unit: '%', width: 50, height: 50, x: 0, y: 0, aspect: 1 / 1 });
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
-  const [binaryElements, setBinaryElements] = useState([]);
   const [selectedSection, setSelectedSection] = useState('stats');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'terminal', progress: 0 }));
+      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
       try {
         const userData = await fetchProfile();
-        console.log('Fetched user data:', userData); 
+        console.log('Fetched user data:', userData);
         setUser(userData);
         setUsername(userData.username || '');
       } catch (error) {
         console.error('Error fetching user data:', error);
         toast.error(error.message || 'Failed to load profile data');
-        navigate('/login'); // Redirect on error
+        navigate('/login');
       } finally {
         dispatch(resetLoading());
       }
@@ -55,25 +55,9 @@ const Profile = () => {
       fetchUserData();
     } else {
       toast.error('Please log in to view your profile');
-      navigate('/login'); 
+      navigate('/login');
     }
   }, [dispatch, isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const generateBinary = () => {
-      const newBinary = [];
-      for (let i = 0; i < 20; i++) {
-        newBinary.push({
-          value: Math.random() > 0.5 ? '1' : '0',
-          left: Math.random() * 100,
-          top: Math.random() * 100,
-          key: i,
-        });
-      }
-      setBinaryElements(newBinary);
-    };
-    generateBinary();
-  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -144,8 +128,6 @@ const Profile = () => {
 
     try {
       let imageUrl = null;
-
-      // 🔄 If a cropped image is present, upload to ImageKit
       if (croppedImage) {
         const authParams = await getImageKitAuthParams();
 
@@ -153,18 +135,14 @@ const Profile = () => {
           throw new Error('Invalid ImageKit authentication parameters');
         }
 
-        // 👇 Optionally configure authentication parameters (only needed if ImageKit instance needs it explicitly)
         imagekit.authenticationParameters = {
           token: authParams.token,
           signature: authParams.signature,
           expire: authParams.expire,
         };
 
-        // 🧠 Convert base64 cropped image to blob
         const blob = await fetch(croppedImage).then((res) => res.blob());
         const file = new File([blob], `profile_${Date.now()}.jpg`, { type: 'image/jpeg' });
-
-        // 📤 Upload to ImageKit
         let uploadResult;
         try {
           uploadResult = await imagekit.upload({
@@ -181,7 +159,6 @@ const Profile = () => {
           throw new Error('Failed to upload profile picture');
         }
 
-        // ✅ Save uploaded image URL
         if (uploadResult?.url) {
           imageUrl = uploadResult.url;
         } else {
@@ -189,17 +166,13 @@ const Profile = () => {
         }
       }
 
-      // 📦 Prepare form data
       const formData = new FormData();
       formData.append('username', username.trim());
       if (imageUrl) {
         formData.append('profile_picture', imageUrl);
       }
 
-      // 🔄 Update profile via API
       const updatedUser = await updateProfile(formData);
-
-      // 🔁 Update state/UI
       setUser(updatedUser);
       setIsEditing(false);
       setProfilePic(null);
@@ -246,15 +219,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center relative overflow-hidden pt-24">
-      {binaryElements.map((element) => (
-        <span
-          key={element.key}
-          className="absolute text-green-500 font-mono opacity-30 animate-float"
-          style={{ left: `${element.left}%`, top: `${element.top}%` }}
-        >
-          {element.value}
-        </span>
-      ))}
+      <MatrixBackground particleCount={20} color="#00FF40" opacityRange={[0.3, 0.8]} />
       <div className="w-full max-w-7xl flex flex-col lg:flex-row justify-between px-6 py-6 gap-12">
         <div className="w-full lg:w-1/3 lg:order-1">
           <div className="bg-black bg-opacity-80 backdrop-blur-md p-6 rounded-lg border-2 border-green-500 shadow-xl relative">
@@ -338,7 +303,7 @@ const Profile = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="flex items-center space-x-2 text-green-500">
+                  <label className="flex items center space-x-2 text-green-500">
                     <FaCamera />
                     <span>AVATAR:</span>
                   </label>

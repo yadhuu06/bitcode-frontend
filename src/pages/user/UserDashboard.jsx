@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import MatrixBackground from '../../components/ui/MatrixBackground';
 
 export const ROUTES = {
   HOME: '/',
@@ -17,82 +18,12 @@ export const ROUTES = {
   USER_CONTRIBUTE: '/contribute',
 };
 
-const MatrixBackground = () => {
-  useEffect(() => {
-    const canvas = document.getElementById('matrix');
-    const ctx = canvas.getContext('2d');
-    canvas.height = window.innerHeight;
-    canvas.width = window.innerWidth;
-
-    const chars = '01';
-    const fontSize = 14;
-    const numChars = Math.floor(Math.random() * 21) + 60; // 60–80 chars
-    const particles = [];
-
-    // Initialize particles
-    for (let i = 0; i < numChars; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        char: chars.charAt(Math.floor(Math.random() * chars.length)),
-        opacity: 0,
-        phase: 'fadeIn',
-        speed: Math.random() * 0.02 + 0.01,
-      });
-    }
-
-    const draw = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = `${fontSize}px monospace`;
-
-      particles.forEach((p) => {
-        ctx.fillStyle = `rgba(0, 255, 64, ${p.opacity})`;
-        ctx.fillText(p.char, p.x, p.y);
-
-        if (p.phase === 'fadeIn') {
-          p.opacity += p.speed;
-          if (p.opacity >= 0.8) p.phase = 'fadeOut';
-        } else {
-          p.opacity -= p.speed;
-          if (p.opacity <= 0) {
-            p.x = Math.random() * canvas.width;
-            p.y = Math.random() * canvas.height;
-            p.char = chars.charAt(Math.floor(Math.random() * chars.length));
-            p.opacity = 0;
-            p.phase = 'fadeIn';
-            p.speed = Math.random() * 0.02 + 0.01;
-          }
-        }
-      });
-    };
-
-    const interval = setInterval(draw, 50);
-    const handleResize = () => {
-      canvas.height = window.innerHeight;
-      canvas.width = window.innerWidth;
-      particles.forEach((p) => {
-        p.x = Math.min(p.x, canvas.width);
-        p.y = Math.min(p.y, canvas.height);
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  return <canvas id="matrix" className="fixed top-0 left-0 z-0 opacity-30" />;
-};
-
 export default function BitCodeHomepage() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
-      <MatrixBackground />
+      <MatrixBackground particleCount={65} color="#00FF40" opacityRange={[0.1, 0.5]} />
       <ToastContainer />
       <div className="max-w-6xl mx-auto px-4 mt-8 z-10 relative">
         {/* Hero Section */}

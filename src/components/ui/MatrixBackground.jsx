@@ -47,7 +47,7 @@ const MatrixBackground = ({
       fontSize: Math.random() * (fontSizeRange[1] - fontSizeRange[0]) + fontSizeRange[0],
       opacity: 0, // Start with 0 for fade-in
       fadeStartTime: performance.now(),
-      fadeState: 'appear', // 'appear' or 'disappear'
+      fadeState: 'disappear', // 'appear' or 'disappear'
     }));
 
     // Animation loop
@@ -110,7 +110,7 @@ const MatrixBackground = ({
         fontSize: Math.random() * (fontSizeRange[1] - fontSizeRange[0]) + fontSizeRange[0],
         opacity: 0,
         fadeStartTime: performance.now(),
-        fadeState: 'appear',
+        fadeState: 'disappear',
       }));
     };
     window.addEventListener('resize', handleResize);

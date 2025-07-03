@@ -11,7 +11,7 @@ const UserNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isAuthenticated, refreshToken } = useSelector((state) => state.auth); // Get refreshToken
+  const { isAuthenticated, refreshToken } = useSelector((state) => state.auth); 
 
   const toggleMenu = () => setIsOpen((prev) => !prev);
 
@@ -22,7 +22,7 @@ const UserNavbar = () => {
       style: 'terminal',
     }));
     try {
-      const result = await logout(refreshToken); // Pass refreshToken
+      const result = await logout(refreshToken); 
       console.log('Logout result:', result);
       dispatch(logoutSuccess());
       toast.success('Logged out successfully!', {

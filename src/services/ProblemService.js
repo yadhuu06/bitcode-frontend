@@ -11,15 +11,13 @@ export const fetchQuestions = async () => {
 
 export const fetchQuestionById = async (questionId) => {
   try {
-    const response = await api.get('/questions/', {
-      params: { question_id: questionId },
-    });
-    return response.data.questions.find((q) => q.question_id === questionId);
+    const response = await api.get(`/questions/${questionId}/`);
+    console.log(typeof(questionId))
+    return response.data;
   } catch (error) {
-    throw new Error(JSON.stringify(error.response?.data || { error: 'Failed to fetch question' }));
+    throw { message: error.response?.data?.error || 'Failed to fetch question', errors: error.response?.data?.errors };
   }
 };
-
 export const createQuestion = async (data) => {
   try {
     const response = await api.post('/questions/create/', data);

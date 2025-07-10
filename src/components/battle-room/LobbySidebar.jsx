@@ -17,6 +17,8 @@ const LobbySidebar = ({
   handleReadyToggle,
   readyStatus,
   getDifficultyStyles,
+  unreadCount,
+  setUnreadCount,
 }) => {
   return (
     <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
@@ -25,8 +27,11 @@ const LobbySidebar = ({
         {['details', 'chat', 'rules'].map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 ${
+            onClick={() => {
+              setActiveTab(tab);
+              if (tab === 'chat') setUnreadCount(0); // Reset unread count when chat tab is opened
+            }}
+            className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 relative ${
               activeTab === tab
                 ? 'bg-[#00FF40]/20 text-[#00FF40] border-b-2 border-[#00FF40]'
                 : 'text-gray-400 hover:text-[#22c55e] hover:bg-gray-800/70'
@@ -34,6 +39,11 @@ const LobbySidebar = ({
             aria-label={`Switch to ${tab} tab`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'chat' && unreadCount > 0 && (
+              <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                {unreadCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -100,12 +110,20 @@ const LobbySidebar = ({
               >
                 {roomDetails?.difficulty}
               </span>
-              
             </div>
           </div>
         )}
         {activeTab === 'chat' && (
-          <ChatPanel roomId={roomDetails?.room_id} username={username} isActiveTab={activeTab === 'chat'} />
+          <ChatPanel
+            roomId={roomDetails?.room_id}
+            username={username}
+            isActiveTab={activeTab === 'chat'}
+            onNewMessage={() => {
+              if (activeTab !== 'chat') {
+                setUnreadCount((prev) => Math.max(0, prev + 1)); // Prevent negative counts
+              }
+            }}
+          />
         )}
         {activeTab === 'rules' && (
           <div className="space-y-4">

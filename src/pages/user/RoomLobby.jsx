@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react'; // Add memo to imports
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -30,6 +30,7 @@ const BattleWaitingLobby = () => {
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
   );
   const [copied, setCopied] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const { roomDetails, username, role, setRole, isLoading, setRoomDetails } = useRoomDetails(roomId, accessToken);
   const {
@@ -123,6 +124,8 @@ const BattleWaitingLobby = () => {
                 handleReadyToggle={() => handleReadyToggle(username, readyStatus, setReadyStatus)}
                 readyStatus={readyStatus}
                 getDifficultyStyles={getDifficultyStyles}
+                unreadCount={unreadCount}
+                setUnreadCount={setUnreadCount}
               />
             </main>
             <LobbyFooter roomDetails={roomDetails} currentTime={currentTime} />

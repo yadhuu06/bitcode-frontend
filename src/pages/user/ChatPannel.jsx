@@ -1,20 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
-import { toast } from 'react-toastify';
 import WebSocketService from '../../services/WebSocketService';
 
-const ChatPanel = ({ roomId, username, isActiveTab }) => {
+const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
   const formatIndianTime = (timestamp) => {
     try {
-      return new Date(timestamp).toLocaleTimeString('en-IN', {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp:', timestamp);
+        return new Date().toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata',
+        });
+      }
+      return date.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
         timeZone: 'Asia/Kolkata',
       });
     } catch (e) {
-      console.error('Invalid timestamp format:', timestamp);
-      return '';
+      console.error('Error formatting timestamp:', e);
+      return new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata',
+      });
     }
   };
 
@@ -39,45 +53,49 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
     const handleMessage = (data) => {
       console.log(`Received message: ${JSON.stringify(data)}`);
 
-      if (data.type === 'chat_message') {
+      if (data.type === 'chat_message' && data.message && data.sender) {
         setMessages((prev) => {
+          // Avoid duplicates by checking message ID or content + sender
           if (
-            data.sender === username &&
-            prev.some((msg) => msg.message === data.message && msg.user === data.sender)
+            prev.some(
+              (msg) =>
+                msg.id === data.id ||
+                (msg.message === data.message && msg.user === data.sender && msg.time === formatIndianTime(data.timestamp))
+            )
           ) {
             return prev;
           }
 
-          if (!prev.some((msg) => msg.id === data.id)) {
-            return [
-              ...prev,
-              {
-                id: data.id || prev.length + 1,
-                user: data.sender,
-                message: data.message,
-                time: formatIndianTime(data.timestamp || new Date().toISOString()),
-                isSystem: data.is_system || false,
-              },
-            ];
-          }
+          const newMessage = {
+            id: data.id || prev.length + 1,
+            user: data.sender,
+            message: data.message,
+            time: formatIndianTime(data.timestamp || new Date().toISOString()),
+            isSystem: data.is_system || false,
+          };
 
-          return prev;
+          if (!isActiveTab) {
+            onNewMessage(); // Trigger unread count increment
+          }
+          return [...prev, newMessage];
         });
       } else if (data.type === 'chat_history') {
-        const historyMessages = data.messages.map((msg, index) => ({
-          id: msg.id || index + 2,
-          user: msg.sender,
-          message: msg.message,
-          time: formatIndianTime(msg.timestamp || new Date().toISOString()),
-          isSystem: msg.is_system,
-        }));
+        const historyMessages = data.messages
+          .filter((msg) => msg.message && msg.sender)
+          .map((msg, index) => ({
+            id: msg.id || index + 2,
+            user: msg.sender,
+            message: msg.message,
+            time: formatIndianTime(msg.timestamp || new Date().toISOString()),
+            isSystem: msg.is_system || false,
+          }));
 
         setMessages((prev) => {
           const existingMessages = prev.slice(1); // Keep welcome message
           const newMessages = historyMessages.filter(
             (msg) => !existingMessages.some((existing) => existing.id === msg.id)
           );
-          return [prev[0], ...newMessages];
+          return [prev[0], ...newMessages, ...existingMessages];
         });
       } else if (data.type === 'room_closed') {
         setMessages([
@@ -89,9 +107,8 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
             isSystem: true,
           },
         ]);
-        toast.info('Room has been closed');
       } else if (data.type === 'error') {
-        toast.error(data.message);
+        console.warn('WebSocket error:', data.message);
       }
     };
 
@@ -100,7 +117,7 @@ const ChatPanel = ({ roomId, username, isActiveTab }) => {
       console.log(`Removing WebSocket listener: ${listenerId}`);
       WebSocketService.removeListener(listenerId);
     };
-  }, [roomId, username]);
+  }, [roomId, username, isActiveTab, onNewMessage]);
 
   useEffect(() => {
     if (messagesEndRef.current && isActiveTab) {

@@ -14,7 +14,7 @@ const AnswerVerification = () => {
   const [testCases, setTestCases] = useState([]);
   const [testResults, setTestResults] = useState([]);
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
+  const [language, setLanguage] = useState('python');
   const [loadingVerify, setLoadingVerify] = useState(false);
   const [loadingRun, setLoadingRun] = useState(false);
   const [error, setError] = useState(null);
@@ -32,22 +32,51 @@ const AnswerVerification = () => {
   const fetchQuestionAndTestCases = useCallback(async () => {
     try {
       setLoadingVerify(true);
+      
+      // Fetch the question data
       const questionData = await fetchQuestionById(questionId);
       setQuestion(questionData);
+
+      // Set test cases
       setTestCases(questionData.test_cases || []);
+
+      // Fetch solved codes for this question
       const solvedResponse = await fetchSolvedCodes(questionId);
       const codes = solvedResponse.solved_codes || {};
       setSolvedCodes(codes);
+
+      // Set the code in the editor based on selected language
       setCode(codes[language]?.solution_code || '');
+
+      // Clear any previous error
       setError(null);
     } catch (err) {
-      const errorMessage = JSON.parse(err.message || JSON.stringify({ error: 'Failed to load question or test cases' }));
-      setError(errorMessage.error || 'Failed to load question or test cases');
-      toast.error(errorMessage.error || 'Failed to load question or test cases');
+      console.error("Error while fetching question or test cases:", err);
+
+      let message = 'Failed to load question or test cases';
+
+      try {
+        // Only try to parse if the message is JSON
+        if (typeof err.message === 'string' && err.message.startsWith('{')) {
+          const parsed = JSON.parse(err.message);
+          message = parsed.error || message;
+        } else if (err.response && err.response.data && err.response.data.error) {
+          // Axios-style error
+          message = err.response.data.error;
+        } else if (err.message) {
+          message = err.message;
+        }
+      } catch (parseError) {
+        console.warn("Failed to parse error message as JSON:", parseError);
+      }
+
+      setError(message);
+      toast.error(message);
     } finally {
       setLoadingVerify(false);
     }
   }, [questionId, language]);
+
 
   useEffect(() => {
     fetchQuestionAndTestCases();

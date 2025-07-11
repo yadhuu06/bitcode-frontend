@@ -26,7 +26,7 @@ const Questions = () => {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [filterType, setFilterType] = useState('verified');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -196,7 +196,14 @@ const Questions = () => {
               <BookOpen className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">Answers</span>
             </button>
-       
+            <button
+              onClick={(e) => handleEdit(question.question_id, e)}
+              className="flex items-center px-3 py-1 bg-gray-800 text-[#73E600] rounded hover:bg-gray-700 transition-all duration-300 text-xs font-medium"
+              title="Edit"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Edit</span>
+            </button>
           </div>
         </div>
       </div>

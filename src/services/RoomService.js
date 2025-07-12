@@ -34,9 +34,9 @@ export const getRoomDetails = async (roomId, accessToken) => {
     const errMsg = error.response?.data?.error || error.message;
 
     if (error.response?.status === 403 && errMsg.includes('not authorised')) {
-      toast.error('You are not authorised to view this room');
+     
     } else {
-      toast.error('Failed to load room details');
+      
     }
 
     throw errMsg;

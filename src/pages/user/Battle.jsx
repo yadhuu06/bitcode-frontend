@@ -8,6 +8,7 @@ import { getRoomDetails } from '../../services/RoomService';
 import { setupBattleWebSocket } from '../../services/BattleSocketService';
 import BattleSidebar from '../../components/battle-room/BattleSidebar';
 import BattleEditor from '../../components/battle-room/BattleEditor';
+import BattleResultModal from '../../components/modals/BattleResultModal';
 
 const Battle = () => {
   const { roomId, questionId } = useParams();
@@ -29,8 +30,10 @@ const Battle = () => {
   const [battleResults, setBattleResults] = useState([]);
   const [remainingTime, setRemainingTime] = useState(null);
   const [roomEnded, setRoomEnded] = useState(false);
-  const [battleResultModal,setBattleResultModal]=useState(false)
+  const [battleResultModal, setBattleResultModal] = useState(false);
   const wsListenerId = useRef(`battle-${roomId}`);
+
+  const [finalWinners, setFinalWinners] = useState([]);
 
   const languages = [
     {
@@ -41,6 +44,35 @@ const Battle = () => {
     },
   ];
 
+  const calculateRemainingTime = (startTime, timeLimit) => {
+    if (!startTime || timeLimit <= 0) return null;
+    const elapsedSeconds = (new Date() - new Date(startTime)) / 1000;
+    return Math.max(0, timeLimit * 60 - elapsedSeconds);
+  };
+
+  const checkRoomStatus = async () => {
+    try {
+      const response = await getRoomDetails(roomId, accessToken);
+      setRoomDetails(response.room);
+      if (response.room.status === 'completed') {
+        setRoomEnded(true);
+        setBattleResultModal(true);
+        if (!battleResults.length) {
+          const battleResponse = await api.get(`/battle/${questionId}/`);
+          setBattleResults(battleResponse.data.winners || []);
+          setFinalWinners(battleResponse.data.winners || []);
+        }
+      } else {
+        const initialTime = calculateRemainingTime(response.room.start_time, response.room.time_limit);
+        setRemainingTime(initialTime);
+        localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime || 0);
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to load room details');
+      navigate('/user/rooms');
+    }
+  };
+
   useEffect(() => {
     if (!roomId || !questionId) {
       console.error('Invalid roomId or questionId:', { roomId, questionId });
@@ -48,31 +80,6 @@ const Battle = () => {
       navigate('/user/rooms');
       return;
     }
-
-    const calculateRemainingTime = (startTime, timeLimit) => {
-      if (!startTime || timeLimit <= 0) return null;
-      const elapsedSeconds = (new Date() - new Date(startTime)) / 1000;
-      return Math.max(0, timeLimit * 60 - elapsedSeconds);
-    };
-
-    const fetchRoom = async () => {
-      try {
-        const response = await getRoomDetails(roomId, accessToken);
-        setRoomDetails(response.room);
-        if (response.room.status === 'completed') {
-          setRoomEnded(true);
-          toast.error('This battle has ended.');
-          navigate('/user/rooms');
-          return;
-        }
-        const initialTime = calculateRemainingTime(response.room.start_time, response.room.time_limit);
-        setRemainingTime(initialTime);
-        localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime || 0);
-      } catch (error) {
-        toast.error(error.message || 'Failed to load room details');
-        navigate('/user/rooms');
-      }
-    };
 
     const fetchQuestionAndFunction = async () => {
       try {
@@ -108,20 +115,23 @@ const Battle = () => {
           ...prev.filter((entry) => entry.username !== data.username),
           { username: data.username, position: data.position, completion_time: data.completion_time },
         ]);
-      } else if (data.type === 'time_update') { 
+      } else if (data.type === 'time_update') {
         setRemainingTime(data.remaining_seconds);
         localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
       } else if (data.type === 'battle_completed') {
         setBattleResults(data.winners || []);
+        setFinalWinners(data.winners || []);
         setRoomEnded(true);
+        setBattleResultModal(true);
         toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
         localStorage.removeItem(`battle_${roomId}_remainingTime`);
       } else if (data.type === 'start_countdown') {
-
+      } else if (data.type === 'reconnect') {
+        checkRoomStatus();
       }
     });
 
-    fetchRoom();
+    checkRoomStatus();
     fetchQuestionAndFunction();
 
     const savedTime = localStorage.getItem(`battle_${roomId}_remainingTime`);
@@ -148,8 +158,12 @@ const Battle = () => {
 
   const verifyCode = async () => {
     if (!question || roomEnded) {
-      toast.error(roomEnded ? 'Battle has ended' : 'No question loaded');
-      return;
+      if (roomEnded) {
+        toast.error('Battle has ended. No further submissions allowed.');
+        return false;
+      }
+      toast.error('No question loaded');
+      return false;
     }
     dispatch(setLoading({ isLoading: true, message: `Verifying ${language} code...`, style: 'terminal', progress: 0 }));
     try {
@@ -168,8 +182,10 @@ const Battle = () => {
       setAllPassed(response.data.all_passed);
       setActiveTab('results');
       toast.success('Code verification completed');
+      return true;
     } catch (error) {
       toast.error(error.response?.data?.error || 'Verification failed');
+      return false;
     } finally {
       dispatch(resetLoading());
     }
@@ -180,10 +196,13 @@ const Battle = () => {
   };
 
   const formatTime = (seconds) => {
-    if (seconds === null || seconds <= 0) return '0 min 0 sec';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes} min ${remainingSeconds} sec`;
+    if (seconds === null || seconds <= 0) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    if (seconds <= 60) {
+      return `${secs} second${secs !== 1 ? 's' : ''}`;
+    }
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   return (
@@ -232,6 +251,14 @@ const Battle = () => {
           question={question}
           languages={languages}
         />
+        {battleResultModal && (
+          <BattleResultModal
+            winners={battleResults}
+            roomCapacity={roomDetails?.capacity || 2}
+            currentUser={user?.username}
+            onClose={() => navigate('/user/rooms')}
+          />
+        )}
       </div>
       <footer className="mt-8 text-center text-gray-400 text-xs border-t border-green-500 pt-4">
         <p>BITCODE BATTLE v1.0 • 2025</p>

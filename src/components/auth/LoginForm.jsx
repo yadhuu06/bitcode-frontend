@@ -53,7 +53,7 @@ const LoginForm = () => {
       );
       setEmail('');
       setPassword('');
-      navigate(data.redirect_url || '/user/dashboard'); 
+      navigate( '/user/dashboard'); 
       toast.success('Logged in successfully!');
     } catch (err) {
       toast.error(err.message || 'Login failed');

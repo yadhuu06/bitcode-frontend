@@ -1,15 +1,26 @@
 import { Trophy } from 'lucide-react';
 import Confetti from 'react-confetti';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-const BattleResultModal = ({ winners, roomCapacity, currentUser, onClose }) => {
+const BattleResultsPage = () => {
+  const { state } = useLocation();
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const winners = state?.winners || [];
+  const roomCapacity = state?.roomCapacity || 2;
+  const currentUser = user?.username;
+
   const maxWinners = { 2: 1, 5: 2, 10: 3 }[roomCapacity] || 1;
   const displayedWinners = winners.slice(0, maxWinners).sort((a, b) => a.position - b.position);
   const isTopWinner = displayedWinners[0]?.username === currentUser;
 
+  const handleNextBattle = () => {
+    navigate('/user/rooms');
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/35 flex items-center justify-center z-50">
+    <div className="min-h-screen bg-black text-white font-mono flex items-center justify-center">
       {isTopWinner && <Confetti width={window.innerWidth} height={window.innerHeight} />}
       <div className="bg-gray-900 border border-green-500 rounded-lg p-6 max-w-md w-full mx-4">
         <h2 className="text-2xl font-bold text-green-500 mb-4 text-center">
@@ -44,10 +55,10 @@ const BattleResultModal = ({ winners, roomCapacity, currentUser, onClose }) => {
         </div>
         <div className="mt-6 flex justify-center">
           <button
-            onClick={() => navigate('/user/rooms')}
-            className="bg-green-500 text-black font-semibold py-2 px-4 rounded-lg hover:bg-green-400 transition-colors flex items-center gap-2"
+            onClick={handleNextBattle}
+            className="bg-green-500 text-black font-semibold py-2 px-4 rounded-lg hover:bg-green-400 transition-colors"
           >
-            <span>🏁</span> Start New Battle
+            Next Battle
           </button>
         </div>
       </div>
@@ -55,4 +66,4 @@ const BattleResultModal = ({ winners, roomCapacity, currentUser, onClose }) => {
   );
 };
 
-export default BattleResultModal;
+export default BattleResultsPage;

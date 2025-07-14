@@ -32,7 +32,6 @@ const Battle = () => {
   const [roomEnded, setRoomEnded] = useState(false);
   const [battleResultModal, setBattleResultModal] = useState(false);
   const wsListenerId = useRef(`battle-${roomId}`);
-
   const [finalWinners, setFinalWinners] = useState([]);
 
   const languages = [
@@ -74,12 +73,48 @@ const Battle = () => {
   };
 
   useEffect(() => {
-    if (!roomId || !questionId) {
-      console.error('Invalid roomId or questionId:', { roomId, questionId });
-      toast.error('Invalid room or question ID');
+    if (!roomId || !questionId || !accessToken || !user?.username) {
+      console.error('Missing required data:', { roomId, questionId, accessToken, username: user?.username });
+      toast.error('Invalid room, question, or authentication data');
       navigate('/user/rooms');
       return;
     }
+
+    let cleanupWebSocket;
+
+    const initializeWebSocket = () => {
+      cleanupWebSocket = setupBattleWebSocket(
+        roomId,
+        { token: accessToken, username: user.username },
+        (data) => {
+          console.log('WebSocket message received:', data);
+          if (data.type === 'battle_started') {
+            const initialTime = data.time_limit * 60;
+            setRemainingTime(initialTime);
+            localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime);
+          } else if (data.type === 'code_verified' && !roomEnded) {
+            setBattleResults((prev) => [
+              ...prev.filter((entry) => entry.username !== data.username),
+              { username: data.username, position: data.position, completion_time: data.completion_time },
+            ]);
+          } else if (data.type === 'time_update') {
+            setRemainingTime(data.remaining_seconds);
+            localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
+          } else if (data.type === 'battle_completed') {
+            setBattleResults(data.winners || []);
+            setFinalWinners(data.winners || []);
+            setRoomEnded(true);
+            setBattleResultModal(true);
+            toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
+            localStorage.removeItem(`battle_${roomId}_remainingTime`);
+          } else if (data.type === 'start_countdown') {
+            // Handle countdown if needed
+          } else if (data.type === 'reconnect') {
+            checkRoomStatus();
+          }
+        }
+      );
+    };
 
     const fetchQuestionAndFunction = async () => {
       try {
@@ -99,40 +134,13 @@ const Battle = () => {
       } catch (error) {
         console.error('Failed to fetch question and function details:', error);
         toast.error(error.response?.data?.error || 'Failed to load question details');
-        setCode(`# Write your code here`);
         navigate('/user/rooms');
       }
     };
 
-    const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: user?.username }, (data) => {
-      console.log('WebSocket message received:', data);
-      if (data.type === 'battle_started') {
-        const initialTime = data.time_limit * 60;
-        setRemainingTime(initialTime);
-        localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime);
-      } else if (data.type === 'code_verified' && !roomEnded) {
-        setBattleResults((prev) => [
-          ...prev.filter((entry) => entry.username !== data.username),
-          { username: data.username, position: data.position, completion_time: data.completion_time },
-        ]);
-      } else if (data.type === 'time_update') {
-        setRemainingTime(data.remaining_seconds);
-        localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
-      } else if (data.type === 'battle_completed') {
-        setBattleResults(data.winners || []);
-        setFinalWinners(data.winners || []);
-        setRoomEnded(true);
-        setBattleResultModal(true);
-        toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
-        localStorage.removeItem(`battle_${roomId}_remainingTime`);
-      } else if (data.type === 'start_countdown') {
-      } else if (data.type === 'reconnect') {
-        checkRoomStatus();
-      }
-    });
-
     checkRoomStatus();
     fetchQuestionAndFunction();
+    initializeWebSocket();
 
     const savedTime = localStorage.getItem(`battle_${roomId}_remainingTime`);
     if (savedTime) setRemainingTime(parseInt(savedTime, 10));
@@ -149,12 +157,12 @@ const Battle = () => {
     }
 
     return () => {
-      console.log('Cleaning up WebSocket listener and timer in Battle');
-      cleanup();
+      console.log('Cleaning up WebSocket and timer in Battle');
+      if (cleanupWebSocket) cleanupWebSocket();
       if (intervalId) clearInterval(intervalId);
       localStorage.removeItem(`battle_${roomId}_remainingTime`);
     };
-  }, [roomId, questionId, user, accessToken, navigate, roomEnded]);
+  }, [roomId, questionId, accessToken, user, navigate, roomEnded]);
 
   const verifyCode = async () => {
     if (!question || roomEnded) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react'; // Add memo to imports
+import React, { useState, useEffect, memo } from 'react'; 
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';

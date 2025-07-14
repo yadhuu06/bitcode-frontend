@@ -36,7 +36,8 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
+      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'battle', progress: 50 }));
+      
       try {
         const userData = await fetchProfile();
         console.log('Fetched user data:', userData);
@@ -54,7 +55,7 @@ const Profile = () => {
     if (isAuthenticated) {
       fetchUserData();
     } else {
-      toast.error('Please log in to view your profile');
+      
       navigate('/login');
     }
   }, [dispatch, isAuthenticated, navigate]);

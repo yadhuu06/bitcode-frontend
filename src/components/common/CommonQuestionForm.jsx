@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, HelpCircle, PlusSquare, X } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import CustomButton from '../ui/CustomButton';
-import { toast } from 'react-toastify';
+
 
 const editorStyles = `
   .w-md-editor {
@@ -226,7 +226,7 @@ const CommonQuestionForm = ({
 
   const handleFormSubmit = () => {
     if (!validateForm()) {
-      toast.error('Please fill in all required fields');
+     
       return;
     }
     if (testCasesOnly) {

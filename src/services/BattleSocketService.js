@@ -1,6 +1,4 @@
 import WebSocketService from './WebSocketService';
-import { toast } from 'react-toastify';
-
 export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
   const ensureConnection = () => {
     console.log('[WS INIT] Setup Battle WebSocket for', roomId);
@@ -10,7 +8,7 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
     }
   };
 
-  ensureConnection();
+  
 
   const listenerId = `battle-${roomId}`;
 
@@ -19,7 +17,6 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
 
     switch (data.type) {
       case 'battle_started':
-        toast.success(data.message || 'Battle started!');
         onUpdate({
           type: 'battle_started',
           start_time: data.start_time,
@@ -29,7 +26,6 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
 
       case 'code_verified':
         if (!data.roomEnded) {
-          toast.success(`${data.username} finished ${getOrdinal(data.position)}!`, { autoClose: 3000 });
           onUpdate({
             type: 'code_verified',
             username: data.username,
@@ -47,7 +43,7 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
         break;
 
       case 'battle_completed':
-        toast.success(data.message || 'Room Ended!', { autoClose: 3000 });
+        console.log('message came as battle completed is working well')
         onUpdate({
           type: 'battle_completed',
           winners: data.winners || [],
@@ -56,7 +52,6 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
         break;
 
       case 'start_countdown':
-        toast.info(`Battle starting in ${data.countdown} seconds!`);
         onUpdate({
           type: 'start_countdown',
           countdown: data.countdown,

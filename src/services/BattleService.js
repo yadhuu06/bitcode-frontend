@@ -53,13 +53,11 @@ export const handleStartBattle = async ({ room, participants, currentUser, navig
     console.log('Start room API response:', response.data);
     if (response.status !== 200) {
       console.error('Failed to start battle:', response.data);
-      toast.error(response.data?.error || 'Failed to start battle');
       return;
     }
 
     if (!WebSocketService.isConnected()) {
       console.error('WebSocket not connected');
-      toast.error('errorWebSocket connection lost. Please reconnect.');
       return;
     }
 

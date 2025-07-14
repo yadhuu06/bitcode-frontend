@@ -13,7 +13,6 @@ import Cookies from 'js-cookie';
 import { useDispatch, useSelector } from 'react-redux'; // Added useSelector
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
-import { toast } from 'react-toastify';
 import { logout as authLogout } from '../../services/AuthService';
 
 const Sidebar = ({ onCollapseChange }) => {
@@ -37,12 +36,10 @@ const Sidebar = ({ onCollapseChange }) => {
       // Pass the refreshToken to authLogout
       await authLogout(refreshToken);
       dispatch(logoutSuccess());
-      toast.success('Logged out successfully!');
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
       dispatch(logoutSuccess());
-      toast.error('Logout failed, but session cleared');
       navigate('/');
     } finally {
       dispatch(resetLoading());

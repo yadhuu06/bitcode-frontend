@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import PropTypes from 'prop-types'; // Add PropTypes import
+import PropTypes from 'prop-types'; 
 import { createQuestion, editQuestion, fetchQuestionById } from '../../../services/ProblemService';
 import CommonQuestionForm from '../../common/CommonQuestionForm';
 
@@ -82,7 +81,6 @@ const QuestionForm = ({ isAdmin = false }) => { // Add isAdmin prop
               : [{ input_data: '', expected_output: '', is_sample: false, order: 0 }]
           );
         } catch (error) {
-          toast.error(error.message || 'Failed to load question');
           navigate('/admin/questions');
         } finally {
           setLoading(false);
@@ -102,10 +100,8 @@ const QuestionForm = ({ isAdmin = false }) => { // Add isAdmin prop
       };
       if (isEditMode) {
         await editQuestion(questionId, payload);
-        toast.success('Question updated successfully');
       } else {
         await createQuestion(payload);
-        toast.success('Question created successfully');
       }
       navigate(isAdmin ? '/admin/questions' : '/contribute');
     } catch (error) {
@@ -113,7 +109,6 @@ const QuestionForm = ({ isAdmin = false }) => { // Add isAdmin prop
       if (errorData.title || errorData.description || errorData.difficulty || errorData.tags || errorData.examples || errorData.test_cases) {
         setErrors(errorData);
       } else {
-        toast.error(error.message || 'Operation failed');
       }
     } finally {
       setLoading(false);

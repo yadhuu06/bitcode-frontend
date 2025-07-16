@@ -16,7 +16,7 @@ const RoomFilter = ({ searchTerm, onSearchChange, activeFilter, onFilterChange }
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        {['all', 'active', 'public', 'private', 'ranked', 'casual'].map((filter) => (
+        {['active', 'all', 'public', 'private', 'ranked', 'casual'].map((filter) => (
           <button
             key={filter}
             onClick={() => onFilterChange(filter)}

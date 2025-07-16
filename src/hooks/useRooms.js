@@ -17,7 +17,7 @@ export const useRooms = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [wsError, setWsError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('active');
   const [passwordRoomId, setPasswordRoomId] = useState(null);
   const [passwords, setPasswords] = useState({});
   const wsListenerId = useRef('rooms');

@@ -28,10 +28,7 @@ export default function BitCodeHomepage() {
       <div className="max-w-6xl mx-auto px-4 mt-8 z-10 relative">
         {/* Hero Section */}
         <section className="flex flex-col items-center justify-center py-16">
-          <h1 className="text-5xl font-bold mb-4">
-            <span className="text-white">Bit</span>
-            <span className="text-[#00FF40]">Code</span>
-          </h1>
+          
           <p className="text-xl mb-10 text-center max-w-2xl">
             Master coding with our real-time compiler, compete in thrilling battles, and contribute problems to challenge the community.
           </p>

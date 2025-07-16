@@ -64,7 +64,7 @@ export const setupBattleWebSocket = (roomId, currentUser, onUpdate) => {
     }
   });
 
-  // Periodically check connection and trigger reconnect
+
   const reconnectInterval = setInterval(() => {
     if (!WebSocketService.isConnected()) {
       console.log('[WS] Connection lost. Attempting to reconnect...');

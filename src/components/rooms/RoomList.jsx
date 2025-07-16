@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AlertTriangle, Search, Lock, Trophy, Users, Clock, Layers, Swords, X ,ChevronRight,ChevronLeft} from 'lucide-react';
 import { BitCodeProgressLoading } from '../ui/LoadingAnimation';
 
+
+
 const RoomList = ({ rooms, loading, error, filteredRooms, onJoin, passwordRoomId, passwords, handlePasswordSubmit, handlePasswordChange, handleCancel }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const roomsPerPage = 9;
@@ -174,14 +176,22 @@ const RoomList = ({ rooms, loading, error, filteredRooms, onJoin, passwordRoomId
         {currentRooms.length === 0 && !loading && (
           <div className="col-span-full flex flex-col items-center justify-center py-16 border border-dashed border-gray-700 rounded-lg">
             <Search className="text-gray-500 mb-4" size={40} />
-            <p className="text-gray-400 mb-4">No rooms found with the current filters.</p>
+
+
             <button
               onClick={() => {
                 setSearchTerm('');
                 setActiveFilter('all');
               }}
-              className="mt-4 text-green-400 hover:text-green-300 text-sm underline transition-all duration-300"
+              className="mt-4 text-green-400 hover:text-green-300 text-sm transition-all duration-300"
             >
+              <p className="text-gray-400 mb-4 flex flex-col sm:flex-row items-center gap-2 text-center">
+                <Swords size={90} className="text-00"/>
+
+                <span>No Battle Rooms found with the current filters.</span>
+              </p>
+
+
               Reset filters
             </button>
           </div>

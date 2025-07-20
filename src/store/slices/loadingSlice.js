@@ -20,6 +20,8 @@ const loadingSlice = createSlice({
       state.style = style || initialState.style;
     },
     resetLoading(state) {
+      console.log('resetting loggin')
+      
       state.isLoading = false;
       state.message = initialState.message;
       state.progress = null;

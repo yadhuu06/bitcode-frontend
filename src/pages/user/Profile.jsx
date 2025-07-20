@@ -34,32 +34,33 @@ const Profile = () => {
   const [selectedSection, setSelectedSection] = useState('stats');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'battle', progress: 50 }));
-      
-      try {
-        const userData = await fetchProfile();
-        console.log('Fetched user data:', userData);
-        setUser(userData);
-        setUsername(userData.username || '');
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        toast.error(error.message || 'Failed to load profile data');
-        navigate('/login');
-      } finally {
-        dispatch(resetLoading());
-      }
-    };
-
-    if (isAuthenticated) {
-      fetchUserData();
-    } else {
-      
+useEffect(() => {
+  const fetchUserData = async () => {
+    dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'battle', progress: 50 }));
+    try {
+      const userData = await fetchProfile();
+      setUser(userData);
+      setUsername(userData.username || '');
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      toast.error(error.message || 'Failed to load profile data');
       navigate('/login');
+    } finally {
+     dispatch(resetLoading())
     }
-  }, [dispatch, isAuthenticated, navigate]);
+  };
 
+  if (isAuthenticated) {
+    fetchUserData();
+  } else {
+    navigate('/login');
+  }
+
+  // Cleanup function to reset loading state on unmount
+  return () => {
+    dispatch(resetLoading());
+  };
+}, [dispatch, isAuthenticated, navigate]);
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {

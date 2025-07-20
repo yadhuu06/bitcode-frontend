@@ -20,6 +20,8 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const myRef = useRef(null);
+  const contentRef = useRef(null); 
+  const overlayRef = useRef(null); // This will now properly store the overlay reference
   const [vantaEffect, setVantaEffect] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
 
@@ -104,6 +106,8 @@ const AuthPage = () => {
 
       if (myRef.current) {
         myRef.current.style.filter = 'blur(.25px)';
+        
+        // Create overlay and store reference properly
         const overlay = document.createElement('div');
         overlay.style.position = 'fixed';
         overlay.style.top = '0';
@@ -113,11 +117,15 @@ const AuthPage = () => {
         overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
         overlay.style.zIndex = '0';
         document.body.appendChild(overlay);
+        
+        // Store the overlay reference for cleanup
+        overlayRef.current = overlay;
 
         const content = document.querySelector('.your-content-container');
         if (content) {
           content.style.position = 'relative';
           content.style.zIndex = '1';
+          contentRef.current = content; // Store content reference too
         }
       }
 
@@ -143,7 +151,23 @@ const AuthPage = () => {
     }
 
     return () => {
-      if (vantaEffect) vantaEffect.destroy();
+      // 1. Destroy vanta effect
+      if (vantaEffect) {
+        vantaEffect.destroy();
+      }
+
+      // 2. Remove the manually appended overlay div
+      if (overlayRef.current && document.body.contains(overlayRef.current)) {
+        document.body.removeChild(overlayRef.current);
+        overlayRef.current = null;
+      }
+
+      // 3. Reset styles on the content container if they were changed
+      if (contentRef.current) {
+        contentRef.current.style.position = '';
+        contentRef.current.style.zIndex = '';
+        contentRef.current = null;
+      }
     };
   }, [vantaEffect]);
 
@@ -171,7 +195,7 @@ const AuthPage = () => {
       />
       <div
         ref={myRef}
-        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}
+        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }} 
       />
       <ToastContainer
         position="top-right"

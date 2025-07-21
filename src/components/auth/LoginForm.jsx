@@ -63,7 +63,7 @@ const LoginForm = () => {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-7" onSubmit={handleSubmit}>
       <h2 className="text-2xl font-semibold text-white">Login</h2>
       <div className="bg-gray-800 p-1 rounded-md">
         <input
@@ -107,9 +107,6 @@ const LoginForm = () => {
 >
   Forgot password?
 </h5>
-
-     
-
     </form>
     
   );

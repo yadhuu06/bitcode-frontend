@@ -21,7 +21,7 @@ const AuthPage = () => {
   const location = useLocation();
   const myRef = useRef(null);
   const contentRef = useRef(null); 
-  const overlayRef = useRef(null); // This will now properly store the overlay reference
+  const overlayRef = useRef(null);
   const [vantaEffect, setVantaEffect] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
 
@@ -226,7 +226,12 @@ const AuthPage = () => {
           {isLogin ? 'Register' : 'Login'}
         </button>
       </div>
-      <div className="relative z-10 w-full max-w-md p-8 space-y-8 bg-black bg-opacity-40 rounded-lg shadow-xl border border-gray-800">
+<div className="relative z-10 w-full max-w-md p-8 space-y-8 
+  bg-black 
+  bg-opacity-20 lg:bg-opacity-40 
+  rounded-lg shadow-xl border border-gray-800">
+
+
         {isLogin ? <LoginForm /> : <RegisterForm />}
       </div>
     </div>

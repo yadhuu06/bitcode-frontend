@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Command, Clock, Users, Lock, Unlock, ArrowRight } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from 'react-toastify'; // Keep toast for general (non-field-specific) API errors or session issues
 import { useNavigate } from 'react-router-dom';
 import CustomButton from '../ui/CustomButton';
 import { createRoom } from '../../services/RoomService';
@@ -32,49 +32,97 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
     is_ranked: false,
   });
 
+  // New state for handling inline validation errors
+  const [errors, setErrors] = useState({});
+  // New state for handling general API errors (not tied to a specific form field)
+  const [apiError, setApiError] = useState('');
+
+
   const handleChange = (name, value) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+    // Clear the specific error when the user starts typing/changing the field
+    setErrors((prev) => ({
+      ...prev,
+      [name]: '',
+    }));
   };
 
   const nextStep = () => {
-    if (currentStep === 1 && !formData.name) {
-      toast.error('Room name is required');
+    let newErrors = {};
+
+    // Validate fields for the current step before proceeding
+    if (currentStep === 1) {
+      if (!formData.name.trim()) { // .trim() to handle whitespace-only names
+        newErrors.name = 'Room name is required.';
+      }
+      if (!formData.topic) {
+        newErrors.topic = 'Please choose a topic.';
+      }
+    }
+    // Add validation for Step 2 fields if you want to prevent proceeding from step 2
+    // without valid selections. For simplicity, the main validation is on final submit.
+
+    setErrors(newErrors); // Update errors state
+
+    if (Object.keys(newErrors).length > 0) {
+      // If there are errors, stop here
       return;
     }
+    // If no errors, clear any old general API errors and proceed
+    setApiError('');
     setCurrentStep((prev) => prev + 1);
   };
 
   const prevStep = () => {
+    setErrors({}); // Clear errors when navigating back
+    setApiError(''); // Clear general API errors too
     setCurrentStep((prev) => prev - 1);
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.topic || !formData.difficulty) {
-      toast.error('Please fill in all required fields');
-      return false;
+    let newErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Room name is required.';
     }
-    if (!formData.is_ranked && !formData.time_limit) {
-      toast.error('Time limit is required for non-ranked rooms');
-      return false;
+    if (!formData.topic) {
+      newErrors.topic = 'Please choose a topic.';
     }
-    if (formData.visibility === 'private' && !formData.password) {
-      toast.error('Password is required for private rooms');
-      return false;
+    if (!formData.difficulty) {
+      newErrors.difficulty = 'Please select a difficulty level.';
     }
-    return true;
+    if (!formData.is_ranked && (!formData.time_limit || formData.time_limit === 0)) {
+      newErrors.time_limit = 'Time limit is required for casual rooms.';
+    }
+    if (formData.visibility === 'private' && !formData.password.trim()) {
+      newErrors.password = 'Password is required for private rooms.';
+    }
+
+    setErrors(newErrors); // Update the errors state
+
+    // Return true if no errors, false otherwise
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleCreateRoom = async () => {
+    setApiError(''); // Clear any previous general API errors
+
     if (!accessToken) {
+        // This is a critical error (not logged in), a toast is still appropriate here
+        // as it might lead to navigation.
         toast.error('Please log in to create a room');
         navigate('/login');
         return;
     }
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+        // If validateForm returns false, errors state is already populated,
+        // so inline messages will show. No need for a toast here.
+        return;
+    }
 
     setIsLoading(true);
     try {
@@ -91,6 +139,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
 
         const response = await createRoom(payload);
 
+        // Attempt to join the room immediately after creation
         await api.post(`/rooms/${response.room_id}/join/`, formData.visibility === 'private' ? { password: formData.password } : {});
 
         onRoomCreated({
@@ -108,6 +157,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
             is_ranked: formData.is_ranked,
         });
 
+        // Navigate to the new room
         navigate(`/user/room/${response.room_id}`, {
             state: {
                 roomId: response.room_id,
@@ -122,13 +172,14 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
             },
         });
 
-        onClose();
+        onClose(); // Close the modal on success
     } catch (error) {
         console.error('Error creating room:', error);
         const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
-        toast.error(errorMessage);
+        setApiError(errorMessage); // Set the general API error to be displayed in the modal
 
         if (error.response?.status === 401) {
+            // For session expiry, a toast and forced re-login is still a good UX.
             toast.error('Session expired. Please log in again.');
             navigate('/login');
         }
@@ -207,9 +258,12 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   placeholder="Enter room name (e.g., Cyber Arena)"
-                  className="w-full p-3 pl-4 bg-gray-800/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00FF40] placeholder-gray-500 transition-all duration-300"
+                  // Add conditional styling for error
+                  className={`w-full p-3 pl-4 bg-gray-800/50 border ${errors.name ? 'border-red-500' : 'border-gray-700'} text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00FF40] placeholder-gray-500 transition-all duration-300`}
                   required
                 />
+                {/* Display error message */}
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#22c55e] mb-2 tracking-wider">
@@ -253,6 +307,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                     </div>
                   ))}
                 </div>
+                 {errors.topic && <p className="text-red-500 text-xs mt-1">{errors.topic}</p>}
               </div>
             </div>
           </div>
@@ -283,6 +338,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                     </div>
                   ))}
                 </div>
+                {errors.difficulty && <p className="text-red-500 text-xs mt-1">{errors.difficulty}</p>}
               </div>
               {!formData.is_ranked && (
                 <div>
@@ -322,6 +378,7 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                       ))}
                     </div>
                   </div>
+                  {errors.time_limit && <p className="text-red-500 text-xs mt-1">{errors.time_limit}</p>}
                 </div>
               )}
               <div>
@@ -402,9 +459,10 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
                     value={formData.password}
                     onChange={(e) => handleChange('password', e.target.value)}
                     placeholder="Set a password"
-                    className="w-full p-3 bg-gray-800/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00FF40] placeholder-gray-500 transition-all duration-300"
+                    className={`w-full p-3 bg-gray-800/50 border ${errors.password ? 'border-red-500' : 'border-gray-700'} text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00FF40] placeholder-gray-500 transition-all duration-300`}
                     required={formData.visibility === 'private'}
                   />
+                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                 </div>
               )}
               <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
@@ -466,6 +524,10 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
           </button>
         </div>
         {renderStepIndicator()}
+        {/* Display general API error message at the top of the content */}
+        {apiError && (
+          <p className="text-red-500 text-sm text-center mb-4">{apiError}</p>
+        )}
         <div>{renderContent()}</div>
         <div className="flex justify-between mt-8">
           {currentStep > 1 ? (

@@ -50,8 +50,8 @@ const PasswordForm = ({ email, setStep }) => {
       await completeRegistration(email, password, confirmPassword);
       setPassword('');
       setConfirmPassword('');
-      localStorage.removeItem('authPageState'); // Clear registration state
-      navigate('/login');
+      localStorage.removeItem('authPageState'); 
+      navigate('/dashboard');
       toast.success('Registration completed successfully!');
     } catch (err) {
       toast.error(err.message || 'Registration failed');

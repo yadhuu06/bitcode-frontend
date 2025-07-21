@@ -4,6 +4,8 @@ import MatrixBackground from '../../components/ui/MatrixBackground';
 import RoomFilter from '../../components/rooms/RoomFilter';
 import RoomList from '../../components/rooms/RoomList';
 import CreateRoomModal from '../../components/modals/CreateRoomModal';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import CustomButton from '../../components/ui/CustomButton';
 import { useRooms } from '../../hooks/useRooms';
 

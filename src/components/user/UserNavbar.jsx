@@ -55,14 +55,14 @@ const UserNavbar = () => {
       <div className="container mx-auto flex justify-between items-center h-full px-5">
 <div className="flex flex-col justify-center h-full leading-none overflow-hidden group">
   <NavLink to="/user/dashboard" className={navLinkClass}>
-    <div className="text-[24px] sm:text-[26px] flex items-center font-bold">
+    <div className="text-[24px] sm:text-[25px] flex items-center font-bold">
       <span className="text-green-500 group-hover:text-white transition-colors duration-300">{'<\u200A'}</span>
       <span className="text-white group-hover:text-green-500 transition-colors duration-300">BitCode</span>
       <span className="text-green-500 group-hover:text-white transition-colors duration-300">{'/\u200A>'}</span>
     </div>
   </NavLink>
 
-  <div className="text-[12px] font-mono tracking-widest mt-[-5px] ml-[9px] self-start">
+  <div className="text-[11px] font-mono tracking-widest mt-[-5px] ml-[25px] self-start">
     <span className="text-white group-hover:text-white transition-colors duration-300">{'<'}</span>
     <span className="text-green-500 group-hover:text-white transition-colors duration-300">0</span>
     <span className="text-white group-hover:text-green-500 transition-colors duration-300">1</span>
@@ -75,11 +75,6 @@ const UserNavbar = () => {
     <span className="text-white group-hover:text-white transition-colors duration-300">{'/>'}</span>
   </div>
 </div>
-
-
-
-
-
 
         <ul className="hidden md:flex space-x-8 items-center h-full">
           <li className="h-full flex items-center">

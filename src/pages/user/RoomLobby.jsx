@@ -1,7 +1,8 @@
 import React, { useState, useEffect, memo } from 'react'; 
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { handleStartBattle } from '../../services/BattleService';
 import useWebSocketLobby from '../../hooks/useWebSocketLobby';
 import useRoomDetails from '../../hooks/useRoomDetails';

@@ -1,11 +1,32 @@
 @import "tailwindcss";
+@import 'react-toastify/dist/ReactToastify.css';
+
 body, html, #root {
-    font-family: 'Fira Code', monospace;
-    margin: 0;
-    padding: 0;
-  }
-  
-  /* Optional: Ensure all elements inherit the font */
-  * {
-    font-family: inherit;
-  }
+  font-family: 'Fira Code', monospace;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  font-family: inherit;
+}
+
+/* Enforce dark theme for react-toastify */
+.Toastify__toast-container {
+  font-family: 'Fira Code', monospace;
+}
+.Toastify__toast--dark {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  border: 1px solid #374151 !important;
+}
+.Toastify__toast--error {
+  background: #000000 !important;
+  color: #f87171 !important;
+  border: 1px solid #991b1b !important;
+}
+.Toastify__toast--success {
+  background: #121111 !important;
+  color: #4ade80 !important;
+  border: 1px solid #166534 !important;
+}

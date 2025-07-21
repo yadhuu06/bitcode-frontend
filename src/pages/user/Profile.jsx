@@ -33,14 +33,16 @@ const Profile = () => {
   const [imageRef, setImageRef] = useState(null);
   const [selectedSection, setSelectedSection] = useState('stats');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [stats,setStats]=useState({})
 
 useEffect(() => {
   const fetchUserData = async () => {
-    dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'battle', progress: 50 }));
+    dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
     try {
       const userData = await fetchProfile();
       setUser(userData);
       setUsername(userData.username || '');
+      setStats({"total_matches":userData.total_battles,"battles_won":userData.battles_won})
     } catch (error) {
       console.error('Error fetching user data:', error);
       toast.error(error.message || 'Failed to load profile data');
@@ -56,7 +58,7 @@ useEffect(() => {
     navigate('/login');
   }
 
-  // Cleanup function to reset loading state on unmount
+
   return () => {
     dispatch(resetLoading());
   };
@@ -189,7 +191,7 @@ useEffect(() => {
   };
 
   const handleLogout = async () => {
-    dispatch(setLoading({ isLoading: true, message: 'Logging out...', style: 'battle', progress: 0 }));
+    dispatch(setLoading({ isLoading: true, message: 'Logging out...', style: 'default', progress: 0 }));
     try {
       await logout();
       dispatch(logoutSuccess());
@@ -205,13 +207,7 @@ useEffect(() => {
     }
   };
 
-  const stats = {
-    solvedQuestions: 42,
-    attemptedDays: 15,
-    activeStreak: 7,
-    lastWin: '2025-04-07',
-    recentHistory: ['Solved "Binary Search"', 'Attempted "Dynamic Programming"', 'Won "Code Challenge #3"'],
-  };
+  
 
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
   const handleSelection = (section) => {

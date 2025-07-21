@@ -26,7 +26,7 @@ const Questions = () => {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('verified');
+  const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);

@@ -2,6 +2,7 @@ import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { toast } from 'react-toastify';
 
 const GoogleAuthButton = ({ label, disabled }) => {
   const handleSuccess = async (credentialResponse) => {
@@ -39,6 +40,7 @@ const GoogleAuthButton = ({ label, disabled }) => {
   const handleError = () => {
     console.error('Google login failed');
     window.location.href = '/?error=auth_failed';
+    toast.error ('failed to login with')
   };
 
   return (

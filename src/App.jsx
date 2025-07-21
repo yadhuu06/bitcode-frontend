@@ -51,6 +51,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 font-mono text-center">
           Your Battle is Getting Crashed. Please retry or contact support.
+
        
         </div>
       );

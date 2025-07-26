@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logoutSuccess } from '../../store/slices/authSlice';
+import { logoutSuccess, updateProfile } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Cookies from 'js-cookie';
-import { fetchProfile, updateProfile, getImageKitAuthParams } from '../../services/ProfileService';
-import {logout} from '../../services/AuthService'
+import { fetchProfile, updateProfile as updateProfileService, getImageKitAuthParams } from '../../services/ProfileService';
+import { logout } from '../../services/AuthService';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
@@ -25,45 +25,51 @@ const Profile = () => {
   const refreshToken = useSelector((state) => state.auth.refreshToken) || Cookies.get('refresh_token');
   const isAdmin = reduxUser?.is_admin;
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(reduxUser);
   const [isEditing, setIsEditing] = useState(false);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(reduxUser?.username || '');
   const [profilePic, setProfilePic] = useState(null);
   const [crop, setCrop] = useState({ unit: '%', width: 50, height: 50, x: 0, y: 0, aspect: 1 / 1 });
   const [croppedImage, setCroppedImage] = useState(null);
   const [imageRef, setImageRef] = useState(null);
   const [selectedSection, setSelectedSection] = useState('stats');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [stats,setStats]=useState({})
+  const [stats, setStats] = useState({});
 
-useEffect(() => {
-  const fetchUserData = async () => {
-    dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
-    try {
-      const userData = await fetchProfile();
-      setUser(userData);
-      setUsername(userData.username || '');
-      setStats({"total_matches":userData.total_battles,"battles_won":userData.battles_won})
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      toast.error(error.message || 'Failed to load profile data');
+  useEffect(() => {
+    const fetchUserData = async () => {
+      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
+      try {
+        const userData = await fetchProfile();
+        setUser(userData);
+        setUsername(userData.username || '');
+        setStats({ total_matches: userData.total_battles || 0, battles_won: userData.battles_won || 0 });
+        dispatch(updateProfile({ user: userData })); // Sync with Redux
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        toast.error(error.message || 'Failed to load profile data');
+        navigate('/login');
+      } finally {
+        dispatch(resetLoading());
+      }
+    };
+
+    // Fetch if not authenticated or if reduxUser is missing critical fields
+    if (!isAuthenticated) {
       navigate('/login');
-    } finally {
-     dispatch(resetLoading())
+    } else if (!reduxUser || reduxUser.total_battles === undefined || reduxUser.battles_won === undefined) {
+      fetchUserData();
+    } else {
+      setUser(reduxUser);
+      setUsername(reduxUser.username || '');
+      setStats({ total_matches: reduxUser.total_battles || 0, battles_won: reduxUser.battles_won || 0 });
     }
-  };
 
-  if (isAuthenticated) {
-    fetchUserData();
-  } else {
-    navigate('/login');
-  }
+    return () => {
+      dispatch(resetLoading());
+    };
+  }, [dispatch, isAuthenticated, reduxUser, navigate]);
 
-
-  return () => {
-    dispatch(resetLoading());
-  };
-}, [dispatch, isAuthenticated, navigate]);
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -177,11 +183,12 @@ useEffect(() => {
         formData.append('profile_picture', imageUrl);
       }
 
-      const updatedUser = await updateProfile(formData);
+      const updatedUser = await updateProfileService(formData);
       setUser(updatedUser);
       setIsEditing(false);
       setProfilePic(null);
       setCroppedImage(null);
+      dispatch(updateProfile({ user: updatedUser })); // Sync updated user with Redux
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -207,8 +214,6 @@ useEffect(() => {
       dispatch(resetLoading());
     }
   };
-
-  
 
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
   const handleSelection = (section) => {
@@ -260,7 +265,7 @@ useEffect(() => {
               <div className="space-y-3 font-mono text-white">
                 <div className="flex items-center space-x-2 hover:text-green-300 transition-colors duration-300">
                   <FaUser className="text-green-500" />
-                  <span>USER: {user?.username || 'N/A'}</span>
+                  <span>USER: {user?.username || 'Loading...'}</span>
                 </div>
                 <div className="flex items-center space-x-2 hover:text-green-300 transition-colors duration-300">
                   <FaEnvelope className="text-green-500" />
@@ -268,7 +273,7 @@ useEffect(() => {
                 </div>
                 <div className="flex items-center space-x-2 hover:text-green-300 transition-colors duration-300">
                   <FaCalendar className="text-green-500" />
-                  <span>BOOT: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
+                  <span>BOOT: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Loading...'}</span>
                 </div>
                 <div className="flex space-x-2 mt-4">
                   <button
@@ -302,7 +307,7 @@ useEffect(() => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="flex items center space-x-2 text-green-500">
+                  <label className="flex items-center space-x-2 text-green-500">
                     <FaCamera />
                     <span>AVATAR:</span>
                   </label>

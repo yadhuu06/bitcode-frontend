@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MatrixBackground from '../../components/ui/MatrixBackground';
+import { useSelector } from 'react-redux';
+import { fetchProfile } from '../../services/ProfileService';
 
 export const ROUTES = {
   HOME: '/',
@@ -18,7 +20,10 @@ export const ROUTES = {
   USER_CONTRIBUTE: '/contribute',
 };
 
+
 export default function BitCodeHomepage() {
+  const state = useSelector(state => state);
+  console.info("Current Redux State:", state);
   const navigate = useNavigate();
 
   return (

@@ -69,10 +69,10 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         case 'room_closed': {
           setIsRoomClosed(true);
           toast.error('Room has been closed');
-          setTimeout(() => navigate('/user/rooms'), 4000);
+          
           break;
         }
-        
+
 
         case 'kicked': {
           if (data.username === username) {

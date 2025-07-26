@@ -7,12 +7,15 @@ import 'react-toastify/dist/ReactToastify.css';
 import PropTypes from 'prop-types';
 import store from './store';
 import { setupInterceptors } from './api';
+import { fetchProfile } from './services/ProfileService'; 
+import { updateProfile } from './services/ProfileService'; 
 import LoadingIndicator from './components/ui/LoadingIndicator';
 import NotFound from './components/user/NotFound';
 import UserNavbar from './components/user/UserNavbar';
 import AdminLayout from './components/admin/AdminLayout';
 import { useLocation } from 'react-router-dom';
 import { ROUTES } from './routes/paths';
+import { useSelector, useDispatch } from 'react-redux';
 
 const AuthPage = lazy(() => import('./components/auth/AuthPage'));
 const AuthCallback = lazy(() => import('./components/auth/AuthCallback'));
@@ -51,8 +54,6 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="p-4 bg-red-900/20 rounded-md text-red-400 border border-red-700 font-mono text-center">
           Your Battle is Getting Crashed. Please retry or contact support.
-
-       
         </div>
       );
     }
@@ -81,10 +82,19 @@ UserLayout.propTypes = {
 };
 
 const AppWrapper = () => {
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
   useEffect(() => {
     const cleanup = setupInterceptors();
+    // Fetch user profile if authenticated but no user data in Redux
+    if (isAuthenticated && !user) {
+      fetchProfile()
+        .then((data) => dispatch(updateProfile({ user: data })))
+        .catch((error) => console.error('Failed to fetch user profile:', error.message));
+    }
     return cleanup;
-  }, []);
+  }, [isAuthenticated, user, dispatch]);
 
   return (
     <ErrorBoundary>
@@ -153,28 +163,25 @@ function App() {
 
   return (
     <>
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <Provider store={store}>
-        
-        <Router>
-          
-          <AppWrapper />
-        </Router>
-      </Provider>
-    </GoogleOAuthProvider>
-    <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="dark"
-            // aria-live="polite"
-          />
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <Provider store={store}>
+          <Router>
+            <AppWrapper />
+          </Router>
+        </Provider>
+      </GoogleOAuthProvider>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </>
   );
 }

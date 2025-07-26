@@ -15,12 +15,11 @@ const Battle = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isLoading } = useSelector((state) => state.loading);
-  const { user, accessToken } = useSelector((state) => state.auth);
+  const { isLoading, accessToken, username } = useSelector((state) => state.auth); // Use Redux username
   const [activeTab, setActiveTab] = useState('description');
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
-  const [functionDetails, setFunctionDetails] = useState({ name: '', params: [] }); 
+  const [functionDetails, setFunctionDetails] = useState({ name: '', params: [] });
   const [isEditorFull, setIsEditorFull] = useState(false);
   const [question, setQuestion] = useState(state?.question || null);
   const [testCases, setTestCases] = useState(state?.question?.testcases || []);
@@ -31,9 +30,6 @@ const Battle = () => {
   const [remainingTime, setRemainingTime] = useState(null);
   const [roomEnded, setRoomEnded] = useState(false);
   const [battleResultModal, setBattleResultModal] = useState(false);
-  const wsListenerId = useRef(`battle-${roomId}`);
-
-  const [finalWinners, setFinalWinners] = useState([]);
 
   const languages = [
     {
@@ -53,17 +49,14 @@ const Battle = () => {
   const checkRoomStatus = async () => {
     try {
       const response = await getRoomDetails(roomId, accessToken);
-      {console.info("fetched the question for the room")}
+      console.info("Fetched room details");
       setRoomDetails(response.room);
       if (response.room.status === 'completed') {
         setRoomEnded(true);
-
         setBattleResultModal(true);
-        
         if (!battleResults.length) {
           const battleResponse = await api.get(`/battle/${questionId}/`);
           setBattleResults(battleResponse.data.winners || []);
-          setFinalWinners(battleResponse.data.winners || []);
         }
       } else {
         const initialTime = calculateRemainingTime(response.room.start_time, response.room.time_limit);
@@ -75,16 +68,11 @@ const Battle = () => {
       navigate('/user/rooms');
     }
   };
-console.log('before the useEffect one')
-  useEffect(() => {
-    console.info("room id is ",roomId)
-    console.info("token is ",accessToken)
-    console.info(user.username)
-    if (!roomId || !questionId || !accessToken || !user?.username) return;
 
-    if (!roomId || !questionId) {
-      console.error('Invalid roomId or questionId:', { roomId, questionId });
-      toast.error('Invalid room or question ID');
+  useEffect(() => {
+    if (!roomId || !questionId || !accessToken || !username) {
+      console.error('Missing required data:', { roomId, questionId, accessToken, username });
+      toast.error('Invalid room, question, or authentication');
       navigate('/user/rooms');
       return;
     }
@@ -92,7 +80,7 @@ console.log('before the useEffect one')
     const fetchQuestionAndFunction = async () => {
       try {
         const response = await api.get(`/battle/${questionId}/`);
-        console.info("question fetched succesfully")
+        console.info("Question fetched successfully");
         setQuestion(response.data.question);
         setTestCases(response.data.testcases || []);
         setFunctionDetails({
@@ -112,34 +100,20 @@ console.log('before the useEffect one')
         navigate('/user/rooms');
       }
     };
-    console.info("beforre the socker cleanup function")
 
-    const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: 'search'}, (data) => {
-      console.log('WebSocket message received:', data);
-      if (data.type === 'battle_started') {
-        const initialTime = data.time_limit * 60;
-        setRemainingTime(initialTime);
-        localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime);
-      } else if (data.type === 'code_verified' && !roomEnded) {
-        setBattleResults((prev) => [
-          ...prev.filter((entry) => entry.username !== data.username),
-          { username: data.username, position: data.position, completion_time: data.completion_time },
-        ]);
-      } else if (data.type === 'time_update') {
-        setRemainingTime(data.remaining_seconds);
-        localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
-      } else if (data.type === 'battle_completed') {
-        setBattleResults(data.winners || []);
-        setFinalWinners(data.winners || []);
-        setRoomEnded(true);
-        setBattleResultModal(true);
-        toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
-        localStorage.removeItem(`battle_${roomId}_remainingTime`);
-      } else if (data.type === 'start_countdown') {
-      } else if (data.type === 'reconnect') {
-        checkRoomStatus();
-      }
-    });
+    const cleanup = setupBattleWebSocket(
+      roomId,
+      { token: accessToken, username },
+      navigate,
+      setBattleResults,
+      setRemainingTime,
+      setRoomEnded,
+      setBattleResultModal,
+      setResults,
+      setAllPassed,
+      setActiveTab,
+      roomEnded
+    );
 
     checkRoomStatus();
     fetchQuestionAndFunction();
@@ -159,12 +133,12 @@ console.log('before the useEffect one')
     }
 
     return () => {
-      console.log('Cleaning up WebSocket listener and timer in Battle');
+      console.log('Cleaning up Battle component');
       cleanup();
       if (intervalId) clearInterval(intervalId);
       localStorage.removeItem(`battle_${roomId}_remainingTime`);
     };
-  }, [roomId, questionId, accessToken, navigate, roomEnded]);
+  }, [roomId, questionId, accessToken, username, navigate, roomEnded]);
 
   const verifyCode = async () => {
     if (!question || roomEnded) {
@@ -229,7 +203,7 @@ console.log('before the useEffect one')
           </NavLink>
           {roomDetails && (
             <div className="text-sm text-gray-400">
-              Room: {roomDetails.name} | {roomDetails.is_ranked ? 'Ranked' : formatTime(remainingTime)}
+              Room: {roomDetails.name} | {roomDetails.is_ranked ? 'Ranked' : formatTime(remainingTime)} | User: {username}
             </div>
           )}
         </div>
@@ -246,7 +220,7 @@ console.log('before the useEffect one')
             allPassed={allPassed}
             battleResults={battleResults}
             remainingTime={roomDetails?.is_ranked ? null : remainingTime}
-            currentUser={user?.username}
+            currentUser={username}
           />
         )}
         <BattleEditor
@@ -265,7 +239,7 @@ console.log('before the useEffect one')
           <BattleResultModal
             winners={battleResults}
             roomCapacity={roomDetails?.capacity || 2}
-            currentUser={user?.username}
+            currentUser={username}
             onClose={() => navigate('/user/rooms')}
           />
         )}

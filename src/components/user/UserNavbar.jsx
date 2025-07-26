@@ -19,7 +19,7 @@ const UserNavbar = () => {
     dispatch(setLoading({
       isLoading: true,
       message: 'Logging out...',
-      style: 'terminal',
+      style: 'default',
     }));
     try {
       const result = await logout(refreshToken); 
@@ -34,11 +34,7 @@ const UserNavbar = () => {
     } catch (error) {
       console.error('Logout error:', error.message, error.stack);
       dispatch(logoutSuccess());
-      toast.error('Logout failed, but session cleared', {
-        position: 'top-right',
-        autoClose: 3000,
-        theme: 'dark',
-      });
+      toast.error('Logout failed, but session cleared');
       navigate('/');
     } finally {
       dispatch(resetLoading());
@@ -79,7 +75,7 @@ const UserNavbar = () => {
         <ul className="hidden md:flex space-x-8 items-center h-full">
           <li className="h-full flex items-center">
             <NavLink to="/user/dashboard" className={navLinkClass}>
-              Problems
+              Home
             </NavLink>
           </li>
           <li className="h-full flex items-center">
@@ -139,7 +135,7 @@ const UserNavbar = () => {
         <ul className="md:hidden mt-2 space-y-2 bg-gray-900 p-4 absolute w-full top-16 left-0 shadow-md animate-slide-down z-50">
           <li>
             <NavLink to="/user/dashboard" className={navLinkClass} onClick={toggleMenu}>
-              Problems
+              Home
             </NavLink>
           </li>
           <li>

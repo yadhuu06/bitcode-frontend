@@ -189,7 +189,7 @@ export const completeRegistration = async (email, password, confirmPassword) => 
       refresh: response.data.refresh,
       access: response.data.access,
       role: response.data.role,
-      redirect_url: response.data.redirect_url || 'user/dashboard',
+      redirect_url:  'user/dashboard',
     };
   } catch (error) {
     console.error('Error completing registration:', error.response?.data || error.message);

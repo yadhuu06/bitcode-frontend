@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import Cookies from 'js-cookie';
-import { fetchProfile, updateProfile, logout, getImageKitAuthParams } from '../../services/ProfileService';
+import { fetchProfile, updateProfile, getImageKitAuthParams } from '../../services/ProfileService';
+import {logout} from '../../services/AuthService'
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';

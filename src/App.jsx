@@ -152,10 +152,17 @@ function App() {
   }
 
   return (
+    <>
     <GoogleOAuthProvider clientId={googleClientId}>
       <Provider store={store}>
+        
         <Router>
-          <ToastContainer
+          
+          <AppWrapper />
+        </Router>
+      </Provider>
+    </GoogleOAuthProvider>
+    <ToastContainer
             position="top-right"
             autoClose={3000}
             hideProgressBar={false}
@@ -166,12 +173,9 @@ function App() {
             draggable
             pauseOnHover
             theme="dark"
-            aria-live="polite"
+            // aria-live="polite"
           />
-          <AppWrapper />
-        </Router>
-      </Provider>
-    </GoogleOAuthProvider>
+    </>
   );
 }
 

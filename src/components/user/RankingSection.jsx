@@ -9,7 +9,7 @@ const RankingSection = () => {
   useEffect(() => {
     const fetchRankings = async () => {
       try {
-        const res = await api.get('/battle/global-rankings'); // ✅ should be GET
+        const res = await api.get('/battle/global-rankings'); 
         const data = res.data;
         setRankings(data);
 

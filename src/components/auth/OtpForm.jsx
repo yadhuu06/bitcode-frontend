@@ -83,13 +83,7 @@ const OtpForm = ({ email, setStep }) => {
           />
         </div>
         <div className="flex justify-between items-center">
-          <div className="text-sm">
-            {otpExpiration > 0 ? (
-              <span className="text-yellow-400">OTP expires in: {formatTime(otpExpiration)}</span>
-            ) : (
-              <span className="text-red-500">OTP expired</span>
-            )}
-          </div>
+          
           <div className="text-sm">
             {resendCooldown > 0 ? (
               <span className="text-gray-600">Resend available in: {formatTime(resendCooldown)}</span>

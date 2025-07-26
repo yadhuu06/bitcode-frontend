@@ -53,10 +53,13 @@ const Battle = () => {
   const checkRoomStatus = async () => {
     try {
       const response = await getRoomDetails(roomId, accessToken);
+      {console.info("fetched the question for the room")}
       setRoomDetails(response.room);
       if (response.room.status === 'completed') {
         setRoomEnded(true);
+
         setBattleResultModal(true);
+        
         if (!battleResults.length) {
           const battleResponse = await api.get(`/battle/${questionId}/`);
           setBattleResults(battleResponse.data.winners || []);
@@ -72,8 +75,13 @@ const Battle = () => {
       navigate('/user/rooms');
     }
   };
-
+console.log('before the useEffect one')
   useEffect(() => {
+    console.info("room id is ",roomId)
+    console.info("token is ",accessToken)
+    console.info(user.username)
+    if (!roomId || !questionId || !accessToken || !user?.username) return;
+
     if (!roomId || !questionId) {
       console.error('Invalid roomId or questionId:', { roomId, questionId });
       toast.error('Invalid room or question ID');
@@ -84,6 +92,7 @@ const Battle = () => {
     const fetchQuestionAndFunction = async () => {
       try {
         const response = await api.get(`/battle/${questionId}/`);
+        console.info("question fetched succesfully")
         setQuestion(response.data.question);
         setTestCases(response.data.testcases || []);
         setFunctionDetails({
@@ -103,8 +112,9 @@ const Battle = () => {
         navigate('/user/rooms');
       }
     };
+    console.info("beforre the socker cleanup function")
 
-    const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: user?.username }, (data) => {
+    const cleanup = setupBattleWebSocket(roomId, { token: accessToken, username: 'search'}, (data) => {
       console.log('WebSocket message received:', data);
       if (data.type === 'battle_started') {
         const initialTime = data.time_limit * 60;
@@ -154,7 +164,7 @@ const Battle = () => {
       if (intervalId) clearInterval(intervalId);
       localStorage.removeItem(`battle_${roomId}_remainingTime`);
     };
-  }, [roomId, questionId, user, accessToken, navigate, roomEnded]);
+  }, [roomId, questionId, accessToken, navigate, roomEnded]);
 
   const verifyCode = async () => {
     if (!question || roomEnded) {

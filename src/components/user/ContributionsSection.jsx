@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../routes/paths';
-import { toast } from 'react-toastify';
 import { fetchUserContributions } from '../../services/ProfileService';
 import { CheckCircle, XCircle ,Plus} from 'lucide-react';
 

@@ -12,7 +12,7 @@ const ParticipantsPanel = ({
   lobbyMessages,
   roomDetails,
 }) => {
-  console.log('ParticipantsPanel - Username:', username); 
+  localStorage.setItem('PresentUser',username) 
 
   return (
     <div className="lg:w-2/3 bg-gray-900/80 p-6 rounded-xl border border-[#00FF40]/20 shadow-lg shadow-[#00FF40]/10">

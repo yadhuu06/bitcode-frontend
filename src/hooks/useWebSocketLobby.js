@@ -1,4 +1,3 @@
-// hooks/useWebSocketLobby.js
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -43,7 +42,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
 
         case 'battle_ready': {
           console.log('Battle ready received with question:', data.question);
-          setAssignedQuestion(data.question); 
+          setAssignedQuestion(data.question);
           break;
         }
 
@@ -58,12 +57,14 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         }
 
         case 'battle_started': {
-            console.log('Battle started navigating to battle page...', data);
-            navigate(`/battle/${data.room_id}/${data.question.id}`);
-
-            toast.success("Battle Started!");
-            break;
-          }
+          console.log('Battle started navigating to battle page...', data);
+          console.info("the user i passed is? ",username)
+          navigate(`/battle/${data.room_id}/${data.question.id}`, {
+            state: { username, question: data.question },
+          });
+          toast.success('Battle Started!');
+          break;
+        }
 
         case 'room_closed': {
           setIsRoomClosed(true);
@@ -71,6 +72,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
           setTimeout(() => navigate('/user/rooms'), 4000);
           break;
         }
+        
 
         case 'kicked': {
           if (data.username === username) {

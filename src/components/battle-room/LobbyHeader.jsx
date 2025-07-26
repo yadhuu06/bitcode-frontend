@@ -11,11 +11,11 @@ const LobbyHeader = ({ roomDetails, role, currentTime, handleLeaveRoom, getDiffi
           {role !== 'host' && (
             <button
               onClick={handleLeaveRoom}
-              className="p-2 rounded-full bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-[#00FF40] transition-all duration-300"
+              className="p-2 rounded-full bg-gray-800/50 text-gray-400 hover: hover:text-[#00FF40] transition-all duration-300"
               title="Leave Room"
               aria-label="Leave Room"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={15} />
             </button>
           )}
           <h1 className="text-2xl font-bold text-[#00FF40] font-['Orbitron'] tracking-wider">

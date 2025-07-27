@@ -1,25 +1,35 @@
 import WebSocketService from './WebSocketService';
 
 export const setupBattleWebSocket = (roomId, currentUser, navigate, setBattleResults, setRemainingTime, setRoomEnded, setBattleResultModal, setResults, setAllPassed, setActiveTab, roomEnded) => {
+  const listenerId = `battle-${roomId}`;
+
+  // Ensure any existing lobby WebSocket is closed
   const ensureConnection = () => {
-    console.log('[WS INIT] Setup Battle WebSocket for', roomId);
+    console.log('[WS INIT] Setup Battle WebSocket for room:', roomId, 'with user:', currentUser.username);
+    if (WebSocketService.isConnected()) {
+      console.log('[WS] Already connected, checking endpoint...');
+      if (WebSocketService.getCurrentEndpoint() !== `/ws/battle/${roomId}/`) {
+        console.log('[WS] Closing existing connection to switch to battle endpoint');
+        WebSocketService.disconnect();
+      }
+    }
     if (!WebSocketService.isConnected()) {
-      console.log('[WS] Not connected. Reconnecting with token...');
+      console.log('[WS] Connecting to battle WebSocket with token:', currentUser.token);
       WebSocketService.connect(currentUser.token, roomId, navigate, 'battle');
     }
   };
-
-  const listenerId = `battle-${roomId}`;
 
   WebSocketService.addListener(listenerId, (data) => {
     console.log('[WS RECEIVED]', data);
 
     switch (data.type) {
       case 'connected':
-        console.log(data.message);
+        console.log('[WS] Connected:', data.message);
+        toast.info('Connected to battle room');
         break;
 
       case 'battle_started':
+        console.log('[WS] Battle started with time limit:', data.time_limit);
         const initialTime = data.time_limit * 60;
         setRemainingTime(initialTime);
         localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime);
@@ -35,6 +45,7 @@ export const setupBattleWebSocket = (roomId, currentUser, navigate, setBattleRes
         break;
 
       case 'submission_result':
+        console.log('[WS] Submission result for', data.username, ':', data.result);
         toast.info(`Submission by ${data.username}: ${data.result.passed ? 'Passed' : 'Failed'}`);
         if (data.username === currentUser.username) {
           setResults(data.result.test_cases || []);
@@ -44,30 +55,30 @@ export const setupBattleWebSocket = (roomId, currentUser, navigate, setBattleRes
         break;
 
       case 'time_update':
+        console.log('[WS] Time update:', data.remaining_seconds);
         setRemainingTime(data.remaining_seconds);
         localStorage.setItem(`battle_${roomId}_remainingTime`, data.remaining_seconds);
         break;
 
       case 'battle_completed':
       case 'battle_ended':
+        console.log('[WS] Battle ended:', data.message);
         setBattleResults(data.winners || []);
         setRoomEnded(true);
         setBattleResultModal(true);
         toast.success(data.message || 'Battle Ended!', { autoClose: 3000 });
         localStorage.removeItem(`battle_${roomId}_remainingTime`);
-        navigate('/user/rooms');
+        setTimeout(() => navigate('/user/rooms'), 3000);
         break;
 
       case 'room_closed':
+        console.log('[WS] Room closed');
         toast.error('Room has been closed');
         navigate('/user/rooms');
         break;
 
-      case 'start_countdown':
-        // Handle countdown if needed
-        break;
-
       case 'error':
+        console.error('[WS] Error:', data.message);
         toast.error(data.message || 'WebSocket error');
         if (
           data.message?.includes('401') ||

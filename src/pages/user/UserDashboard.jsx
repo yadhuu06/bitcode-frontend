@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MatrixBackground from '../../components/ui/MatrixBackground';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { fetchProfile } from '../../services/ProfileService';
+import { updateProfile } from '../../store/slices/authSlice';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 
 export const ROUTES = {
   HOME: '/',
@@ -20,11 +22,32 @@ export const ROUTES = {
   USER_CONTRIBUTE: '/contribute',
 };
 
-
 export default function BitCodeHomepage() {
-  const state = useSelector(state => state);
-  console.info("Current Redux State:", state);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (isAuthenticated && !user?.username) {
+        dispatch(setLoading({ isLoading: true, message: 'Loading user profile...', style: 'default', progress: 50 }));
+        try {
+          const userData = await fetchProfile();
+          dispatch(updateProfile({ user: userData })); // Sync user data with Redux
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          toast.error(error.message || 'Failed to load user profile');
+          navigate(ROUTES.LOGIN);
+        } finally {
+          dispatch(resetLoading());
+        }
+      } else if (!isAuthenticated) {
+        navigate(ROUTES.LOGIN);
+      }
+    };
+
+    fetchUserData();
+  }, [dispatch, isAuthenticated, user, navigate]);
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
@@ -33,7 +56,6 @@ export default function BitCodeHomepage() {
       <div className="max-w-6xl mx-auto px-4 mt-8 z-10 relative">
         {/* Hero Section */}
         <section className="flex flex-col items-center justify-center py-16">
-          
           <p className="text-xl mb-10 text-center max-w-2xl">
             Master coding with our real-time compiler, compete in thrilling battles, and contribute problems to challenge the community.
           </p>

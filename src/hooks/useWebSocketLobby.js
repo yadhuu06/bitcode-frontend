@@ -16,10 +16,13 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
   const [assignedQuestion, setAssignedQuestion] = useState(null);
 
   useEffect(() => {
-    if (!roomId || !accessToken || !username) return;
+    if (!roomId || !accessToken || !username) {
+      console.error('Missing required data for WebSocket:', { roomId, accessToken, username });
+      return;
+    }
 
-    console.log('Initiating WebSocket connection in useWebSocketLobby', { roomId, accessToken, username });
-    WebSocketService.connect(accessToken, roomId, navigate);
+    console.log('Initiating WebSocket connection in useWebSocketLobby', { roomId, username });
+    WebSocketService.connect(accessToken, roomId, navigate, 'room');
 
     const handleMessage = (data) => {
       console.log('WebSocket message received:', JSON.stringify(data, null, 2));
@@ -57,8 +60,9 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         }
 
         case 'battle_started': {
-          console.log('Battle started navigating to battle page...', data);
-          console.info("the user i passed is? ",username)
+          console.log('Battle started, navigating to battle page:', data);
+          console.info('User navigating to battle:', username);
+          WebSocketService.disconnect(); // Disconnect lobby WebSocket before navigating
           navigate(`/battle/${data.room_id}/${data.question.id}`, {
             state: { username, question: data.question },
           });
@@ -69,10 +73,10 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         case 'room_closed': {
           setIsRoomClosed(true);
           toast.error('Room has been closed');
-          
+          WebSocketService.disconnect();
+          navigate('/user/rooms');
           break;
         }
-
 
         case 'kicked': {
           if (data.username === username) {
@@ -95,6 +99,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         }
 
         case 'error': {
+          console.error('WebSocket error:', data.message);
           toast.error(data.message);
           if (
             data.message.includes('401') ||
@@ -103,6 +108,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
             data.message.includes('Not authorized') ||
             data.code === 4005
           ) {
+            WebSocketService.disconnect();
             navigate('/login');
           }
           break;
@@ -132,6 +138,7 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
     return () => {
       console.log('Cleaning up WebSocket listener in useWebSocketLobby');
       WebSocketService.removeListener(wsListenerId.current);
+      WebSocketService.disconnect();
     };
   }, [roomId, accessToken, navigate, username, setRole]);
 

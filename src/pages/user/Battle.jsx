@@ -9,13 +9,13 @@ import { setupBattleWebSocket } from '../../services/BattleSocketService';
 import BattleSidebar from '../../components/battle-room/BattleSidebar';
 import BattleEditor from '../../components/battle-room/BattleEditor';
 import BattleResultModal from '../../components/modals/BattleResultModal';
-
+  
 const Battle = () => {
   const { roomId, questionId } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { isLoading, accessToken, username } = useSelector((state) => state.auth); // Use Redux username
+  const dispatch = useDispatch();     
+  const { isLoading, accessToken, username } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('description');
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
@@ -49,7 +49,7 @@ const Battle = () => {
   const checkRoomStatus = async () => {
     try {
       const response = await getRoomDetails(roomId, accessToken);
-      console.info("Fetched room details");
+      console.info("Fetched room details:", response.room);
       setRoomDetails(response.room);
       if (response.room.status === 'completed') {
         setRoomEnded(true);
@@ -64,12 +64,14 @@ const Battle = () => {
         localStorage.setItem(`battle_${roomId}_remainingTime`, initialTime || 0);
       }
     } catch (error) {
+      console.error('Failed to load room details:', error);
       toast.error(error.message || 'Failed to load room details');
       navigate('/user/rooms');
     }
   };
 
   useEffect(() => {
+    console.log('Battle component mounting:', { roomId, questionId, accessToken, username });
     if (!roomId || !questionId || !accessToken || !username) {
       console.error('Missing required data:', { roomId, questionId, accessToken, username });
       toast.error('Invalid room, question, or authentication');
@@ -80,7 +82,7 @@ const Battle = () => {
     const fetchQuestionAndFunction = async () => {
       try {
         const response = await api.get(`/battle/${questionId}/`);
-        console.info("Question fetched successfully");
+        console.info("Question fetched successfully:", response.data.question);
         setQuestion(response.data.question);
         setTestCases(response.data.testcases || []);
         setFunctionDetails({
@@ -168,6 +170,7 @@ const Battle = () => {
       toast.success('Code verification completed');
       return true;
     } catch (error) {
+      console.error('Verification error:', error);
       toast.error(error.response?.data?.error || 'Verification failed');
       return false;
     } finally {

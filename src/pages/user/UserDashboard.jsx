@@ -33,7 +33,7 @@ export default function BitCodeHomepage() {
         dispatch(setLoading({ isLoading: true, message: 'Loading user profile...', style: 'default', progress: 50 }));
         try {
           const userData = await fetchProfile();
-          dispatch(updateProfile({ user: userData })); // Sync user data with Redux
+          dispatch(updateProfile({ user: userData }));
         } catch (error) {
           console.error('Error fetching user data:', error);
           toast.error(error.message || 'Failed to load user profile');
@@ -54,7 +54,6 @@ export default function BitCodeHomepage() {
       <MatrixBackground particleCount={65} color="#00FF40" opacityRange={[0.1, 0.5]} />
       <ToastContainer />
       <div className="max-w-6xl mx-auto px-4 mt-8 z-10 relative">
-        {/* Hero Section */}
         <section className="flex flex-col items-center justify-center py-16">
           <p className="text-xl mb-10 text-center max-w-2xl">
             Master coding with our real-time compiler, compete in thrilling battles, and contribute problems to challenge the community.
@@ -81,7 +80,6 @@ export default function BitCodeHomepage() {
           </div>
         </section>
 
-        {/* Features Section */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {[
             {

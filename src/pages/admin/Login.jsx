@@ -16,7 +16,7 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(setLoading({ isLoading: true, message: 'Signing in...', style: 'default' }));
+    dispatch(setLoading({ isLoading: true, message: 'Connecting', style: 'battle' }));
     try {
       const data = await authLogin({ email, password });
       Cookies.set('access_token', data.access, { secure: true, sameSite: 'Strict', expires: 7 });

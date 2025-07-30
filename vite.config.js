@@ -7,10 +7,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // Your Django server address
+        target: 'http://localhost:8000', // Django server
         changeOrigin: true,
         secure: false,
       }
-    }
+    },
+    historyApiFallback: true // 404 on refresh/direct URL
   }
 });

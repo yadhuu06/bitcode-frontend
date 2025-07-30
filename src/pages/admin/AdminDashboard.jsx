@@ -88,7 +88,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans flex overflow-hidden">
-      <Sidebar onCollapseChange={handleCollapseChange} />
       <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} h-screen overflow-y-auto`}>
         
         {/* Header */}

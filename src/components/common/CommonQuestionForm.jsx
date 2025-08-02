@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, HelpCircle, PlusSquare, X } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import CustomButton from '../ui/CustomButton';
-
 
 const editorStyles = `
   .w-md-editor {
@@ -89,8 +88,8 @@ const editorStyles = `
 
 const CommonQuestionForm = ({
   initialData,
-  examples: initialExamples,
-  testCases: initialTestCases = [],
+  initialExamples,
+  initialTestCases = [],
   isEditMode,
   onSubmit,
   onCancel,
@@ -99,12 +98,41 @@ const CommonQuestionForm = ({
   tags,
   difficultyOptions,
   showTestCases = true,
-  testCasesOnly = false, // New prop for test case-only mode
+  testCasesOnly = false,
 }) => {
-  const [formData, setFormData] = useState(initialData);
-  const [examples, setExamples] = useState(initialExamples);
-  const [testCases, setTestCases] = useState(initialTestCases);
+  const [formData, setFormData] = useState(initialData || {
+    title: '',
+    description: '',
+    difficulty: 'EASY',
+    tags: 'ARRAY',
+  });
+  const [examples, setExamples] = useState(initialExamples || [
+    { input_example: '', output_example: '', explanation: '', order: 0 },
+  ]);
+  const [testCases, setTestCases] = useState(initialTestCases || [
+    { input_data: '', expected_output: '', is_sample: false, order: 0 },
+  ]);
   const [localErrors, setLocalErrors] = useState({});
+
+  useEffect(() => {
+    console.log('Updating CommonQuestionForm state:', { initialData, initialExamples, initialTestCases });
+    setFormData(initialData || {
+      title: '',
+      description: '',
+      difficulty: 'EASY',
+      tags: 'ARRAY',
+    });
+    setExamples(
+      Array.isArray(initialExamples) ? initialExamples : [
+        { input_example: '', output_example: '', explanation: '', order: 0 },
+      ]
+    );
+    setTestCases(
+      Array.isArray(initialTestCases) ? initialTestCases : [
+        { input_data: '', expected_output: '', is_sample: false, order: 0 },
+      ]
+    );
+  }, [initialData, initialExamples, initialTestCases]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -184,17 +212,14 @@ const CommonQuestionForm = ({
     const newErrors = {};
 
     if (!testCasesOnly) {
-      // Validate title
       if (!formData.title.trim()) {
         newErrors.title = 'Question title cannot be empty';
       }
 
-      // Validate description
       if (!formData.description.trim()) {
         newErrors.description = 'Description cannot be empty';
       }
 
-      // Validate examples
       examples.forEach((example, index) => {
         if (!example.input_example.trim()) {
           newErrors[`example_${index}_input_example`] = 'Input example cannot be empty';
@@ -208,7 +233,6 @@ const CommonQuestionForm = ({
       });
     }
 
-    // Validate test cases
     if (showTestCases || testCasesOnly) {
       testCases.forEach((testCase, index) => {
         if (!testCase.input_data.trim()) {
@@ -226,7 +250,6 @@ const CommonQuestionForm = ({
 
   const handleFormSubmit = () => {
     if (!validateForm()) {
-     
       return;
     }
     if (testCasesOnly) {
@@ -315,90 +338,94 @@ const CommonQuestionForm = ({
 
             <div className="mb-6">
               <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Examples</label>
-              {examples.map((example, index) => (
-                <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative shadow-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Input</label>
-                      <input
-                        type="text"
-                        value={example.input_example}
-                        onChange={(e) => handleExampleChange(index, 'input_example', e.target.value)}
-                        placeholder="Enter input example"
-                        className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
-                          errors[`example_${index}`] || localErrors[`example_${index}_input_example`]
-                            ? 'border-red-500'
-                            : 'border-[#2d2d2d]'
-                        } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
-                        disabled={loading}
-                      />
-                      {localErrors[`example_${index}_input_example`] && (
-                        <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
-                          {localErrors[`example_${index}_input_example`]}
-                        </p>
-                      )}
+              {examples && examples.length > 0 ? (
+                examples.map((example, index) => (
+                  <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Input</label>
+                        <input
+                          type="text"
+                          value={example.input_example}
+                          onChange={(e) => handleExampleChange(index, 'input_example', e.target.value)}
+                          placeholder="Enter input example"
+                          className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+                            errors[`example_${index}`] || localErrors[`example_${index}_input_example`]
+                              ? 'border-red-500'
+                              : 'border-[#2d2d2d]'
+                          } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
+                          disabled={loading}
+                        />
+                        {localErrors[`example_${index}_input_example`] && (
+                          <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
+                            {localErrors[`example_${index}_input_example`]}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Output</label>
+                        <input
+                          type="text"
+                          value={example.output_example}
+                          onChange={(e) => handleExampleChange(index, 'output_example', e.target.value)}
+                          placeholder="Enter output example"
+                          className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+                            errors[`example_${index}`] || localErrors[`example_${index}_output_example`]
+                              ? 'border-red-500'
+                              : 'border-[#2d2d2d]'
+                          } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
+                          disabled={loading}
+                        />
+                        {localErrors[`example_${index}_output_example`] && (
+                          <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
+                            {localErrors[`example_${index}_output_example`]}
+                          </p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Explanation</label>
+                        <textarea
+                          value={example.explanation}
+                          onChange={(e) => handleExampleChange(index, 'explanation', e.target.value)}
+                          placeholder="Enter explanation"
+                          className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+                            errors[`example_${index}`] || localErrors[`example_${index}_explanation`]
+                              ? 'border-red-500'
+                              : 'border-[#2d2d2d]'
+                          } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
+                          rows="3"
+                          disabled={loading}
+                        />
+                        {localErrors[`example_${index}_explanation`] && (
+                          <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
+                            {localErrors[`example_${index}_explanation`]}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-end justify-end">
+                        <button
+                          onClick={() => removeExample(index)}
+                          disabled={loading || examples.length === 1}
+                          className={`text-gray-300 hover:text-red-400 transition-colors duration-200 relative ${
+                            loading || examples.length === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          aria-label="Close example"
+                        >
+                          <X className="w-5 h-5" />
+                          <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-[#252525] text-gray-100 text-xs px-2 py-1 rounded shadow-md opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none font-['Roboto_Mono']">
+                            Close
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Output</label>
-                      <input
-                        type="text"
-                        value={example.output_example}
-                        onChange={(e) => handleExampleChange(index, 'output_example', e.target.value)}
-                        placeholder="Enter output example"
-                        className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
-                          errors[`example_${index}`] || localErrors[`example_${index}_output_example`]
-                            ? 'border-red-500'
-                            : 'border-[#2d2d2d]'
-                        } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
-                        disabled={loading}
-                      />
-                      {localErrors[`example_${index}_output_example`] && (
-                        <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
-                          {localErrors[`example_${index}_output_example`]}
-                        </p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Explanation</label>
-                      <textarea
-                        value={example.explanation}
-                        onChange={(e) => handleExampleChange(index, 'explanation', e.target.value)}
-                        placeholder="Enter explanation"
-                        className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
-                          errors[`example_${index}`] || localErrors[`example_${index}_explanation`]
-                            ? 'border-red-500'
-                            : 'border-[#2d2d2d]'
-                        } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
-                        rows="3"
-                        disabled={loading}
-                      />
-                      {localErrors[`example_${index}_explanation`] && (
-                        <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
-                          {localErrors[`example_${index}_explanation`]}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-end justify-end">
-                      <button
-                        onClick={() => removeExample(index)}
-                        disabled={loading || examples.length === 1}
-                        className={`text-gray-300 hover:text-red-400 transition-colors duration-200 relative ${
-                          loading || examples.length === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        aria-label="Close example"
-                      >
-                        <X className="w-5 h-5" />
-                        <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-[#252525] text-gray-100 text-xs px-2 py-1 rounded shadow-md opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none font-['Roboto_Mono']">
-                          Close
-                        </span>
-                      </button>
-                    </div>
+                    {errors[`example_${index}`] && (
+                      <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors[`example_${index}`]}</p>
+                    )}
                   </div>
-                  {errors[`example_${index}`] && (
-                    <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors[`example_${index}`]}</p>
-                  )}
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-400">No examples available</p>
+              )}
               <button
                 onClick={addExample}
                 disabled={loading}
@@ -471,80 +498,84 @@ const CommonQuestionForm = ({
         {(showTestCases || testCasesOnly) && (
           <div className="mb-6">
             <label className="block text-sm text-gray-300 mb-2 font-['Roboto_Mono']">Test Cases</label>
-            {testCases.map((testCase, index) => (
-              <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Input Data</label>
-                    <input
-                      type="text"
-                      value={testCase.input_data}
-                      onChange={(e) => handleTestCaseChange(index, 'input_data', e.target.value)}
-                      placeholder="Enter input data"
-                      className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
-                        errors[`test_case_${index}`] || localErrors[`test_case_${index}_input_data`]
-                          ? 'border-red-500'
-                          : 'border-[#2d2d2d]'
-                      } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
-                      disabled={loading}
-                    />
-                    {localErrors[`test_case_${index}_input_data`] && (
-                      <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
-                        {localErrors[`test_case_${index}_input_data`]}
-                      </p>
-                    )}
+            {testCases && testCases.length > 0 ? (
+              testCases.map((testCase, index) => (
+                <div key={index} className="mb-4 p-5 bg-[#252525] rounded-lg border border-[#2d2d2d] relative shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Input Data</label>
+                      <input
+                        type="text"
+                        value={testCase.input_data}
+                        onChange={(e) => handleTestCaseChange(index, 'input_data', e.target.value)}
+                        placeholder="Enter input data"
+                        className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+                          errors[`test_case_${index}`] || localErrors[`test_case_${index}_input_data`]
+                            ? 'border-red-500'
+                            : 'border-[#2d2d2d]'
+                        } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
+                        disabled={loading}
+                      />
+                      {localErrors[`test_case_${index}_input_data`] && (
+                        <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
+                          {localErrors[`test_case_${index}_input_data`]}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Expected Output</label>
+                      <input
+                        type="text"
+                        value={testCase.expected_output}
+                        onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
+                        placeholder="Enter expected output"
+                        className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
+                          errors[`test_case_${index}`] || localErrors[`test_case_${index}_expected_output`]
+                            ? 'border-red-500'
+                            : 'border-[#2d2d2d]'
+                        } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
+                        disabled={loading}
+                      />
+                      {localErrors[`test_case_${index}_expected_output`] && (
+                        <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
+                          {localErrors[`test_case_${index}_expected_output`]}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Sample Test Case</label>
+                      <input
+                        type="checkbox"
+                        checked={testCase.is_sample}
+                        onChange={(e) => handleTestCaseChange(index, 'is_sample', e.target.checked)}
+                        className="bg-[#252525] text-green-400 rounded focus:ring-2 focus:ring-green-400"
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="flex items-end justify-end">
+                      <button
+                        onClick={() => removeTestCase(index)}
+                        disabled={loading || testCases.length === 1}
+                        className={`text-gray-300 hover:text-red-400 transition-colors duration-200 relative ${
+                          loading || testCases.length === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        aria-label="Close test case"
+                      >
+                        <X className="w-5 h-5" />
+                        <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-[#252525] text-gray-100 text-xs px-2 py-1 rounded shadow-md opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none font-['Roboto_Mono']">
+                          Close
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Expected Output</label>
-                    <input
-                      type="text"
-                      value={testCase.expected_output}
-                      onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
-                      placeholder="Enter expected output"
-                      className={`w-full bg-[#252525] text-gray-100 text-sm rounded-lg border ${
-                        errors[`test_case_${index}`] || localErrors[`test_case_${index}_expected_output`]
-                          ? 'border-red-500'
-                          : 'border-[#2d2d2d]'
-                      } focus:ring-2 focus:ring-green-400 focus:outline-none px-4 py-2 font-['Roboto_Mono'] transition-all duration-200`}
-                      disabled={loading}
-                    />
-                    {localErrors[`test_case_${index}_expected_output`] && (
-                      <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
-                        {localErrors[`test_case_${index}_expected_output`]}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-300 mb-1 font-['Roboto_Mono']">Sample Test Case</label>
-                    <input
-                      type="checkbox"
-                      checked={testCase.is_sample}
-                      onChange={(e) => handleTestCaseChange(index, 'is_sample', e.target.checked)}
-                      className="bg-[#252525] text-green-400 rounded focus:ring-2 focus:ring-green-400"
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="flex items-end justify-end">
-                    <button
-                      onClick={() => removeTestCase(index)}
-                      disabled={loading || testCases.length === 1}
-                      className={`text-gray-300 hover:text-red-400 transition-colors duration-200 relative ${
-                        loading || testCases.length === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      aria-label="Close test case"
-                    >
-                      <X className="w-5 h-5" />
-                      <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-[#252525] text-gray-100 text-xs px-2 py-1 rounded shadow-md opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none font-['Roboto_Mono']">
-                        Close
-                      </span>
-                    </button>
-                  </div>
+                  {errors[`test_case_${index}`] && (
+                    <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors[`test_case_${index}`]}</p>
+                  )}
                 </div>
-                {errors[`test_case_${index}`] && (
-                  <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors[`test_case_${index}`]}</p>
-                )}
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-400">No test cases available</p>
+            )}
             <button
               onClick={addTestCase}
               disabled={loading}
@@ -580,4 +611,3 @@ const CommonQuestionForm = ({
 };
 
 export default CommonQuestionForm;
-

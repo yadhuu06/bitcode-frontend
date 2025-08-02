@@ -111,7 +111,6 @@ export default function AdminLogin() {
         © 2025 BitCode. All rights reserved.
       </footer>
 
-      <ToastContainer />
     </div>
   );
 }

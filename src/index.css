@@ -11,22 +11,48 @@ body, html, #root {
   font-family: inherit;
 }
 
-/* Enforce dark theme for react-toastify */
+/* ✅ Keep toasts above everything */
 .Toastify__toast-container {
+  z-index: 9999 !important;
   font-family: 'Fira Code', monospace;
 }
-.Toastify__toast--dark {
+
+/* ✅ Base toast style (Minimal + Modern) */
+.Toastify__toast {
+  border-radius: 8px !important;
+  padding: 14px 18px !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.3px;
   background: #1a1a1a !important;
-  color: #ffffff !important;
-  border: 1px solid #374151 !important;
+  color: #e5e5e5 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  animation: toastFadeIn 0.3s ease-out forwards;
 }
-.Toastify__toast--error {
-  background: #000000 !important;
-  color: #f87171 !important;
-  border: 1px solid #991b1b !important;
-}
+
+/* ✅ Success - Subtle green accent */
 .Toastify__toast--success {
-  background: #121111 !important;
-  color: #4ade80 !important;
-  border: 1px solid #166534 !important;
+  border-left: 4px solid #22c55e !important;
+}
+
+/* ✅ Error - Subtle red accent */
+.Toastify__toast--error {
+  border-left: 4px solid #ef4444 !important;
+}
+
+/* ✅ Info - Subtle blue accent */
+.Toastify__toast--info {
+  border-left: 4px solid #3b82f6 !important;
+}
+
+/* ✅ Warning - Subtle amber accent */
+.Toastify__toast--warning {
+  border-left: 4px solid #f59e0b !important;
+}
+
+/* ✅ Slide-up animation */
+@keyframes toastFadeIn {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }

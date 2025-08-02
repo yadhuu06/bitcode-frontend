@@ -42,7 +42,7 @@ export const deleteUser = async (userId) => {
 export const updateUserRole = async (userId, role) => {
   try {
     const response = await api.patch(`/api/admin/users/${userId}/role/`, { role }, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }, // Fallback if accessToken not passed
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }, 
     });
     return response.data;
   } catch (error) {

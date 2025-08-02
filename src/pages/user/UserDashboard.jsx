@@ -52,7 +52,6 @@ export default function BitCodeHomepage() {
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
       <MatrixBackground particleCount={65} color="#00FF40" opacityRange={[0.1, 0.5]} />
-      <ToastContainer />
       <div className="max-w-6xl mx-auto px-4 mt-8 z-10 relative">
         <section className="flex flex-col items-center justify-center py-16">
           <p className="text-xl mb-10 text-center max-w-2xl">

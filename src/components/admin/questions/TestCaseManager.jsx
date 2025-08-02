@@ -30,7 +30,12 @@ const TestCaseManager = () => {
         setTestCases(response.results || []);
         setTotalPages(Math.ceil(response.count / pageSize));
       } catch (error) {
-        const errorData = JSON.parse(error.message);
+        let errorData;
+        try {
+          errorData = JSON.parse(error.message);
+        } catch {
+          errorData = { error: error.message };
+        }
         toast.error(errorData.error || 'Failed to fetch test cases');
       } finally {
         setLoading(false);
@@ -53,11 +58,18 @@ const TestCaseManager = () => {
       setLoading(true);
       setErrors({});
       const response = await createTestCase(questionId, newTestCase);
-      setTestCases((prev) => [...prev, response.data]);
-      setNewTestCase({ input_data: '', expected_output: '', is_sample: false, order: testCases.length });
+
+      setTestCases((prev) => [...prev, response]);
+      setNewTestCase({ input_data: '', expected_output: '', is_sample: false, order: testCases.length + 1 });
+
       toast.success('Test case added successfully');
     } catch (error) {
-      const errorData = JSON.parse(error.message);
+      let errorData;
+      try {
+        errorData = JSON.parse(error.message);
+      } catch {
+        errorData = { error: error.message };
+      }
       if (errorData.input_data || errorData.expected_output || errorData.order) {
         setErrors(errorData);
       } else {
@@ -73,11 +85,16 @@ const TestCaseManager = () => {
       setLoading(true);
       const response = await updateTestCase(questionId, testCaseId, data);
       setTestCases((prev) =>
-        prev.map((tc) => (tc.id === testCaseId ? response.data : tc))
+        prev.map((tc) => (tc.id === testCaseId ? response : tc))
       );
       toast.success('Test case updated successfully');
     } catch (error) {
-      const errorData = JSON.parse(error.message);
+      let errorData;
+      try {
+        errorData = JSON.parse(error.message);
+      } catch {
+        errorData = { error: error.message };
+      }
       toast.error(errorData.error || 'Failed to update test case');
     } finally {
       setLoading(false);
@@ -91,7 +108,12 @@ const TestCaseManager = () => {
       setTestCases((prev) => prev.filter((tc) => tc.id !== testCaseId));
       toast.success('Test case deleted successfully');
     } catch (error) {
-      const errorData = JSON.parse(error.message);
+      let errorData;
+      try {
+        errorData = JSON.parse(error.message);
+      } catch {
+        errorData = { error: error.message };
+      }
       toast.error(errorData.error || 'Failed to delete test case');
     } finally {
       setLoading(false);

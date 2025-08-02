@@ -9,7 +9,7 @@ import { logout } from '../../services/AuthService';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { FaUser, FaEnvelope, FaCalendar, FaEdit, FaSave, FaTimes, FaCamera, FaSignOutAlt } from 'react-icons/fa';
-import { toast } from 'react-toastify';
+import { showError, showSuccess } from '../../utils/toastManager'; 
 import StatsSection from '../../components/user/StatsSection';
 import RankingSection from '../../components/user/RankingSection';
 import ContributionsSection from '../../components/user/ContributionsSection';
@@ -44,17 +44,15 @@ const Profile = () => {
         setUser(userData);
         setUsername(userData.username || '');
         setStats({ total_matches: userData.total_battles || 0, battles_won: userData.battles_won || 0 });
-        dispatch(updateProfile({ user: userData })); // Sync with Redux
+        dispatch(updateProfile({ user: userData }));
       } catch (error) {
-        console.error('Error fetching user data:', error);
-        toast.error(error.message || 'Failed to load profile data');
+        showError(error.message || 'Failed to load profile data');
         navigate('/login');
       } finally {
         dispatch(resetLoading());
       }
     };
 
-    // Fetch if not authenticated or if reduxUser is missing critical fields
     if (!isAuthenticated) {
       navigate('/login');
     } else if (!reduxUser || reduxUser.total_battles === undefined || reduxUser.battles_won === undefined) {
@@ -74,16 +72,16 @@ const Profile = () => {
     const file = e.target.files[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload a valid image file');
+        showError('Please upload a valid image file');
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+        showError('Image size must be less than 5MB');
         return;
       }
       const reader = new FileReader();
       reader.onload = () => setProfilePic(reader.result);
-      reader.onerror = () => toast.error('Failed to read the image file');
+      reader.onerror = () => showError('Failed to read the image file');
       reader.readAsDataURL(file);
     }
   };
@@ -103,9 +101,7 @@ const Profile = () => {
       canvas.height = crop.height;
       const ctx = canvas.getContext('2d');
 
-      if (!ctx) {
-        throw new Error('Failed to get canvas context');
-      }
+      if (!ctx) throw new Error('Failed to get canvas context');
 
       ctx.drawImage(
         image,
@@ -122,16 +118,14 @@ const Profile = () => {
       const croppedImgUrl = canvas.toDataURL('image/jpeg');
       setCroppedImage(croppedImgUrl);
     } catch (error) {
-      console.error('Error cropping image:', error);
-      toast.error('Failed to crop the image');
+      showError('Failed to crop the image');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!username.trim()) {
-      toast.error('Username cannot be empty');
+      showError('Username cannot be empty');
       return;
     }
 
@@ -154,45 +148,35 @@ const Profile = () => {
 
         const blob = await fetch(croppedImage).then((res) => res.blob());
         const file = new File([blob], `profile_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        let uploadResult;
-        try {
-          uploadResult = await imagekit.upload({
-            file,
-            fileName: `profile_${Date.now()}.jpg`,
-            folder: '/bitwar-profiles/',
-            useUniqueFileName: true,
-            token: authParams.token,
-            signature: authParams.signature,
-            expire: authParams.expire,
-          });
-        } catch (uploadError) {
-          console.error('ImageKit upload failed:', uploadError);
-          throw new Error('Failed to upload profile picture');
-        }
+        const uploadResult = await imagekit.upload({
+          file,
+          fileName: `profile_${Date.now()}.jpg`,
+          folder: '/bitwar-profiles/',
+          useUniqueFileName: true,
+          token: authParams.token,
+          signature: authParams.signature,
+          expire: authParams.expire,
+        });
 
-        if (uploadResult?.url) {
-          imageUrl = uploadResult.url;
-        } else {
-          throw new Error('Upload result does not contain a valid URL');
-        }
+        if (uploadResult?.url) imageUrl = uploadResult.url;
+        else throw new Error('Upload result does not contain a valid URL');
       }
 
       const formData = new FormData();
       formData.append('username', username.trim());
-      if (imageUrl) {
-        formData.append('profile_picture', imageUrl);
-      }
+      if (imageUrl) formData.append('profile_picture', imageUrl);
 
       const updatedUser = await updateProfileService(formData);
+      showSuccess('Profile updated successfully!');
+
       setUser(updatedUser);
       setIsEditing(false);
       setProfilePic(null);
       setCroppedImage(null);
-      dispatch(updateProfile({ user: updatedUser })); // Sync updated user with Redux
-      toast.success('Profile updated successfully!');
+      dispatch(updateProfile({ user: updatedUser }));
+
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error(error?.message || 'Failed to update profile');
+      showError(error?.message || 'Failed to update profile');
     } finally {
       dispatch(resetLoading());
     }
@@ -203,12 +187,11 @@ const Profile = () => {
     try {
       await logout();
       dispatch(logoutSuccess());
-      toast.success('Logged out successfully!');
+      showSuccess('Logged out successfully!');
       navigate('/');
     } catch (error) {
-      console.error('Error during logout:', error);
       dispatch(logoutSuccess());
-      toast.error(error.message || 'Logout failed, but session cleared');
+      showError(error.message || 'Logout failed, but session cleared');
       navigate('/');
     } finally {
       dispatch(resetLoading());

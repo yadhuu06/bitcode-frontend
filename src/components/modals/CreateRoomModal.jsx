@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Command, Clock, Users, Lock, Unlock, ArrowRight } from 'lucide-react';
-import { toast } from 'react-toastify'; // Keep toast for general (non-field-specific) API errors or session issues
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import CustomButton from '../ui/CustomButton';
 import { createRoom } from '../../services/RoomService';
@@ -62,16 +62,14 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         newErrors.topic = 'Please choose a topic.';
       }
     }
-    // Add validation for Step 2 fields if you want to prevent proceeding from step 2
-    // without valid selections. For simplicity, the main validation is on final submit.
 
-    setErrors(newErrors); // Update errors state
+    setErrors(newErrors); 
 
     if (Object.keys(newErrors).length > 0) {
-      // If there are errors, stop here
+
       return;
     }
-    // If no errors, clear any old general API errors and proceed
+ 
     setApiError('');
     setCurrentStep((prev) => prev + 1);
   };
@@ -108,85 +106,80 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   };
 
   const handleCreateRoom = async () => {
-    setApiError(''); // Clear any previous general API errors
+    setApiError('');
 
     if (!accessToken) {
-        // This is a critical error (not logged in), a toast is still appropriate here
-        // as it might lead to navigation.
-        toast.error('Please log in to create a room');
-        navigate('/login');
-        return;
+      toast.error('Please log in to create a room');
+      navigate('/login');
+      return;
     }
 
-    if (!validateForm()) {
-        // If validateForm returns false, errors state is already populated,
-        // so inline messages will show. No need for a toast here.
-        return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-        const payload = {
-            name: formData.name,
-            topic: formData.topic,
-            difficulty: formData.difficulty,
-            time_limit: formData.is_ranked ? 0 : parseInt(formData.time_limit),
-            capacity: parseInt(formData.capacity),
-            visibility: formData.visibility,
-            is_ranked: formData.is_ranked,
-            ...(formData.visibility === 'private' && { password: formData.password }),
-        };
+      const payload = {
+        name: formData.name.trim(),
+        topic: formData.topic,
+        difficulty: formData.difficulty,
+        time_limit: formData.is_ranked ? 0 : parseInt(formData.time_limit),
+        capacity: parseInt(formData.capacity),
+        visibility: formData.visibility,
+        is_ranked: formData.is_ranked,
+        ...(formData.visibility === 'private' && { password: formData.password.trim() }),
+      };
 
-        const response = await createRoom(payload);
+      const response = await createRoom(payload);
 
-        // Attempt to join the room immediately after creation
-        await api.post(`/rooms/${response.room_id}/join/`, formData.visibility === 'private' ? { password: formData.password } : {});
+      await api.post(
+        `/rooms/${response.room_id}/join/`,
+        formData.visibility === 'private' ? { password: formData.password.trim() } : {}
+      );
 
-        onRoomCreated({
-            id: response.room_id,
-            name: formData.name,
-            host: response.owner || 'current_user',
-            participants: 1,
-            maxParticipants: parseInt(formData.capacity),
-            difficulty: formData.difficulty,
-            status: 'active',
-            duration: formData.is_ranked ? 'Ranked' : `${formData.time_limit} min`,
-            isPrivate: formData.visibility === 'private',
-            joinCode: response.join_code,
-            role: 'host',
-            is_ranked: formData.is_ranked,
-        });
+      onRoomCreated({
+        id: response.room_id,
+        name: formData.name.trim(),
+        host: response.owner || 'current_user',
+        participants: 1,
+        maxParticipants: parseInt(formData.capacity),
+        difficulty: formData.difficulty,
+        status: 'active',
+        duration: formData.is_ranked ? 'Ranked' : `${formData.time_limit} min`,
+        isPrivate: formData.visibility === 'private',
+        joinCode: response.join_code,
+        role: 'host',
+        is_ranked: formData.is_ranked,
+      });
 
-        // Navigate to the new room
-        navigate(`/user/room/${response.room_id}`, {
-            state: {
-                roomId: response.room_id,
-                roomName: formData.name,
-                isHost: true,
-                isPrivate: formData.visibility === 'private',
-                joinCode: response.join_code,
-                difficulty: formData.difficulty,
-                timeLimit: formData.is_ranked ? 0 : formData.time_limit,
-                capacity: formData.capacity,
-                isRanked: formData.is_ranked,
-            },
-        });
+      navigate(`/user/room/${response.room_id}`, {
+        state: {
+          roomId: response.room_id,
+          roomName: formData.name.trim(),
+          isHost: true,
+          isPrivate: formData.visibility === 'private',
+          joinCode: response.join_code,
+          difficulty: formData.difficulty,
+          timeLimit: formData.is_ranked ? 0 : formData.time_limit,
+          capacity: formData.capacity,
+          isRanked: formData.is_ranked,
+        },
+      });
 
-        onClose(); // Close the modal on success
+      onClose();
     } catch (error) {
-        console.error('Error creating room:', error);
-        const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
-        setApiError(errorMessage); // Set the general API error to be displayed in the modal
+      console.error('Error creating room:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create room';
+      setApiError(errorMessage);
 
-        if (error.response?.status === 401) {
-            // For session expiry, a toast and forced re-login is still a good UX.
-            toast.error('Session expired. Please log in again.');
-            navigate('/login');
-        }
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        navigate('/login');
+      }
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
+  };
+
 
   useEffect(() => {
     const handleEsc = (e) => {

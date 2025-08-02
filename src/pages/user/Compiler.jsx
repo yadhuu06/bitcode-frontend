@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Check, Play, Save, Copy, Trash, Maximize, Minimize } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import CodeEditor from '../../components/ui/CodeEditor';
 import { runCodeOnJudge0 } from '../../services/Judge0Service';
+import { showError, showSuccess } from '../../utils/toastManager';
 
 const JUDGE0_API = import.meta.env.VITE_JUDGE0_API_URL;
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -43,11 +44,14 @@ const Compiler = () => {
     },
   ];
 
+  // Load saved code or placeholder when language changes
   useEffect(() => {
-    const savedCode = localStorage.getItem(`compiler_${language}`) || languages.find(l => l.name === language).placeholder;
+    const savedCode = localStorage.getItem(`compiler_${language}`) || 
+      languages.find(l => l.name === language).placeholder;
     setCode(savedCode);
   }, [language]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key === 'Enter') {
@@ -63,7 +67,7 @@ const Compiler = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [code]);
 
-  const runCode = async () => {
+  const runCode = useCallback(async () => {
     const selectedLang = languages.find(l => l.name === language);
     const languageId = selectedLang.language_id;
 
@@ -80,30 +84,35 @@ const Compiler = () => {
       if (result.stderr || result.compile_output) {
         setStatus('Error');
         setOutput(result.stderr || result.compile_output || 'Unknown error');
+        showError('Code execution failed.');
       } else {
         setStatus('Success');
         setOutput(result.stdout || 'No output');
+        showSuccess('Code executed successfully!');
       }
 
-      setTime(`${result.time * 1000} ms`);
+      setTime(`${(result.time * 1000).toFixed(2)} ms`);
       setMemory(`${(result.memory / 1024).toFixed(2)} MB`);
     } catch (error) {
       setStatus('Error');
       setOutput(`Error: ${error.message || 'Execution failed'}`);
+      showError('Execution failed. Please try again.');
     } finally {
       dispatch(resetLoading());
     }
-  };
+  }, [code, language, dispatch]);
 
-  const saveCode = () => {
+  const saveCode = useCallback(() => {
     localStorage.setItem(`compiler_${language}`, code);
     setShowCheck(true);
+    showSuccess('Code saved locally!');
     setTimeout(() => setShowCheck(false), 2000);
-  };
+  }, [language, code]);
 
   const copyCode = () => {
     navigator.clipboard.writeText(code);
     setShowCheck(true);
+    showSuccess('Code copied to clipboard!');
     setTimeout(() => setShowCheck(false), 2000);
   };
 
@@ -115,24 +124,28 @@ const Compiler = () => {
     setTime('0.00 ms');
     setMemory('0.0 MB');
     setStatus('Ready');
+    showSuccess('Code reset to default.');
   };
 
   const toggleEditorFull = () => {
-    setIsEditorFull(!isEditorFull);
+    setIsEditorFull(prev => !prev);
     setIsFullScreen(false);
   };
 
   const toggleFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
+    setIsFullScreen(prev => !prev);
     setIsEditorFull(false);
   };
 
   const getTimeColor = () => {
-    const timeValue = parseFloat(time);
-    if (timeValue < 100) return 'text-green-500';
-    if (timeValue < 250) return 'text-yellow-500';
+    const num = parseFloat(time.replace(' ms', ''));
+    if (num < 100) return 'text-green-500';
+    if (num < 250) return 'text-yellow-500';
     return 'text-red-500';
   };
+
+
+
 
   return (
     <div className={`min-h-screen bg-black text-white font-mono ${isFullScreen ? 'fixed inset-0 z-50 overflow-hidden' : ''}`}>

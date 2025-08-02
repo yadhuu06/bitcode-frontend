@@ -3,6 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import store from './store';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import AppRoutes from './routes/AppRoutes';
@@ -30,10 +31,9 @@ function App() {
               <AppRoutes />
             </Suspense>
           </ErrorBoundary>
+          <ToastContainer position="top-right" autoClose={3000} theme="dark" />
         </Router>
       </Provider>
-
-      <ToastContainer position="top-right" autoClose={3000} theme="dark" />
     </GoogleOAuthProvider>
   );
 }

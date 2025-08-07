@@ -9,12 +9,12 @@ import { setupBattleWebSocket } from '../../services/BattleSocketService';
 import BattleSidebar from '../../components/battle-room/BattleSidebar';
 import BattleEditor from '../../components/battle-room/BattleEditor';
 import BattleResultModal from '../../components/modals/BattleResultModal';
-  
+
 const Battle = () => {
   const { roomId, questionId } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();     
+  const dispatch = useDispatch();
   const { isLoading, accessToken, username } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('description');
   const [language, setLanguage] = useState('python');
@@ -49,7 +49,6 @@ const Battle = () => {
   const checkRoomStatus = async () => {
     try {
       const response = await getRoomDetails(roomId, accessToken);
-      console.info("Fetched room details:", response.room);
       setRoomDetails(response.room);
       if (response.room.status === 'completed') {
         setRoomEnded(true);
@@ -168,6 +167,12 @@ const Battle = () => {
       setAllPassed(response.data.all_passed);
       setActiveTab('results');
       toast.success('Code verification completed');
+      if (response.data.all_passed) {
+        setBattleResultModal(true);
+        setupBattleWebSocket.disconnect(); // Disconnect WebSocket
+        const battleResponse = await api.get(`/battle/${questionId}/`);
+        setBattleResults(battleResponse.data.winners || []);
+      }
       return true;
     } catch (error) {
       console.error('Verification error:', error);

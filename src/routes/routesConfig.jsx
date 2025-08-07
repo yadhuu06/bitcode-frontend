@@ -5,7 +5,6 @@ import AdminRoute from './AdminRoute';
 import UserLayout from '../layouts/UserLayout';
 import AdminLayout from '../layouts/AdminLayout';
 
-// ✅ Lazy imports for all pages
 const AuthPage = lazy(() => import('../components/auth/AuthPage'));
 const AuthCallback = lazy(() => import('../components/auth/AuthCallback'));
 const ForgotPassword = lazy(() => import('../components/auth/ForgotPassword'));
@@ -36,7 +35,7 @@ export const routesConfig = [
   { path: ROUTES.AUTH_CALLBACK, element: <AuthCallback /> },
   { path: ROUTES.ADMIN_LOGIN, element: <BitWarAdminLogin /> },
 
-  // ✅ USER ROUTES
+  //  USER ROUTES
   {
     element: <PrivateRoute />,
     children: [
@@ -57,7 +56,7 @@ export const routesConfig = [
     ],
   },
 
-  // ✅ ADMIN ROUTES
+  //  ADMIN ROUTES
   {
     element: <AdminRoute />,
     children: [

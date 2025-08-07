@@ -62,8 +62,8 @@ const useWebSocketLobby = (roomId, accessToken, username, setRole) => {
         case 'battle_started': {
           console.log('Battle started, navigating to battle page:', data);
           console.info('User navigating to battle:', username);
-          WebSocketService.disconnect(); // Disconnect lobby WebSocket before navigating
-          navigate(`/battle/${data.room_id}/${data.question.id}`, {
+          WebSocketService.disconnect(); 
+          navigate(`/user/battle/${data.room_id}/${data.question.id}`, {
             state: { username, question: data.question },
           });
           toast.success('Battle Started!');

@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { loginSuccess } from '../../store/slices/authSlice';
 import { login as authLogin } from '../../services/AuthService';
-import { ToastContainer, toast } from 'react-toastify';
+
 import 'react-toastify/dist/ReactToastify.css';
 import Cookies from 'js-cookie';
 

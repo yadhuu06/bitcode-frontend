@@ -8,5 +8,6 @@ export const runCodeOnJudge0 = async ({ source_code, language_id, stdin = '' }) 
     language_id,
     stdin,
   });
+  
   return submission.data;
 };

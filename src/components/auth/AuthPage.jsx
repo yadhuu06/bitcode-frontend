@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import * as THREE from 'three';
 import NET from 'vanta/dist/vanta.net.min';
-import { ToastContainer, toast } from 'react-toastify';
+
 import 'react-toastify/dist/ReactToastify.css';
 import Cookies from 'js-cookie';
 import { loginSuccess } from '../../store/slices/authSlice';
@@ -197,18 +197,7 @@ const AuthPage = () => {
         ref={myRef}
         style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }} 
       />
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
+    
       <div className="absolute top-0 w-full p-4 flex justify-between items-center z-20">
         <div className="text-left flex items-center">
           <h1 className="text-2xl font-bold">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { NavLink, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
@@ -102,43 +102,45 @@ const Battle = () => {
       }
     };
 
-    const cleanup = setupBattleWebSocket(
-      roomId,
-      { token: accessToken, username },
-      navigate,
-      setBattleResults,
-      setRemainingTime,
-      setRoomEnded,
-      setBattleResultModal,
-      setResults,
-      setAllPassed,
-      setActiveTab,
-      roomEnded
-    );
+    if (!roomEnded) {
+      const cleanup = setupBattleWebSocket(
+        roomId,
+        { token: accessToken, username },
+        navigate,
+        setBattleResults,
+        setRemainingTime,
+        setRoomEnded,
+        setBattleResultModal,
+        setResults,
+        setAllPassed,
+        setActiveTab,
+        roomEnded
+      );
 
-    checkRoomStatus();
-    fetchQuestionAndFunction();
+      checkRoomStatus();
+      fetchQuestionAndFunction();
 
-    const savedTime = localStorage.getItem(`battle_${roomId}_remainingTime`);
-    if (savedTime) setRemainingTime(parseInt(savedTime, 10));
+      const savedTime = localStorage.getItem(`battle_${roomId}_remainingTime`);
+      if (savedTime) setRemainingTime(parseInt(savedTime, 10));
 
-    let intervalId;
-    if (remainingTime !== null) {
-      intervalId = setInterval(() => {
-        setRemainingTime((prev) => {
-          const newTime = prev > 0 ? prev - 1 : 0;
-          localStorage.setItem(`battle_${roomId}_remainingTime`, newTime);
-          return newTime;
-        });
-      }, 1000);
+      let intervalId;
+      if (remainingTime !== null) {
+        intervalId = setInterval(() => {
+          setRemainingTime((prev) => {
+            const newTime = prev > 0 ? prev - 1 : 0;
+            localStorage.setItem(`battle_${roomId}_remainingTime`, newTime);
+            return newTime;
+          });
+        }, 1000);
+      }
+
+      return () => {
+        console.log('Cleaning up Battle component');
+        cleanup();
+        if (intervalId) clearInterval(intervalId);
+        localStorage.removeItem(`battle_${roomId}_remainingTime`);
+      };
     }
-
-    return () => {
-      console.log('Cleaning up Battle component');
-      cleanup();
-      if (intervalId) clearInterval(intervalId);
-      localStorage.removeItem(`battle_${roomId}_remainingTime`);
-    };
   }, [roomId, questionId, accessToken, username, navigate, roomEnded]);
 
   const verifyCode = async () => {
@@ -169,14 +171,13 @@ const Battle = () => {
       toast.success('Code verification completed');
       if (response.data.all_passed) {
         setBattleResultModal(true);
-        setupBattleWebSocket.disconnect(); // Disconnect WebSocket
+        setupBattleWebSocket.disconnect();
         const battleResponse = await api.get(`/battle/${questionId}/`);
         setBattleResults(battleResponse.data.winners || []);
       }
       return true;
     } catch (error) {
       console.error('Verification error:', error);
-      toast.error(error.response?.data?.error || 'Verification failed');
       return false;
     } finally {
       dispatch(resetLoading());

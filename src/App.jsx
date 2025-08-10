@@ -7,6 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import store from './store';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import AppRoutes from './routes/AppRoutes';
+import LoadingAnimation from './components/ui/LoadingAnimation';
 import LoadingIndicator from './components/ui/LoadingIndicator';
 
 function App() {
@@ -27,8 +28,9 @@ function App() {
       <Provider store={store}>
         <Router>
           <ErrorBoundary>
-            <Suspense fallback={<LoadingIndicator />}>
+            <Suspense fallback={<LoadingAnimation />}>
               <AppRoutes />
+              <LoadingIndicator /> 
             </Suspense>
           </ErrorBoundary>
           <ToastContainer position="top-right" autoClose={3000} theme="dark" />

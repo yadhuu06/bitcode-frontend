@@ -23,11 +23,7 @@ export const useRooms = () => {
   const wsListenerId = useRef('rooms');
 
   useEffect(() => {
-    if (!accessToken) {
-      toast.error('Please log in to view rooms');
-      navigate('/login');
-      return;
-    }
+    
 
     WebSocketService.connect(accessToken);
 

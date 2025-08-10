@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import CommonQuestionForm from '../../components/common/CommonQuestionForm';
@@ -19,37 +19,37 @@ const Contribute = () => {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [loadingVerify, setLoadingVerify] = useState(false);
-  const [formData, setFormData] = useState(null); // Store question data
-  const [testCasesData, setTestCasesData] = useState(null); // Store test cases data
+  const [formData, setFormData] = useState(null);
+  const [testCasesData, setTestCasesData] = useState(null);
 
-  const tags = [
+  const tags = useMemo(() => [
     { value: 'ARRAY', label: 'Array' },
     { value: 'STRING', label: 'String' },
     { value: 'DSA', label: 'Dsa' },
-  ];
+  ], []);
 
-  const difficultyOptions = [
+  const difficultyOptions = useMemo(() => [
     { value: 'EASY', label: 'Easy', color: 'green-400' },
     { value: 'MEDIUM', label: 'Medium', color: 'yellow-400' },
     { value: 'HARD', label: 'Hard', color: 'red-400' },
-  ];
+  ], []);
 
-  const initialData = {
+  const initialData = useMemo(() => ({
     title: '',
     description: '',
     difficulty: 'EASY',
     tags: 'ARRAY',
-  };
+  }), []);
 
-  const initialExamples = [
+  const initialExamples = useMemo(() => [
     { input_example: '', output_example: '', explanation: '', order: 0 },
-  ];
+  ], []);
 
-  const initialTestCases = [
+  const initialTestCases = useMemo(() => [
     { input_data: '', expected_output: '', is_sample: false, order: 0 },
-  ];
+  ], []);
 
-  const handleQuestionSubmit = async (data) => {
+const handleQuestionSubmit = async (data) => {
     setLoadingForm(true);
     try {
       const response = await contributeQuestion({
@@ -64,22 +64,13 @@ const Contribute = () => {
           order: idx + 1,
         })),
       });
-
       setErrors({});
       setQuestionId(response.question_id);
-      setFormData(data); // Store question data
+      setFormData({ ...data, examples: data.examples }); // Ensure examples are preserved
       setStep(2);
       toast.success('Question submitted! Now add test cases.');
     } catch (err) {
-      let errorMessage = {};
-      if (err.response?.data) {
-        errorMessage = err.response.data;
-      } else if (typeof err.message === 'string') {
-        errorMessage = { error: err.message || 'Failed to submit question' };
-      } else {
-        errorMessage = { error: 'Failed to submit question' };
-      }
-
+      let errorMessage = err.response?.data || { error: 'Failed to submit question' };
       setErrors(errorMessage.errors || { general: errorMessage.error || 'Failed to submit question' });
       toast.error(errorMessage.error?.detail || errorMessage.error || 'Failed to submit question');
     } finally {
@@ -98,21 +89,12 @@ const Contribute = () => {
           order: idx + 1,
         })),
       });
-
       setErrors({});
-      setTestCasesData(data.testCases); // Store test cases data
+      setTestCasesData(data.testCases);
       setStep(3);
       toast.success('Test cases submitted! Now submit a solution.');
     } catch (err) {
-      let errorMessage = {};
-      if (err.response?.data) {
-        errorMessage = err.response.data;
-      } else if (typeof err.message === 'string') {
-        errorMessage = { error: err.message || 'Failed to submit test cases' };
-      } else {
-        errorMessage = { error: 'Failed to submit test cases' };
-      }
-
+      let errorMessage = err.response?.data || { error: 'Failed to submit test cases' };
       setErrors(errorMessage.errors || { general: errorMessage.error || 'Failed to submit test cases' });
       toast.error(errorMessage.error?.detail || errorMessage.error || 'Failed to submit test cases');
     } finally {
@@ -155,100 +137,74 @@ const Contribute = () => {
     navigate(ROUTES.USER_PROFILE);
   };
 
-  const handleBack = () => {
-    if (step === 2) {
-      setStep(1);
-    } else if (step === 3) {
-      setStep(2);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-4xl">
-        {/* Step Indicators */}
+        {/* Step Indicators with Guidance */}
         <div className="flex justify-between mb-8">
           <div className={`flex-1 text-center font-mono ${step === 1 ? 'text-green-500' : 'text-gray-500'}`}>
             <div className={`w-8 h-8 mx-auto rounded-full ${step === 1 ? 'bg-green-500' : 'bg-gray-500'} flex items-center justify-center text-black`}>1</div>
-            <p className="mt-2">Question</p>
+            <p className="mt-2">Add Question</p>
+            <p className="text-xs text-gray-400 mt-1">Enter the problem title, description, difficulty, tags, and examples.</p>
           </div>
           <div className="flex-1 border-t-2 border-gray-500 mt-4"></div>
           <div className={`flex-1 text-center font-mono ${step === 2 ? 'text-green-500' : 'text-gray-500'}`}>
             <div className={`w-8 h-8 mx-auto rounded-full ${step === 2 ? 'bg-green-500' : 'bg-gray-500'} flex items-center justify-center text-black`}>2</div>
-            <p className="mt-2">Test Cases</p>
+            <p className="mt-2">Add Test Cases</p>
+            <p className="text-xs text-gray-400 mt-1">Provide input data and expected outputs to test solutions.</p>
           </div>
           <div className="flex-1 border-t-2 border-gray-500 mt-4"></div>
           <div className={`flex-1 text-center font-mono ${step === 3 ? 'text-green-500' : 'text-gray-500'}`}>
             <div className={`w-8 h-8 mx-auto rounded-full ${step === 3 ? 'bg-green-500' : 'bg-gray-500'} flex items-center justify-center text-black`}>3</div>
-            <p className="mt-2">Solution</p>
+            <p className="mt-2">Solve Code</p>
+            <p className="text-xs text-gray-400 mt-1">Submit a solution that passes all test cases.</p>
           </div>
         </div>
 
         {/* Content */}
         {step === 1 && (
-          <>
-            <h1 className="text-2xl font-mono text-green-500 mb-6">Contribute New Question</h1>
-            <CommonQuestionForm
-              initialData={formData || initialData}
-              examples={formData?.examples || initialExamples}
-              testCases={[]}
-              isEditMode={false}
-              onSubmit={handleQuestionSubmit}
-              onCancel={handleCancel}
-              errors={errors}
-              loading={loadingForm}
-              tags={tags}
-              difficultyOptions={difficultyOptions}
-              showTestCases={false} // Disable test cases in step 1
-            />
-          </>
+          <CommonQuestionForm
+            initialData={formData || initialData}
+            initialExamples={formData?.examples || initialExamples}
+            initialTestCases={initialTestCases}
+            isEditMode={false}
+            onSubmit={handleQuestionSubmit}
+            onCancel={handleCancel}
+            errors={errors}
+            loading={loadingForm}
+            tags={tags}
+            difficultyOptions={difficultyOptions}
+            showTestCases={false}
+          />
         )}
         {step === 2 && (
-          <>
-            <h1 className="text-2xl font-mono text-green-500 mb-6">Add Test Cases</h1>
-            <CommonQuestionForm
-              initialData={{}}
-              examples={[]}
-              testCases={testCasesData || initialTestCases}
-              isEditMode={false}
-              onSubmit={handleTestCasesSubmit}
-              onCancel={handleCancel}
-              errors={errors}
-              loading={loadingForm}
-              tags={[]}
-              difficultyOptions={[]}
-              showTestCases={true}
-              testCasesOnly={true} // Enable test case-only mode
-            />
-            <button
-              onClick={handleBack}
-              className="mt-4 border border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-mono py-2 px-4 rounded-lg transition duration-300"
-            >
-              Back to Question
-            </button>
-          </>
+          <CommonQuestionForm
+            initialData={{}}
+            initialExamples={[]}
+            initialTestCases={testCasesData || initialTestCases}
+            isEditMode={false}
+            onSubmit={handleTestCasesSubmit}
+            onCancel={handleCancel}
+            errors={errors}
+            loading={loadingForm}
+            tags={[]}
+            difficultyOptions={[]}
+            showTestCases={true}
+            testCasesOnly={true}
+          />
         )}
         {step === 3 && (
-          <>
-            <h1 className="text-2xl font-mono text-green-500 mb-6">Submit Solution</h1>
-            <CodeVerificationForm
-              questionId={questionId}
-              code={code}
-              setCode={setCode}
-              language={language}
-              onLanguageChange={handleLanguageChange}
-              testCases={testCasesData || []}
-              onVerifyCode={handleVerifyCode}
-              loadingVerify={loadingVerify}
-              disabled={false}
-            />
-            <button
-              onClick={handleBack}
-              className="mt-4 border border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-mono py-2 px-4 rounded-lg transition duration-300"
-            >
-              Back to Test Cases
-            </button>
-          </>
+          <CodeVerificationForm
+            questionId={questionId}
+            code={code}
+            setCode={setCode}
+            language={language}
+            onLanguageChange={handleLanguageChange}
+            testCases={testCasesData || initialTestCases}
+            onVerifyCode={handleVerifyCode}
+            loadingVerify={loadingVerify}
+            disabled={false}
+          />
         )}
       </div>
     </div>

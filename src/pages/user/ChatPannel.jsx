@@ -55,12 +55,14 @@ const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
 
       if (data.type === 'chat_message' && data.message && data.sender) {
         setMessages((prev) => {
-          // Avoid duplicates by checking message ID or content + sender
+          // Avoid duplicates
           if (
             prev.some(
               (msg) =>
                 msg.id === data.id ||
-                (msg.message === data.message && msg.user === data.sender && msg.time === formatIndianTime(data.timestamp))
+                (msg.message === data.message &&
+                  msg.user === data.sender &&
+                  msg.time === formatIndianTime(data.timestamp))
             )
           ) {
             return prev;
@@ -74,12 +76,18 @@ const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
             isSystem: data.is_system || false,
           };
 
-          if (!isActiveTab) {
-            onNewMessage(); // Trigger unread count increment
+          // Only increment unread count if:
+          // - Not on chat tab
+          // - Not a system message
+          if (!isActiveTab && !newMessage.isSystem) {
+            onNewMessage();
           }
+
           return [...prev, newMessage];
         });
-      } else if (data.type === 'chat_history') {
+      }
+
+      else if (data.type === 'chat_history') {
         const historyMessages = data.messages
           .filter((msg) => msg.message && msg.sender)
           .map((msg, index) => ({
@@ -91,13 +99,15 @@ const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
           }));
 
         setMessages((prev) => {
-          const existingMessages = prev.slice(1); // Keep welcome message
+          const existingMessages = prev.slice(1); // skip welcome
           const newMessages = historyMessages.filter(
             (msg) => !existingMessages.some((existing) => existing.id === msg.id)
           );
           return [prev[0], ...newMessages, ...existingMessages];
         });
-      } else if (data.type === 'room_closed') {
+      }
+
+      else if (data.type === 'room_closed') {
         setMessages([
           {
             id: 1,
@@ -107,7 +117,9 @@ const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
             isSystem: true,
           },
         ]);
-      } else if (data.type === 'error') {
+      }
+
+      else if (data.type === 'error') {
         console.warn('WebSocket error:', data.message);
       }
     };
@@ -148,6 +160,7 @@ const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
         {messages.map((msg) => (
           <div
@@ -185,6 +198,8 @@ const ChatPanel = ({ roomId, username, isActiveTab, onNewMessage }) => {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Input */}
       <div className="flex">
         <input
           type="text"

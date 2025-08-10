@@ -19,8 +19,11 @@ const LobbySidebar = ({
   getDifficultyStyles,
   unreadCount,
   setUnreadCount,
+  
 }) => {
+  console.log('unreadCount:', unreadCount)
   return (
+    
     <div className="lg:w-1/3 bg-gray-900/90 border border-[#00FF40]/20 rounded-2xl flex flex-col shadow-xl shadow-[#00FF40]/10 max-h-[80vh]">
       {/* Tab Navigation */}
       <div className="flex border-b border-[#00FF40]/30 bg-gray-950/50 rounded-t-2xl">
@@ -29,7 +32,7 @@ const LobbySidebar = ({
             key={tab}
             onClick={() => {
               setActiveTab(tab);
-              if (tab === 'chat') setUnreadCount(0); // Reset unread count when chat tab is opened
+              if (tab === 'chat') setUnreadCount(0); 
             }}
             className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-all duration-300 relative ${
               activeTab === tab
@@ -40,11 +43,12 @@ const LobbySidebar = ({
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === 'chat' && unreadCount > 0 && (
-              <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+    {unreadCount}
+  </span>
+)}
+
+          </button> 
         ))}
       </div>
 
@@ -55,6 +59,7 @@ const LobbySidebar = ({
             <div className="grid grid-cols-[120px_1fr] items-center gap-4">
               <span className="text-gray-400 font-medium">Room Name:</span>
               <span className="text-white font-semibold">{roomDetails?.roomName}</span>
+              
             </div>
             {role === 'host' && (
               <div className="grid grid-cols-[120px_1fr] items-center gap-4">
@@ -120,7 +125,7 @@ const LobbySidebar = ({
             isActiveTab={activeTab === 'chat'}
             onNewMessage={() => {
               if (activeTab !== 'chat') {
-                setUnreadCount((prev) => Math.max(0, prev + 1)); // Prevent negative counts
+                setUnreadCount((prev) => Math.max(0, prev + 1));
               }
             }}
           />

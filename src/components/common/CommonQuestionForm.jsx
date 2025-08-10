@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, HelpCircle, PlusSquare, X } from 'lucide-react';
+import { PlusSquare, X } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import CustomButton from '../ui/CustomButton';
 
@@ -100,38 +100,58 @@ const CommonQuestionForm = ({
   showTestCases = true,
   testCasesOnly = false,
 }) => {
-  const [formData, setFormData] = useState(initialData || {
-    title: '',
-    description: '',
-    difficulty: 'EASY',
-    tags: 'ARRAY',
-  });
-  const [examples, setExamples] = useState(initialExamples || [
-    { input_example: '', output_example: '', explanation: '', order: 0 },
-  ]);
-  const [testCases, setTestCases] = useState(initialTestCases || [
-    { input_data: '', expected_output: '', is_sample: false, order: 0 },
-  ]);
-  const [localErrors, setLocalErrors] = useState({});
-
-  useEffect(() => {
-    console.log('Updating CommonQuestionForm state:', { initialData, initialExamples, initialTestCases });
-    setFormData(initialData || {
+  const [formData, setFormData] = useState(
+    initialData || {
       title: '',
       description: '',
       difficulty: 'EASY',
       tags: 'ARRAY',
-    });
-    setExamples(
-      Array.isArray(initialExamples) ? initialExamples : [
-        { input_example: '', output_example: '', explanation: '', order: 0 },
-      ]
-    );
-    setTestCases(
-      Array.isArray(initialTestCases) ? initialTestCases : [
-        { input_data: '', expected_output: '', is_sample: false, order: 0 },
-      ]
-    );
+    }
+  );
+  const [examples, setExamples] = useState(
+    Array.isArray(initialExamples) && initialExamples.length > 0
+      ? initialExamples
+      : [{ input_example: '', output_example: '', explanation: '', order: 0 }]
+  );
+  const [testCases, setTestCases] = useState(
+    Array.isArray(initialTestCases) && initialTestCases.length > 0
+      ? initialTestCases
+      : [{ input_data: '', expected_output: '', is_sample: false, order: 0 }]
+  );
+  const [localErrors, setLocalErrors] = useState({});
+
+  useEffect(() => {
+    // Only update state if props have changed
+    if (initialData && JSON.stringify(initialData) !== JSON.stringify(formData)) {
+      setFormData(
+        initialData || {
+          title: '',
+          description: '',
+          difficulty: 'EASY',
+          tags: 'ARRAY',
+        }
+      );
+    }
+    if (
+      Array.isArray(initialExamples) &&
+      JSON.stringify(initialExamples) !== JSON.stringify(examples)
+    ) {
+      setExamples(
+        initialExamples.length > 0
+          ? initialExamples
+          : [{ input_example: '', output_example: '', explanation: '', order: 0 }]
+      );
+    }
+    if (
+      Array.isArray(initialTestCases) &&
+      JSON.stringify(initialTestCases) !== JSON.stringify(testCases)
+    ) {
+      setTestCases(
+        initialTestCases.length > 0
+          ? initialTestCases
+          : [{ input_data: '', expected_output: '', is_sample: false, order: 0 }]
+      );
+    }
   }, [initialData, initialExamples, initialTestCases]);
 
   const handleInputChange = (e) => {
@@ -172,7 +192,10 @@ const CommonQuestionForm = ({
   };
 
   const addExample = () => {
-    setExamples((prev) => [...prev, { input_example: '', output_example: '', explanation: '', order: prev.length }]);
+    setExamples((prev) => [
+      ...prev,
+      { input_example: '', output_example: '', explanation: '', order: prev.length },
+    ]);
   };
 
   const addTestCase = () => {
@@ -215,11 +238,9 @@ const CommonQuestionForm = ({
       if (!formData.title.trim()) {
         newErrors.title = 'Question title cannot be empty';
       }
-
       if (!formData.description.trim()) {
         newErrors.description = 'Description cannot be empty';
       }
-
       examples.forEach((example, index) => {
         if (!example.input_example.trim()) {
           newErrors[`example_${index}_input_example`] = 'Input example cannot be empty';
@@ -261,21 +282,6 @@ const CommonQuestionForm = ({
 
   return (
     <div className="p-6 md:p-8 lg:p-10 bg-black min-h-screen">
-      <header className="mb-8 flex items-center gap-4">
-        <button
-          onClick={onCancel}
-          className="text-gray-300 hover:text-green-400 transition-colors duration-200"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-2xl font-semibold text-green-400 font-['Roboto_Mono'] flex items-center gap-2">
-          <span className="text-gray-200">{'<'}</span>
-          {testCasesOnly ? 'Add Test Cases' : isEditMode ? 'Edit Question' : 'Create New Question'}
-          <span className="text-gray-200">{'/>'}</span>
-        </h1>
-      </header>
-
       <div className="bg-[#1a1a1a] p-6 rounded-xl border border-[#2d2d2d] shadow-lg">
         {!testCasesOnly && (
           <>
@@ -429,7 +435,9 @@ const CommonQuestionForm = ({
               <button
                 onClick={addExample}
                 disabled={loading}
-                className={`text-gray-300 hover:text-green-400 transition-colors duration-200 relative ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`text-gray-300 hover:text-green-400 transition-colors duration-200 relative ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 aria-label="Add Example"
               >
                 <PlusSquare className="w-6 h-6" />
@@ -488,7 +496,9 @@ const CommonQuestionForm = ({
                   ))}
                 </select>
                 {(errors.tags || localErrors.tags) && (
-                  <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">{errors.tags || localErrors.tags}</p>
+                  <p className="text-red-400 text-xs mt-1 font-['Roboto_Mono']">
+                    {errors.tags || localErrors.tags}
+                  </p>
                 )}
               </div>
             </div>
@@ -579,7 +589,9 @@ const CommonQuestionForm = ({
             <button
               onClick={addTestCase}
               disabled={loading}
-              className={`text-gray-300 hover:text-green-400 transition-colors duration-200 relative ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`text-gray-300 hover:text-green-400 transition-colors duration-200 relative ${
+                loading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               aria-label="Add Test Case"
             >
               <PlusSquare className="w-6 h-6" />
@@ -594,15 +606,12 @@ const CommonQuestionForm = ({
           <p className="text-red-400 text-sm mb-4 font-['Roboto_Mono']">{errors.general}</p>
         )}
 
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-end items-center gap-4">
           <CustomButton onClick={onCancel} variant="cancel" disabled={loading}>
             Cancel
           </CustomButton>
           <CustomButton onClick={handleFormSubmit} variant="create" disabled={loading}>
-            <span className="flex items-center gap-2">
-              <HelpCircle className="w-5 h-5" />
-              {testCasesOnly ? 'Submit Test Cases' : isEditMode ? 'Update' : 'Create'}
-            </span>
+            {testCasesOnly ? 'Submit Test Cases' : isEditMode ? 'Update' : 'Submit'}
           </CustomButton>
         </div>
       </div>

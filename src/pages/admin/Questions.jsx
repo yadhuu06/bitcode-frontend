@@ -54,7 +54,8 @@ const Questions = () => {
       try {
         await contributionStatusChange(questionId, { status });
         toast.success(`Contribution ${status.toLowerCase()} successfully`);
-        fetchQuestionsList();
+        await fetchQuestionsList();
+        setSelectedQuestion(null); // Close modal after status update
       } catch (err) {
         toast.error(err.error || 'Failed to update contribution status');
       }
@@ -414,8 +415,7 @@ const Questions = () => {
                 Edit
               </button>
               {selectedQuestion.is_contributed &&
-                selectedQuestion.contribution_status !== 'Accepted' &&
-                selectedQuestion.contribution_status !== 'Rejected' && (
+                !['Accepted', 'Rejected'].includes(selectedQuestion.contribution_status) && (
                   <>
                     <button
                       onClick={() => handleContributionStatus(selectedQuestion.question_id, 'Accepted')}
@@ -423,7 +423,7 @@ const Questions = () => {
                       title="Accept Contribution"
                     >
                       <CheckCircle className="w-5 h-5 mr-2 text-[#73E600]" />
-                      Accept 
+                      Accept
                     </button>
                     <button
                       onClick={() => handleContributionStatus(selectedQuestion.question_id, 'Rejected')}
@@ -431,7 +431,7 @@ const Questions = () => {
                       title="Reject Contribution"
                     >
                       <X className="w-5 h-5 mr-2 text-[#73E600]" />
-                      Reject 
+                      Reject
                     </button>
                   </>
                 )}

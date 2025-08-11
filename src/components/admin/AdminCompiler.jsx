@@ -1,32 +1,37 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import Editor from '@monaco-editor/react';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { Play, CheckCircle, XCircle } from 'lucide-react';
 import { fetchTestCases } from '../../services/ProblemService';
 import { verifyAnswer, fetchSolvedCodes } from '../../services/VerificationService';
+import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import CustomButton from '../ui/CustomButton';
 import LoadingIndicator from '../ui/LoadingIndicator';
 
 const AdminCompiler = ({ questionId }) => {
   const { questionId: paramQuestionId } = useParams();
   const effectiveQuestionId = questionId || paramQuestionId;
-  const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
-  const [testCases, setTestCases] = useState([]);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [solvedCodes, setSolvedCodes] = useState({});
+  const [code, setCode] = React.useState('');
+  const [language, setLanguage] = React.useState('javascript');
+  const [testCases, setTestCases] = React.useState([]);
+  const [results, setResults] = React.useState([]);
+  const [error, setError] = React.useState(null);
+  const [solvedCodes, setSolvedCodes] = React.useState({});
+
+  // Access global loading state
+  const { isLoading } = useSelector((state) => state.loading);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        dispatch(setLoading({ isLoading: true, message: 'Loading test cases and solved codes...' }));
         const testCaseResponse = await fetchTestCases(effectiveQuestionId);
         setTestCases(testCaseResponse.test_cases || []);
-        
+
         const solvedResponse = await fetchSolvedCodes(effectiveQuestionId);
         const codes = solvedResponse.solved_codes || {};
         setSolvedCodes(codes);
@@ -37,14 +42,14 @@ const AdminCompiler = ({ questionId }) => {
         setError(errorMessage.error || 'Failed to load test cases or solved codes');
         toast.error(errorMessage.error || 'Failed to load data');
       } finally {
-        setLoading(false);
+        dispatch(resetLoading());
       }
     };
     loadData();
-  }, [effectiveQuestionId]);
+  }, [effectiveQuestionId, dispatch]);
 
   const handleRunCode = useCallback(async () => {
-    setLoading(true);
+    dispatch(setLoading({ isLoading: true, message: 'Running code...' }));
     setError(null);
     setResults([]);
 
@@ -57,12 +62,12 @@ const AdminCompiler = ({ questionId }) => {
       setError(err.response?.data?.error || 'Failed to execute code');
       toast.error('Code execution failed');
     } finally {
-      setLoading(false);
+      dispatch(resetLoading());
     }
-  }, [code, language, effectiveQuestionId]);
+  }, [code, language, effectiveQuestionId, dispatch]);
 
   const handleVerifyCode = useCallback(async () => {
-    setLoading(true);
+    dispatch(setLoading({ isLoading: true, message: 'Verifying and saving code...' }));
     setError(null);
     setResults([]);
 
@@ -70,24 +75,26 @@ const AdminCompiler = ({ questionId }) => {
       const response = await verifyAnswer(effectiveQuestionId, code || '// Write your solution here\n', language);
       setResults(response.results || []);
       const allPassed = response.all_passed;
-      
+
       if (allPassed) {
         toast.success('All test cases passed! Solution saved.');
         setSolvedCodes((prev) => ({
           ...prev,
-          [language]: response.solved_code || { solution_code: code }
+          [language]: response.solved_code || { solution_code: code },
         }));
         setCode(response.solved_code?.solution_code || code);
       } else {
         toast.error('Some test cases failed.');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to verify code');
-      toast.error('Code verification failed');
+      // Enhanced error handling to capture all cases
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to verify code';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      dispatch(resetLoading());
     }
-  }, [code, language, effectiveQuestionId]);
+  }, [code, language, effectiveQuestionId, dispatch]);
 
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
@@ -103,7 +110,7 @@ const AdminCompiler = ({ questionId }) => {
     <div className="bg-gray-900/80 p-6 rounded-lg border border-gray-800">
       <h2 className="text-2xl font-bold text-[#73E600] mb-4">Admin Code Verification</h2>
 
-      {loading && <LoadingIndicator />}
+      {isLoading && <LoadingIndicator />}
       {error && (
         <div className="mb-4 p-4 bg-red-900/50 border border-red-700 text-red-400 rounded-lg flex items-center">
           <span className="w-5 h-5 mr-2">⚠️</span>
@@ -147,7 +154,7 @@ const AdminCompiler = ({ questionId }) => {
         <CustomButton
           variant="create"
           onClick={handleRunCode}
-          disabled={loading || testCases.length === 0}
+          disabled={isLoading || testCases.length === 0}
         >
           <Play className="w-4 h-4 mr-2" />
           Run Code
@@ -155,7 +162,7 @@ const AdminCompiler = ({ questionId }) => {
         <CustomButton
           variant="create"
           onClick={handleVerifyCode}
-          disabled={loading || testCases.length === 0}
+          disabled={isLoading || testCases.length === 0}
         >
           <CheckCircle className="w-4 h-4 mr-2" />
           Verify & Save
@@ -167,10 +174,7 @@ const AdminCompiler = ({ questionId }) => {
           <h3 className="text-lg font-semibold text-[#73E600] mb-2">Test Case Results</h3>
           <ul className="space-y-2">
             {results.map((result, index) => (
-              <li
-                key={index}
-                className="flex items-center gap-2 text-sm"
-              >
+              <li key={index} className="flex items-center gap-2 text-sm">
                 {result.passed ? (
                   <CheckCircle className="w-5 h-5 text-green-400" />
                 ) : (

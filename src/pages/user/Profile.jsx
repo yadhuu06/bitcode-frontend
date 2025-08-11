@@ -36,38 +36,33 @@ const Profile = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [stats, setStats] = useState({});
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
-      try {
-        const userData = await fetchProfile();
-        setUser(userData);
-        setUsername(userData.username || '');
-        setStats({ total_matches: userData.total_battles || 0, battles_won: userData.battles_won || 0 });
-        dispatch(updateProfile({ user: userData }));
-      } catch (error) {
-        showError(error.message || 'Failed to load profile data');
-        navigate('/login');
-      } finally {
-        dispatch(resetLoading());
-      }
-    };
-
-    if (!isAuthenticated) {
+useEffect(() => {
+  const fetchUserData = async () => {
+    dispatch(setLoading({ isLoading: true, message: 'Loading profile...', style: 'default', progress: 50 }));
+    try {
+      const userData = await fetchProfile();
+      setUser(userData);
+      setUsername(userData.username || '');
+      setStats({ total_matches: userData.total_battles || 0, battles_won: userData.battles_won || 0 });
+      dispatch(updateProfile({ user: userData }));
+    } catch (error) {
+      showError(error.message || 'Failed to load profile data');
       navigate('/login');
-    } else if (!reduxUser || reduxUser.total_battles === undefined || reduxUser.battles_won === undefined) {
-      fetchUserData();
-    } else {
-      setUser(reduxUser);
-      setUsername(reduxUser.username || '');
-      setStats({ total_matches: reduxUser.total_battles || 0, battles_won: reduxUser.battles_won || 0 });
-    }
-
-    return () => {
+    } finally {
       dispatch(resetLoading());
-    };
-  }, [dispatch, isAuthenticated, reduxUser, navigate]);
+    }
+  };
 
+  if (!isAuthenticated) {
+    navigate('/login');
+  } else {
+    fetchUserData();
+  }
+
+  return () => {
+    dispatch(resetLoading());
+  };
+}, [dispatch, isAuthenticated, navigate]);
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {

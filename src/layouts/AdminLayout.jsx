@@ -6,13 +6,15 @@ const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-black text-white font-mono">
       {/* Sidebar */}
       <Sidebar onCollapseChange={setCollapsed} />
 
       {/* Main content */}
       <main
-        className={`flex-1 p-4 overflow-y-auto transition-all duration-300 md:ml-${collapsed ? '16' : '64'}`}
+        className={`flex-1 p-4 md:p-8 transition-all duration-300 mt-16 md:mt-0 ${
+          collapsed ? 'md:ml-16' : 'md:ml-64'
+        }`}
       >
         <Outlet />
       </main>

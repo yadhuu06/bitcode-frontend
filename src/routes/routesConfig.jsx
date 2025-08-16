@@ -4,7 +4,7 @@ import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
 import UserLayout from '../layouts/UserLayout';
 import AdminLayout from '../layouts/AdminLayout';
-
+import PublicRoute from './PublicRoute';
 const AuthPage = lazy(() => import('../components/auth/AuthPage'));
 const AuthCallback = lazy(() => import('../components/auth/AuthCallback'));
 const ForgotPassword = lazy(() => import('../components/auth/ForgotPassword'));
@@ -29,12 +29,16 @@ const TestCaseManager = lazy(() => import('../components/admin/questions/TestCas
 const NotFound = lazy(() => import('../components/user/NotFound'));
 
 export const routesConfig = [
-  { path: ROUTES.HOME, element: <AuthPage /> },
-  { path: ROUTES.LOGIN, element: <AuthPage /> },
-  { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPassword /> },
-  { path: ROUTES.AUTH_CALLBACK, element: <AuthCallback /> },
-  { path: ROUTES.ADMIN_LOGIN, element: <BitWarAdminLogin /> },
-
+   {
+    element: <PublicRoute />,
+    children: [
+      { path: ROUTES.HOME, element: <AuthPage /> },
+      { path: ROUTES.LOGIN, element: <AuthPage /> },
+      { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPassword /> },
+      { path: ROUTES.AUTH_CALLBACK, element: <AuthCallback /> },
+      { path: ROUTES.ADMIN_LOGIN, element: <BitWarAdminLogin /> },
+    ],
+  },
   //  USER ROUTES
   {
     element: <PrivateRoute />,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Trophy } from 'lucide-react';
 import BattleLeaderboard from './BattleLeaderboard';
-
+import MDEditor from '@uiw/react-md-editor';
 const BattleSidebar = ({
   activeTab,
   setActiveTab,
@@ -52,7 +52,11 @@ const BattleSidebar = ({
         {activeTab === 'description' && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-green-500">{question?.title || 'Question'}</h3>
-            <p className="text-sm text-gray-300">{question?.description || 'No description available.'}</p>
+<MDEditor.Markdown 
+  source={question?.description || 'No description available.'} 
+  className="" 
+/>
+
             <h4 className="text-md font-medium text-green-400 mt-2">Examples:</h4>
             {testCases.length > 0 ? (
               testCases.slice(0, 3).map((tc, index) => (

@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { generateOtp, verifyOtp, resetPassword } from '../../services/AuthService';
-
+import { Home } from "lucide-react";
 const ForgotPassword = () => {
   const dispatch = useDispatch();
   const [step, setStep] = useState(1);
@@ -87,7 +87,7 @@ const ForgotPassword = () => {
       toast.error(strength.message);
       return;
     }
-    if (newPassword !== confirmPassword) {
+    if (newPassword502 !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
@@ -166,14 +166,21 @@ const ForgotPassword = () => {
           }
         `}
       </style>
-      <div className="fixed top-4 left-4 z-20">
-        <h2 className="text-xl font-semibold text-white">
+      <div className="fixed top-8 left-8 z-20"onClick={() => window.location.href = '/'}>
+        <h2 className="text-xl font-bold text-white">
           <span className="text-green-500">{'<'}</span>
-          Bit Code
+          BitCode/
           <span className="text-green-500">{">"}</span>
         </h2>
       </div>
-
+      <div className="fixed top-5 right-8 z-20">
+        <button
+          onClick={() => window.location.href = '/'}
+          className="bg- text-white  py-2 px-4 rounded-lg hover:text-green-400 transition-colors duration-200"
+        >
+          Back to Home
+        </button>
+      </div>
       <div className="w-full max-w-sm z-10">
         <h3 className="text-lg text-gray-300 mb-6 text-center">Password Reset</h3>
         <AnimatePresence mode="wait" custom={step}>

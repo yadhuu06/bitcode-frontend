@@ -5,13 +5,13 @@ import MDEditor from '@uiw/react-md-editor';
 const BattleSidebar = ({
   activeTab,
   setActiveTab,
-  question,
-  testCases,
-  results,
-  allPassed,
-  battleResults,
-  remainingTime,
-  currentUser,
+  question = {},
+  testCases = [],
+  results = [],
+  allPassed = false,
+  battleResults = [],
+  remainingTime = null,
+  currentUser = null,
 }) => {
   const [tabs] = useState([
     { id: 'description', label: 'Description' },
@@ -48,14 +48,28 @@ const BattleSidebar = ({
           </button>
         ))}
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500/50 scrollbar-track-gray-900">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500/50 scrollbar">
         {activeTab === 'description' && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-green-500">{question?.title || 'Question'}</h3>
-<MDEditor.Markdown 
-  source={question?.description || 'No description available.'} 
-  className="" 
-/>
+           <div className="space-y-4">
+      {/* Question Title */}
+      <h3 className="text-xl font-semibold text-green-500">
+        {question?.title || "Question"}
+      </h3>
+
+      {/* Question Description (Markdown) */}
+      <div data-color-mode="light">Discription:
+        <MDEditor.Markdown
+          source={question?.description || "No description available."}
+          style={{
+            backgroundColor: "transparent",
+            color: "inherit",
+            padding: 0,
+          }}
+          className="prose max-w-none"
+        />
+      </div>
+    </div>
 
             <h4 className="text-md font-medium text-green-400 mt-2">Examples:</h4>
             {testCases.length > 0 ? (

@@ -93,6 +93,9 @@ VITE_IMAGEKIT_PRIVATE_KEY=your_private_key
 ### Login
 ![Login](Live_images/login.png)
 
+### user profile
+![Lobby](Live_images/userprofile.png)
+
 ### rooms
 ![Lobby](Live_images/rooms.png)
 

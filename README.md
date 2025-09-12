@@ -14,10 +14,10 @@ A real-time competitive coding battle platform built with Django, React, and Web
 BitCode is a dynamic, scalable platform designed for real-time competitive programming battles.
 
 Users can:
->Join coding lobbies
->Compete head-to-head in 1v1, squad, or team battles
->Get instant feedback on submissions
->Track live leaderboards & rankings
+✅ Join coding lobbies
+✅ Compete head-to-head in 1v1, squad, or team battles
+✅ Get instant feedback on submissions
+✅ Track live leaderboards & rankings
 
 The platform prioritizes speed, reliability, and an engaging user experience, making it perfect for coders to sharpen their skills in a fun environment.
 
@@ -34,8 +34,6 @@ The platform prioritizes speed, reliability, and an engaging user experience, ma
 ⏳ Timed Challenges – Test your speed & accuracy under pressure.
 
 👥 Multiple Modes – 1v1 duels, 5-member squads, 10-team battles.
-
-🏆 Seasonal Rankings – Integrated Elo-based ranking system with seasonal resets for fair competition.
 
 💬 In-Game Chat – Chat with participants during battles.
 
@@ -94,10 +92,8 @@ VITE_IMAGEKIT_PRIVATE_KEY=your_private_key
 
 ### Login
 ![Login](Live_images/login.png)
-
-### user profile
+### profile
 ![Lobby](Live_images/userprofile.png)
-
 ### rooms
 ![Lobby](Live_images/rooms.png)
 

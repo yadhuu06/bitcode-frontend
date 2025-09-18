@@ -24,7 +24,7 @@ const Users = () => {
       setIsLoading(true);
       dispatch(setLoading({ isLoading: true, message: 'Fetching users...', style: 'compile' }));
       try {
-        const response = await api.get('/admin-panel/users_list/');
+        const response = await api.get('/admin-panel/users-list/');
         const rawUsers = response.data.users || [];
 
         const formattedUsers = rawUsers.map((user) => {
@@ -172,14 +172,14 @@ const Users = () => {
   const usersDisplayed = paginatedUsers.length;
   const usersLeft = totalUsers - endIndex;
 
-  // Calculate page numbers to display
+
   const getPageNumbers = () => {
     const halfMax = Math.floor(maxPageButtons / 2);
     let startPage = Math.max(1, currentPage - halfMax);
     let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
 
-    // Adjust maxPageButtons for smaller screens
-    const adjustedMaxPageButtons = window.innerWidth < 640 ? 3 : maxPageButtons; // Show only 3 buttons on mobile
+
+    const adjustedMaxPageButtons = window.innerWidth < 640 ? 3 : maxPageButtons; 
     if (endPage - startPage + 1 < adjustedMaxPageButtons) {
       startPage = Math.max(1, endPage - adjustedMaxPageButtons + 1);
     } else if (endPage - startPage + 1 > adjustedMaxPageButtons) {

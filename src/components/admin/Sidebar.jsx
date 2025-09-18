@@ -6,10 +6,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { logout as authLogout } from '../../services/AuthService';
-
+import { toast } from 'react-toastify';
 const Sidebar = ({ onCollapseChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false); // Desktop collapse state
-  const [isMobileOpen, setIsMobileOpen] = useState(false); // Mobile open/close state
+  const [isCollapsed, setIsCollapsed] = useState(false); 
+  const [isMobileOpen, setIsMobileOpen] = useState(false); 
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -22,7 +22,7 @@ const Sidebar = ({ onCollapseChange }) => {
   };
 
   const handleMobileToggle = () => {
-    setIsMobileOpen((prev) => !prev); // Toggle mobile menu
+    setIsMobileOpen((prev) => !prev);
   };
 
   const handleLogout = async () => {
@@ -30,10 +30,13 @@ const Sidebar = ({ onCollapseChange }) => {
     try {
       await authLogout(refreshToken);
       dispatch(logoutSuccess());
+      toast.success('Admin logout successful.');
+
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
       dispatch(logoutSuccess());
+      
       navigate('/');
     } finally {
       dispatch(resetLoading());

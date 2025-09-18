@@ -1,42 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { createSelector } from 'reselect';
 import { setLoading, resetLoading } from '../../store/slices/loadingSlice';
 import { loginSuccess } from '../../store/slices/authSlice';
 import { login as authLogin } from '../../services/AuthService';
-
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
 
-export default function AdminLogin() {
+// Memoized selector for loading state
+const selectLoadingState = createSelector(
+  [(state) => state.loading],
+  (loading) => ({
+    isLoading: loading.isLoading,
+    message: loading.message,
+    style: loading.style,
+  })
+);
+
+const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { isLoading } = useSelector(selectLoadingState);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    dispatch(setLoading({ isLoading: true, message: 'Connecting', style: 'battle' }));
-    try {
-      const data = await authLogin({ email, password });
-      Cookies.set('access_token', data.access, { secure: true, sameSite: 'Strict', expires: 7 });
-      Cookies.set('refresh_token', data.refresh, { secure: true, sameSite: 'Strict', expires: 7 });
-      Cookies.set('admin_id', data.admin_id, { secure: true, sameSite: 'Strict', expires: 7 });
-      dispatch(loginSuccess({ user: { email }, accessToken: data.access, refreshToken: data.refresh }));
-      toast.success(data.message || 'Login successful!', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-      navigate('/admin/dashboard');
-    } catch (err) {
-      toast.error(err.message || 'Login failed', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-    } finally {
-      dispatch(resetLoading());
-    }
-  };
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      dispatch(setLoading({ isLoading: true, message: 'Connecting', style: 'battle' }));
+      try {
+        const data = await authLogin({ email, password });
+        Cookies.set('access_token', data.access, { secure: true, sameSite: 'Strict', expires: 7 });
+        Cookies.set('refresh_token', data.refresh, { secure: true, sameSite: 'Strict', expires: 7 });
+        Cookies.set('admin_id', data.admin_id, { secure: true, sameSite: 'Strict', expires: 7 });
+        dispatch(loginSuccess({ user: { email }, accessToken: data.access, refreshToken: data.refresh }));
+        toast.success(data.message || 'Login successful!', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+        navigate('/admin/dashboard');
+      } catch (err) {
+        toast.error(err.message || 'Login failed', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } finally {
+        dispatch(resetLoading());
+      }
+    },
+    [dispatch, navigate, email, password]
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
@@ -96,10 +110,11 @@ export default function AdminLogin() {
             <div>
               <button
                 type="submit"
-                className={`w-full flex justify-center items-center py-2 px-4 border-2 rounded-md text-sm font-medium transition-all duration-300 relative border-[#00FF40] bg-[#00FF40] text-black hover:bg-transparent hover:text-[#00FF40] overflow-hidden group`}
+                disabled={isLoading}
+                className={`w-full flex justify-center items-center py-2 px-4 border-2 rounded-md text-sm font-medium transition-all duration-300 relative border-[#00FF40] bg-[#00FF40] text-black hover:bg-transparent hover:text-[#00FF40] overflow-hidden group ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span className="relative z-10 transition-all duration-300 group-hover:animate-pulse">
-                  Sign In
+                  {isLoading ? 'Loading...' : 'Sign In'}
                 </span>
               </button>
             </div>
@@ -110,7 +125,8 @@ export default function AdminLogin() {
       <footer className="py-4 text-center text-sm text-gray-500">
         © 2025 BitCode. All rights reserved.
       </footer>
-
     </div>
   );
-}
+};
+
+export default React.memo(AdminLogin);

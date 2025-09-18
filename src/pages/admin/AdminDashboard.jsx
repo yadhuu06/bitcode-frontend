@@ -22,7 +22,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!user || !accessToken) {
-      toast.error('Please log in to access the admin dashboard');
+      
       navigate('/login');
       return;
     }
@@ -41,7 +41,7 @@ const AdminDashboard = () => {
       })
       .catch((error) => toast.error(error.message || 'Failed to fetch dashboard data'))
       .finally(() => dispatch(resetLoading()));
-  }, [user, accessToken, navigate, dispatch]);
+  }, [user, accessToken,  dispatch]);
 
   const handleCollapseChange = (collapsed) => {
     setIsSidebarCollapsed(collapsed);
